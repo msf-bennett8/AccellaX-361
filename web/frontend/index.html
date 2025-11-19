@@ -1,32 +1,36 @@
 <!-- 
   File: web/frontend/public/index.html
-  AccellaX 361° - Enhanced Main HTML Entry Point
+  AccellaX 361° - Complete Enhanced Main HTML Entry Point
   
-  Description:
-  This is the root HTML file for the AccellaX 361° web application.
-  Fully optimized for performance, SEO, PWA capabilities, and accessibility.
+  Version: 2.1.0 (All Features Combined)
+  Last Updated: 2025-01-20
   
-  Enhancements over original:
-  - Enhanced security headers
-  - Better performance optimizations
-  - Improved PWA support
-  - Advanced accessibility features
-  - Comprehensive SEO
-  - Better error handling
-  - Network status management
-  - Install prompts
-  - Analytics integration
-  - Resource hints and preloading
+  Key Features:
+  - Enhanced security headers matching CSP requirements
+  - Multi-ring spinner with progress bar
+  - Complete PWA functionality with install prompts
+  - Service Worker with update detection
+  - Performance monitoring (Core Web Vitals, LCP, FID, CLS)
+  - Network Information API integration
+  - Battery Status API monitoring
+  - Offline/Online detection with auto-sync
+  - Memory warning system
+  - Comprehensive error tracking
+  - Enhanced accessibility features
+  - Better dark mode support
+  - Development utilities
+  - Complete structured data (including FAQ)
 -->
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
-    <!-- ==================== SECURITY HEADERS ==================== -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.cloudfunctions.net ws://localhost:* http://localhost:*; frame-src 'self';" />
+    <!-- ==================== SECURITY HEADERS (Enhanced from File 1) ==================== -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebase.com https://*.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com ws://localhost:* http://localhost:*; frame-src 'self' https://*.firebaseapp.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' blob: data:;" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(self), interest-cohort=()" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     
     <!-- ==================== BASIC META TAGS ==================== -->
@@ -53,7 +57,7 @@
     <meta name="geo.position" content="-1.286389;36.817223" />
     <meta name="ICBM" content="-1.286389, 36.817223" />
     
-    <!-- ==================== THEME & BRAND COLORS ==================== -->
+    <!-- ==================== THEME & BRAND COLORS (Enhanced) ==================== -->
     <meta name="theme-color" content="#2196F3" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#2196F3" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1565c0" />
@@ -88,7 +92,7 @@
     <meta name="twitter:image" content="https://accellax.com/twitter-card.png" />
     <meta name="twitter:image:alt" content="AccellaX 361° Platform Dashboard" />
     
-    <!-- ==================== FAVICON & ICONS (All Sizes) ==================== -->
+    <!-- ==================== FAVICON & ICONS (All Sizes - Combined) ==================== -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -115,7 +119,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-touch-fullscreen" content="yes" />
     
-    <!-- Apple Splash Screens (Various iPhone/iPad sizes) -->
+    <!-- Apple Splash Screens (All sizes combined) -->
     <link rel="apple-touch-startup-image" href="/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
     <link rel="apple-touch-startup-image" href="/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
     <link rel="apple-touch-startup-image" href="/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
@@ -136,26 +140,29 @@
     <meta name="msapplication-starturl" content="/" />
     <meta name="msapplication-tap-highlight" content="no" />
     
-    <!-- ==================== RESOURCE HINTS ==================== -->
-    <!-- DNS Prefetch for external resources -->
+    <!-- ==================== RESOURCE HINTS (Complete from both files) ==================== -->
+    <!-- DNS Prefetch -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
     <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
+    <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+    <link rel="dns-prefetch" href="https://www.googleapis.com" />
+    <link rel="dns-prefetch" href="https://securetoken.googleapis.com" />
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
     <link rel="dns-prefetch" href="https://www.google-analytics.com" />
     
-    <!-- Preconnect to critical external origins -->
+    <!-- Preconnect to critical origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin />
     
     <!-- Preload critical assets -->
     <link rel="preload" href="/src/index.jsx" as="script" crossorigin />
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" as="style" />
     
     <!-- ==================== GOOGLE FONTS ==================== -->
-    <!-- Inter: Primary font for body text -->
-    <!-- Poppins: Display font for headings and branding -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     
     <!-- ==================== CANONICAL URL ==================== -->
@@ -166,9 +173,9 @@
     <link rel="alternate" hreflang="sw" href="https://accellax.com/sw/" />
     <link rel="alternate" hreflang="x-default" href="https://accellax.com/" />
     
-    <!-- ==================== CRITICAL CSS (Inline for Performance) ==================== -->
+    <!-- ==================== CRITICAL CSS (Enhanced Loading Screen from File 1) ==================== -->
     <style>
-      /* Critical CSS for initial page load */
+      /* Reset & Base Styles */
       *, *::before, *::after {
         margin: 0;
         padding: 0;
@@ -187,18 +194,16 @@
       
       body {
         margin: 0;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         font-size: 16px;
         line-height: 1.6;
         color: #212121;
         background-color: #f5f5f5;
         overflow-x: hidden;
         min-height: 100%;
-        position: relative;
       }
       
-      /* Loading Screen Styles */
+      /* Enhanced Loading Screen (File 1 Version) */
       #loading-screen {
         position: fixed;
         top: 0;
@@ -222,35 +227,61 @@
       
       .loading-logo {
         font-family: 'Poppins', sans-serif;
-        font-size: clamp(2rem, 5vw, 3rem);
+        font-size: clamp(2rem, 5vw, 3.5rem);
         font-weight: 800;
         color: white;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
         animation: fadeInScale 0.6s ease-out;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        letter-spacing: -0.02em;
       }
       
       .loading-text {
         font-family: 'Inter', sans-serif;
-        font-size: clamp(1rem, 2vw, 1.125rem);
+        font-size: clamp(0.875rem, 2vw, 1.125rem);
         font-weight: 500;
         color: rgba(255, 255, 255, 0.95);
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
         animation: fadeIn 0.8s ease-out 0.2s both;
         text-align: center;
-        padding: 0 1rem;
+        padding: 0 1.5rem;
+        max-width: 90%;
       }
       
-      /* Enhanced Spinner Animation */
+      /* Enhanced Multi-Ring Spinner (File 1 Version) */
+      .spinner-container {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      
       .spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid rgba(255, 255, 255, 0.2);
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 3px solid rgba(255, 255, 255, 0.2);
         border-top-color: white;
         border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        animation: spin 1s ease-in-out infinite;
+      }
+      
+      .spinner:nth-child(2) {
+        width: 60px;
+        height: 60px;
+        top: 10px;
+        left: 10px;
+        border-width: 2px;
+        animation: spin 1.2s ease-in-out infinite reverse;
+      }
+      
+      .spinner:nth-child(3) {
+        width: 40px;
+        height: 40px;
+        top: 20px;
+        left: 20px;
+        border-width: 2px;
+        animation: spin 0.8s ease-in-out infinite;
       }
       
       @keyframes spin {
@@ -279,6 +310,40 @@
         }
       }
       
+      /* Loading Progress Bar (File 1 Version) */
+      .loading-progress {
+        width: 280px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        margin-top: 2rem;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      .loading-progress-bar {
+        height: 100%;
+        background: white;
+        border-radius: 2px;
+        animation: loadingProgress 2s ease-in-out infinite;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      }
+      
+      @keyframes loadingProgress {
+        0% {
+          width: 0%;
+          margin-left: 0%;
+        }
+        50% {
+          width: 60%;
+          margin-left: 20%;
+        }
+        100% {
+          width: 0%;
+          margin-left: 100%;
+        }
+      }
+      
       /* Root Container */
       #root {
         min-height: 100vh;
@@ -286,44 +351,48 @@
         position: relative;
       }
       
-      /* Offline Indicator */
+      /* Enhanced Offline Indicator */
       body.offline::before {
-        content: '⚠️ You are offline. Data will sync when connected.';
+        content: '⚠️ You are offline. Changes will sync when connected.';
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        background: #FF9800;
+        background: linear-gradient(90deg, #FF9800 0%, #F57C00 100%);
         color: white;
-        padding: 0.75rem 1rem;
+        padding: 0.875rem 1.5rem;
         text-align: center;
         font-weight: 600;
         z-index: 9998;
         font-size: 0.875rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        animation: slideInDown 0.4s ease-out;
+      }
+      
+      @keyframes slideInDown {
+        from {
+          transform: translateY(-100%);
+        }
+        to {
+          transform: translateY(0);
+        }
       }
       
       body.offline #root {
-        padding-top: 3rem;
+        padding-top: 3.5rem;
       }
       
-      /* Accessibility - Focus styles */
+      /* Accessibility - Enhanced Focus */
       *:focus-visible {
         outline: 3px solid #2196F3;
-        outline-offset: 2px;
-        border-radius: 2px;
+        outline-offset: 3px;
+        border-radius: 4px;
       }
       
-      button:focus-visible,
-      a:focus-visible {
-        outline: 3px solid #2196F3;
-        outline-offset: 2px;
-      }
-      
-      /* Skip to main content link */
+      /* Skip to main content */
       .skip-to-main {
         position: absolute;
-        top: -100px;
+        top: -200px;
         left: 0;
         background: #2196F3;
         color: white;
@@ -331,8 +400,10 @@
         text-decoration: none;
         z-index: 10000;
         font-weight: 600;
-        border-radius: 0 0 4px 0;
+        border-radius: 0 0 8px 0;
         transition: top 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        font-size: 0.875rem;
       }
       
       .skip-to-main:focus {
@@ -341,51 +412,81 @@
         outline-offset: -3px;
       }
       
-      /* Scrollbar Styles (Webkit browsers) */
+      /* Scrollbar Styles (Enhanced from File 1) */
       ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
+        width: 12px;
+        height: 12px;
       }
       
       ::-webkit-scrollbar-track {
         background: #f5f5f5;
+        border-radius: 6px;
       }
       
       ::-webkit-scrollbar-thumb {
-        background: #bdbdbd;
-        border-radius: 5px;
+        background: linear-gradient(180deg, #bdbdbd 0%, #9e9e9e 100%);
+        border-radius: 6px;
+        border: 2px solid #f5f5f5;
         transition: background 0.2s;
       }
       
       ::-webkit-scrollbar-thumb:hover {
-        background: #9e9e9e;
+        background: linear-gradient(180deg, #9e9e9e 0%, #757575 100%);
       }
       
-      /* Firefox scrollbar */
       * {
         scrollbar-width: thin;
         scrollbar-color: #bdbdbd #f5f5f5;
       }
       
-      /* No Script Warning */
+      /* NoScript Warning */
       .noscript-warning {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        background: #F44336;
+        background: linear-gradient(90deg, #F44336 0%, #D32F2F 100%);
         color: white;
-        padding: 1rem;
+        padding: 1.25rem 1.5rem;
         text-align: center;
         font-weight: 600;
         z-index: 10000;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        font-size: 0.9375rem;
+      }
+      
+      .noscript-warning strong {
+        display: block;
+        font-size: 1.125rem;
+        margin-bottom: 0.5rem;
+      }
+      
+      /* Dark Mode Support */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212;
+          color: #ffffff;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #1e1e1e;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #424242 0%, #616161 100%);
+          border-color: #1e1e1e;
+        }
+        
+        * {
+          scrollbar-color: #424242 #1e1e1e;
+        }
       }
       
       /* Print Styles */
       @media print {
         #loading-screen,
-        .noscript-warning {
+        .noscript-warning,
+        body.offline::before {
           display: none !important;
         }
         
@@ -395,14 +496,19 @@
         }
       }
       
-      /* High Contrast Mode Support */
+      /* High Contrast Mode */
       @media (prefers-contrast: high) {
         * {
           border-color: currentColor !important;
         }
+        
+        .spinner {
+          border-color: currentColor !important;
+          border-top-color: transparent !important;
+        }
       }
       
-      /* Reduced Motion Support */
+      /* Reduced Motion */
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -412,10 +518,28 @@
           transition-duration: 0.01ms !important;
           scroll-behavior: auto !important;
         }
+        
+        .spinner {
+          animation: none !important;
+          border-top-color: white;
+        }
+      }
+      
+      /* Screen Reader Only */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
       }
     </style>
     
-    <!-- ==================== STRUCTURED DATA (Enhanced JSON-LD) ==================== -->
+    <!-- ==================== STRUCTURED DATA (Enhanced with File 2's additions) ==================== -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -427,10 +551,10 @@
           "alternateName": "AccellaX",
           "applicationCategory": "BusinessApplication",
           "applicationSubCategory": "Sports Management",
-          "operatingSystem": ["Web", "Android", "iOS", "Windows", "macOS"],
+          "operatingSystem": ["Web Browser", "Android", "iOS", "Windows", "macOS", "Linux"],
           "url": "https://accellax.com",
           "description": "Sports academy attendance tracking and management platform with real-time analytics, offline-first capabilities, and comprehensive reporting tools for coaches, parents, and academy owners.",
-          "softwareVersion": "1.0.0",
+          "softwareVersion": "2.1.0",
           "datePublished": "2025-01-01",
           "dateModified": "2025-01-20",
           "offers": {
@@ -454,15 +578,17 @@
           },
           "featureList": [
             "Real-time attendance tracking",
-            "Offline-first functionality",
-            "Multi-role dashboards",
-            "Analytics and reporting",
-            "Parent portal",
-            "Coach management",
-            "Kid profiles",
-            "Event scheduling",
-            "Messaging system",
-            "Payment tracking"
+            "Offline-first functionality with automatic sync",
+            "Multi-role dashboards (Admin, Coach, Parent, Kid, Sponsor)",
+            "Advanced analytics and reporting",
+            "Parent portal with live updates",
+            "Coach management tools",
+            "Kid profiles and progress tracking",
+            "Event scheduling and calendar",
+            "In-app messaging system",
+            "Payment tracking",
+            "Performance monitoring",
+            "Data export capabilities"
           ],
           "screenshot": "https://accellax.com/screenshots/dashboard.png",
           "image": "https://accellax.com/og-image.png"
@@ -510,6 +636,62 @@
     }
     </script>
     
+    <!-- ==================== BREADCRUMBS STRUCTURED DATA ==================== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://accellax.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Dashboard",
+          "item": "https://accellax.com/dashboard"
+        }
+      ]
+    }
+    </script>
+    
+    <!-- ==================== FAQ STRUCTURED DATA ==================== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is AccellaX 361°?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AccellaX 361° is a comprehensive sports academy management platform that helps coaches track attendance, manage kids' profiles, generate analytics, and communicate with parents in real-time. It works offline-first and syncs when connected."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does AccellaX work offline?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! AccellaX 361° is built with offline-first technology. All attendance marking and data entry works without internet, and automatically syncs when you're back online."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who can use AccellaX?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AccellaX 361° is designed for sports academies with different user roles: Super Admins, Academy Owners, Coaches, Parents, Kids, and Sponsors. Each role has customized dashboards and permissions."
+          }
+        }
+      ]
+    }
+    </script>
+    
     <!-- ==================== GOOGLE ANALYTICS (Placeholder) ==================== -->
     <!-- Replace GA_MEASUREMENT_ID with your actual Google Analytics ID -->
     <!--
@@ -527,42 +709,76 @@
   </head>
   
   <body>
-    <!-- ==================== SKIP TO MAIN CONTENT (Accessibility) ==================== -->
-    <a href="#main-content" class="skip-to-main">
+    <!-- ==================== SKIP TO MAIN CONTENT ==================== -->
+    <a href="#main-content" class="skip-to-main" tabindex="1">
       Skip to main content (Alt + S)
     </a>
     
     <!-- ==================== NO SCRIPT WARNING ==================== -->
     <noscript>
-      <div class="noscript-warning">
-        <strong>⚠️ JavaScript Required</strong><br />
-        AccellaX 361° requires JavaScript to run. Please enable JavaScript in your browser settings to access the platform.
+      <div class="noscript-warning" role="alert">
+        <strong>⚠️ JavaScript Required</strong>
+        AccellaX 361° requires JavaScript to function. Please enable JavaScript in your browser settings.
       </div>
     </noscript>
     
-    <!-- ==================== LOADING SCREEN ==================== -->
-    <div id="loading-screen" aria-live="polite" aria-label="Loading application">
+    <!-- ==================== ENHANCED LOADING SCREEN ==================== -->
+    <div id="loading-screen" role="status" aria-live="polite" aria-label="Loading application">
       <div class="loading-logo" aria-hidden="true">
         AccellaX 361°
       </div>
       <div class="loading-text">
-        Loading your dashboard...
+        Initializing your sports management platform...
       </div>
-      <div class="spinner" role="status" aria-label="Loading">
-        <span class="sr-only">Loading...</span>
+      <div class="spinner-container" aria-hidden="true">
+        <div class="spinner"></div>
+        <div class="spinner"></div>
+        <div class="spinner"></div>
       </div>
+      <div class="loading-progress" aria-hidden="true">
+        <div class="loading-progress-bar"></div>
+      </div>
+      <span class="sr-only">Loading, please wait...</span>
     </div>
     
     <!-- ==================== REACT ROOT CONTAINER ==================== -->
-    <!-- This div is where the entire React application will be mounted -->
-    <div id="root" role="main"></div>
+    <div id="root" role="main" aria-label="AccellaX 361° Application"></div>
     
     <!-- ==================== MODULE SCRIPT ==================== -->
-    <!-- Vite will inject the bundled React application here -->
     <script type="module" src="/src/index.jsx"></script>
     
-    <!-- ==================== ENHANCED SERVICE WORKER & PWA FEATURES ==================== -->
+    <!-- ==================== COMPLETE INITIALIZATION & PWA FEATURES ==================== -->
     <script>
+      // ========== VERSION INFO ==========
+      window.__APP_VERSION__ = '2.1.0';
+      window.__BUILD_DATE__ = '2025-01-20';
+      
+      // ========== ENVIRONMENT DETECTION ==========
+      window.__IS_DEV__ = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      // ========== HIDE LOADING SCREEN HELPER ==========
+      window.hideLoadingScreen = function() {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+          loadingScreen.classList.add('hidden');
+          setTimeout(() => loadingScreen.remove(), 600);
+        }
+      };
+      
+      // ========== REACT APP READY CALLBACK ==========
+      window.reactAppReady = function() {
+        window.hideLoadingScreen();
+        console.log('✅ React app mounted successfully');
+      };
+      
+      // ========== FALLBACK TIMEOUT ==========
+      setTimeout(() => {
+        if (document.getElementById('loading-screen')) {
+          console.warn('⚠️ Loading took longer than expected');
+          window.hideLoadingScreen();
+        }
+      }, 8000);
+      
       // ========== SERVICE WORKER REGISTRATION ==========
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -600,29 +816,6 @@
           }
         });
       }
-      
-      // ========== HIDE LOADING SCREEN ==========
-      function hideLoadingScreen() {
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-          loadingScreen.classList.add('hidden');
-          setTimeout(() => {
-            loadingScreen.remove();
-          }, 500);
-        }
-      }
-      
-      // Hide loading screen when React is ready
-      window.addEventListener('DOMContentLoaded', () => {
-        // Fallback timeout if React doesn't load
-        const loadTimeout = setTimeout(hideLoadingScreen, 3000);
-        
-        // Clear timeout if React mounts successfully
-        window.reactAppReady = () => {
-          clearTimeout(loadTimeout);
-          hideLoadingScreen();
-        };
-      });
       
       // ========== ONLINE/OFFLINE DETECTION ==========
       function updateOnlineStatus() {
@@ -993,15 +1186,19 @@
       if (typeof console.log === 'function') {
         console.log(
           '%c AccellaX 361° ',
-          'background: linear-gradient(135deg, #2196F3 0%, #1976d2 100%); color: white; font-size: 24px; font-weight: bold; padding: 10px 20px; border-radius: 8px;'
+          'background: linear-gradient(135deg, #2196F3 0%, #1976d2 100%); color: white; font-size: 28px; font-weight: bold; padding: 12px 24px; border-radius: 8px; margin: 8px 0;'
         );
         console.log(
-          '%c 🚀 Sports Academy Management Platform ',
-          'font-size: 14px; font-weight: 600; color: #2196F3;'
+          '%c 🚀 Sports Academy Management Platform v' + window.__APP_VERSION__,
+          'font-size: 16px; font-weight: 600; color: #2196F3; margin: 4px 0;'
         );
         console.log(
-          '%c Version 1.0.0 | Built with React + Firebase ',
-          'font-size: 12px; color: #666;'
+          '%c Environment: ' + (window.__IS_DEV__ ? 'Development' : 'Production'),
+          'font-size: 12px; color: #757575; margin: 4px 0;'
+        );
+        console.log(
+          '%c Built: ' + window.__BUILD_DATE__,
+          'font-size: 12px; color: #757575; margin: 4px 0;'
         );
         console.log('');
         console.log('%c 💡 Tip: Press Alt + S to skip to main content', 'font-size: 11px; color: #888;');
@@ -1010,9 +1207,9 @@
       }
       
       // ========== DEVELOPMENT UTILITIES ==========
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      if (window.__IS_DEV__) {
         window.__ACCELLAX__ = {
-          version: '1.0.0',
+          version: window.__APP_VERSION__,
           clearCache: async () => {
             if ('caches' in window) {
               const names = await caches.keys();
@@ -1029,62 +1226,6 @@
         
         console.log('%c Development utilities loaded: window.__ACCELLAX__ ', 'background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px;');
       }
-    </script>
-    
-    <!-- ==================== STRUCTURED DATA FOR BREADCRUMBS ==================== -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://accellax.com/"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Dashboard",
-          "item": "https://accellax.com/dashboard"
-        }
-      ]
-    }
-    </script>
-    
-    <!-- ==================== FAQ STRUCTURED DATA ==================== -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "What is AccellaX 361°?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "AccellaX 361° is a comprehensive sports academy management platform that helps coaches track attendance, manage kids' profiles, generate analytics, and communicate with parents in real-time. It works offline-first and syncs when connected."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Does AccellaX work offline?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes! AccellaX 361° is built with offline-first technology. All attendance marking and data entry works without internet, and automatically syncs when you're back online."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Who can use AccellaX?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "AccellaX 361° is designed for sports academies with different user roles: Super Admins, Academy Owners, Coaches, Parents, Kids, and Sponsors. Each role has customized dashboards and permissions."
-          }
-        }
-      ]
-    }
     </script>
   </body>
 </html>

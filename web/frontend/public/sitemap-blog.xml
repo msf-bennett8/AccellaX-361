@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+AccellaX 361° - Blog Sitemap
+Sports Academy Attendance & Management Platform
+
+File: web/frontend/public/sitemap-blog.xml
+Version: 1.0.0
+Last Updated: 2025-01-20
+
+Purpose:
+This sitemap contains all blog posts, articles, and news content for
+AccellaX 361°. It helps search engines discover and index blog content
+efficiently, improving SEO for content marketing efforts.
+
+Documentation:
+- Google: https://developers.google.com/search/docs/advanced/sitemaps/build-sitemap
+- News Sitemap: https://developers.google.com/search/docs/advanced/sitemaps/news-sitemap
+
+Benefits:
+✓ Faster indexing of new blog posts
+✓ Better blog post visibility in search results
+✓ Improved content discovery
+✓ SEO boost for educational content
+✓ Better analytics on blog performance
+
+Content Strategy for AccellaX 361° Blog:
+- How-to guides for coaches and academy owners
+- Best practices for attendance management
+- Tips for parent engagement
+- Sports academy management insights
+- Technology in sports education
+- Success stories and case studies
+==============================================================================
+-->
+
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+                            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- 
+  ==============================================================================
+  BLOG INDEX PAGE
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/blog</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  BLOG CATEGORIES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/blog/category/attendance-management</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/category/coaching-tips</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/category/academy-management</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/category/parent-resources</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/category/technology</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/category/success-stories</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  RECENT BLOG POSTS (High Priority - Fresh Content)
+  ==============================================================================
+  -->
+
+  <!-- Latest Post -->
+  <url>
+    <loc>https://your-domain.com/blog/10-ways-to-improve-student-attendance-2025</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/digital-transformation-sports-academies</loc>
+    <lastmod>2025-01-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/parent-engagement-strategies-coaches</loc>
+    <lastmod>2025-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  EVERGREEN CONTENT (Medium Priority - Always Relevant)
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/complete-guide-sports-academy-management</loc>
+    <lastmod>2025-01-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/benefits-of-digital-attendance-tracking</loc>
+    <lastmod>2025-01-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/choosing-right-academy-management-software</loc>
+    <lastmod>2025-01-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/offline-first-apps-sports-coaches</loc>
+    <lastmod>2024-12-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/data-privacy-youth-sports-coppa-gdpr</loc>
+    <lastmod>2024-12-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  HOW-TO GUIDES (High SEO Value)
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/how-to-set-up-sports-academy-from-scratch</loc>
+    <lastmod>2024-12-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/how-to-track-attendance-without-internet</loc>
+    <lastmod>2024-12-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/how-to-communicate-with-parents-effectively</loc>
+    <lastmod>2024-12-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/how-to-generate-attendance-reports</loc>
+    <lastmod>2024-12-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/how-to-identify-chronic-absenteeism</loc>
+    <lastmod>2024-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  SUCCESS STORIES / CASE STUDIES
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/nextgen-academy-success-story</loc>
+    <lastmod>2024-11-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/how-coach-ahmed-improved-attendance-by-40-percent</loc>
+    <lastmod>2024-11-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/soccer-academy-nairobi-digital-transformation</loc>
+    <lastmod>2024-11-10</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  COACHING & TRAINING TIPS
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/motivating-young-athletes-to-attend-regularly</loc>
+    <lastmod>2024-11-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/building-strong-parent-coach-relationships</loc>
+    <lastmod>2024-11-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/age-appropriate-training-methods-youth-sports</loc>
+    <lastmod>2024-10-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  TECHNOLOGY & INNOVATION
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/future-of-sports-academy-management-technology</loc>
+    <lastmod>2024-10-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/mobile-apps-for-coaches-2025</loc>
+    <lastmod>2024-10-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/cloud-sync-benefits-academy-management</loc>
+    <lastmod>2024-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  FINANCIAL & BUSINESS TIPS
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/payment-tracking-sports-academies</loc>
+    <lastmod>2024-10-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/managing-scholarships-self-sponsored-students</loc>
+    <lastmod>2024-10-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/pricing-strategies-sports-academies</loc>
+    <lastmod>2024-09-25</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  COMPLIANCE & LEGAL
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/coppa-compliance-youth-sports-apps</loc>
+    <lastmod>2024-09-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/gdpr-data-protection-sports-organizations</loc>
+    <lastmod>2024-09-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/kenya-data-protection-act-sports-academies</loc>
+    <lastmod>2024-09-10</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  SEASONAL CONTENT
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/preparing-academy-new-term-2025</loc>
+    <lastmod>2024-12-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/summer-camp-management-tips</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/holiday-programme-planning-guide</loc>
+    <lastmod>2024-11-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  COMPARISON & REVIEW POSTS
+  ==============================================================================
+  -->
+
+  <url>
+    <loc>https://your-domain.com/blog/paper-vs-digital-attendance-tracking</loc>
+    <lastmod>2024-09-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/best-academy-management-software-2025</loc>
+    <lastmod>2024-12-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  IMPORTANT NOTES
+  ==============================================================================
+  
+  BLOG SEO BEST PRACTICES:
+  ✓ Update lastmod when posts are edited
+  ✓ Keep priority between 0.4-0.8 for blog posts
+  ✓ New posts should have priority 0.7-0.8
+  ✓ Older posts can have priority 0.4-0.6
+  ✓ Evergreen content maintains higher priority
+  ✓ Use meaningful, SEO-friendly URLs (slugs)
+  
+  CONTENT STRATEGY:
+  1. Publish 2-4 blog posts per month
+  2. Mix of how-to guides, tips, and case studies
+  3. Target long-tail keywords
+  4. Internal linking between related posts
+  5. Include images and videos (add to sitemap-images.xml)
+  6. Optimize meta descriptions and titles
+  7. Mobile-friendly formatting
+  
+  MAINTENANCE:
+  - Add new posts immediately after publishing
+  - Update lastmod dates when editing posts
+  - Remove deleted/404 posts
+  - Monitor indexing in Search Console
+  - Track rankings for target keywords
+  - Update old posts annually (keep content fresh)
+  
+  AUTOMATION:
+  - Auto-add new posts to sitemap via CMS
+  - Auto-update lastmod dates on edits
+  - Generate sitemap dynamically from database
+  - Use plugins (WordPress, Ghost, etc.)
+  
+  DEPLOYMENT CHECKLIST:
+  ✓ Replace 'your-domain.com' with actual domain
+  ✓ Update all dates to actual publication dates
+  ✓ Verify all URLs are accessible
+  ✓ Test XML validity
+  ✓ Submit to Google Search Console
+  ✓ Monitor indexing status
+  
+  ==============================================================================
+  END OF BLOG SITEMAP - AccellaX 361°
+  ==============================================================================
+  -->
+
+</urlset>

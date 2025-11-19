@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+AccellaX 361° - Comprehensive Sitemap
+Sports Academy Attendance & Management Platform
+
+File: web/frontend/public/sitemap.xml
+Version: 1.0.0
+Last Updated: 2025-01-20
+
+Purpose:
+This sitemap helps search engines discover and index public pages on the
+AccellaX 361° platform. It excludes all private/sensitive content (dashboards,
+kid data, attendance records, etc.) for privacy and COPPA/GDPR compliance.
+
+Documentation:
+- Google: https://developers.google.com/search/docs/advanced/sitemaps/build-sitemap
+- Bing: https://www.bing.com/webmasters/help/how-to-create-a-sitemap-435b6e8c
+- Standard: https://www.sitemaps.org/protocol.html
+
+Priority Guidelines:
+1.0 = Homepage (highest priority)
+0.8 = Main sections (features, about, contact)
+0.6 = Secondary pages (help, FAQ, blog posts)
+0.4 = Tertiary pages (blog archives, category pages)
+0.2 = Low priority (old content, less important pages)
+
+Change Frequency Guidelines:
+always  = Changes every time it's accessed (e.g., live scores)
+hourly  = Changes every hour
+daily   = Changes daily
+weekly  = Changes weekly
+monthly = Changes monthly
+yearly  = Changes yearly
+never   = Archived content that never changes
+==============================================================================
+-->
+
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+                            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- 
+  ==============================================================================
+  HOMEPAGE
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://your-domain.com/og-image.png</image:loc>
+      <image:title>AccellaX 361° - Sports Academy Management Platform</image:title>
+      <image:caption>Professional attendance tracking and management for sports academies</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  MAIN PAGES (High Priority)
+  ==============================================================================
+  -->
+
+  <!-- About Page -->
+  <url>
+    <loc>https://your-domain.com/about</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Features Page -->
+  <url>
+    <loc>https://your-domain.com/features</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Pricing Page -->
+  <url>
+    <loc>https://your-domain.com/pricing</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Contact Page -->
+  <url>
+    <loc>https://your-domain.com/contact</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Download App Page -->
+  <url>
+    <loc>https://your-domain.com/download-app</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  HELP & SUPPORT PAGES (Medium Priority)
+  ==============================================================================
+  -->
+
+  <!-- Help Center -->
+  <url>
+    <loc>https://your-domain.com/help</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- FAQ Page -->
+  <url>
+    <loc>https://your-domain.com/faq</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Getting Started Guide -->
+  <url>
+    <loc>https://your-domain.com/help/getting-started</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- For Coaches Guide -->
+  <url>
+    <loc>https://your-domain.com/help/coaches</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- For Parents Guide -->
+  <url>
+    <loc>https://your-domain.com/help/parents</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- For Academies Guide -->
+  <url>
+    <loc>https://your-domain.com/help/academies</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  FEATURE PAGES (Medium Priority)
+  ==============================================================================
+  -->
+
+  <!-- Attendance Tracking Feature -->
+  <url>
+    <loc>https://your-domain.com/features/attendance-tracking</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Multi-Role Dashboards Feature -->
+  <url>
+    <loc>https://your-domain.com/features/dashboards</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Offline-First Feature -->
+  <url>
+    <loc>https://your-domain.com/features/offline-mode</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Reports & Analytics Feature -->
+  <url>
+    <loc>https://your-domain.com/features/reports</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Messaging Feature -->
+  <url>
+    <loc>https://your-domain.com/features/messaging</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Payment Tracking Feature -->
+  <url>
+    <loc>https://your-domain.com/features/payments</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  LEGAL PAGES (Required for Compliance)
+  ==============================================================================
+  -->
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://your-domain.com/privacy</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Terms of Service -->
+  <url>
+    <loc>https://your-domain.com/terms</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Cookie Policy -->
+  <url>
+    <loc>https://your-domain.com/cookies</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- Data Protection (GDPR/COPPA Compliance) -->
+  <url>
+    <loc>https://your-domain.com/data-protection</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  BLOG PAGES (If you have a blog)
+  ==============================================================================
+  -->
+
+  <!-- Blog Index -->
+  <url>
+    <loc>https://your-domain.com/blog</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Example Blog Post 1 -->
+  <url>
+    <loc>https://your-domain.com/blog/how-to-improve-attendance</loc>
+    <lastmod>2025-01-15</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Example Blog Post 2 -->
+  <url>
+    <loc>https://your-domain.com/blog/benefits-of-digital-attendance</loc>
+    <lastmod>2025-01-10</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Example Blog Post 3 -->
+  <url>
+    <loc>https://your-domain.com/blog/choosing-sports-academy-software</loc>
+    <lastmod>2025-01-05</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  USE CASES / CASE STUDIES (Optional)
+  ==============================================================================
+  -->
+
+  <!-- Soccer Academies -->
+  <url>
+    <loc>https://your-domain.com/use-cases/soccer</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Basketball Academies -->
+  <url>
+    <loc>https://your-domain.com/use-cases/basketball</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Multi-Sport Academies -->
+  <url>
+    <loc>https://your-domain.com/use-cases/multi-sport</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  RESOURCES / DOWNLOADS (Optional)
+  ==============================================================================
+  -->
+
+  <!-- Resources Hub -->
+  <url>
+    <loc>https://your-domain.com/resources</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Mobile App Download (Android) -->
+  <url>
+    <loc>https://your-domain.com/download/android</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Mobile App Download (iOS) -->
+  <url>
+    <loc>https://your-domain.com/download/ios</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  COMPANY PAGES
+  ==============================================================================
+  -->
+
+  <!-- Careers -->
+  <url>
+    <loc>https://your-domain.com/careers</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Partners -->
+  <url>
+    <loc>https://your-domain.com/partners</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Press Kit -->
+  <url>
+    <loc>https://your-domain.com/press</loc>
+    <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  IMPORTANT NOTES
+  ==============================================================================
+  
+  EXCLUDED FROM SITEMAP (Private/Sensitive Content):
+  ✗ /dashboard/*        - User dashboards (all roles)
+  ✗ /login              - Authentication pages
+  ✗ /register           - Registration pages
+  ✗ /kids/*             - Kid profiles (COPPA/GDPR)
+  ✗ /attendance/*       - Attendance records (privacy)
+  ✗ /sessions/*         - Session details (internal)
+  ✗ /reports/*          - Reports (internal)
+  ✗ /messages/*         - Messaging system (private)
+  ✗ /payments/*         - Payment info (sensitive)
+  ✗ /analytics/*        - Analytics (internal)
+  ✗ /events/*           - Event management (internal)
+  ✗ /profile/*          - User profiles (private)
+  ✗ /settings/*         - Settings pages (private)
+  ✗ /admin/*            - Admin pages (sensitive)
+  ✗ /api/*              - API endpoints (not for crawling)
+  
+  MAINTENANCE TASKS:
+  1. Update lastmod dates when pages are updated
+  2. Add new public pages as they're created
+  3. Remove outdated/deleted pages
+  4. Submit to Google Search Console after changes
+  5. Submit to Bing Webmaster Tools after changes
+  6. Monitor crawl errors monthly
+  7. Update priorities based on traffic data
+  
+  TESTING:
+  - Validate XML: https://www.xml-sitemaps.com/validate-xml-sitemap.html
+  - Google Test: Search Console > Sitemaps > Test
+  - Bing Test: Webmaster Tools > Sitemaps > Test
+  
+  BEST PRACTICES:
+  ✓ Keep file under 50MB and 50,000 URLs (use sitemap index if larger)
+  ✓ Use absolute URLs (not relative)
+  ✓ Include only canonical URLs
+  ✓ Update lastmod dates when content changes
+  ✓ Use appropriate priority values (don't set everything to 1.0)
+  ✓ Set realistic change frequencies
+  ✓ Compress large sitemaps (gzip)
+  ✓ Submit sitemap URL to robots.txt
+  
+  DEPLOYMENT CHECKLIST:
+  ✓ Replace 'your-domain.com' with actual domain
+  ✓ Update all lastmod dates
+  ✓ Verify all URLs are accessible
+  ✓ Test XML validity
+  ✓ Submit to Google Search Console
+  ✓ Submit to Bing Webmaster Tools
+  ✓ Add sitemap URL to robots.txt
+  ✓ Monitor indexing status
+  
+  ADDITIONAL SITEMAPS (Create separate files if needed):
+  - sitemap-blog.xml (for blog posts)
+  - sitemap-images.xml (for images)
+  - sitemap-videos.xml (for videos)
+  - sitemap-index.xml (master sitemap linking to others)
+  
+  ==============================================================================
+  END OF SITEMAP - AccellaX 361°
+  ==============================================================================
+  -->
+
+</urlset>

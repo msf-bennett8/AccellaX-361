@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+AccellaX 361° - Sitemap Index (Master Sitemap)
+Sports Academy Attendance & Management Platform
+
+File: web/frontend/public/sitemap-index.xml
+Version: 1.0.0
+Last Updated: 2025-01-20
+
+Purpose:
+This is the master sitemap that links to all sub-sitemaps for AccellaX 361°.
+It helps search engines discover and efficiently crawl all public content
+by organizing URLs into logical groups.
+
+Documentation:
+- Google: https://developers.google.com/search/docs/advanced/sitemaps/large-sitemaps
+- Standard: https://www.sitemaps.org/protocol.html#index
+
+Benefits of Using Sitemap Index:
+✓ Organizes large sites with 50,000+ URLs
+✓ Separates content by type (pages, blog, images, videos)
+✓ Makes sitemap management easier
+✓ Allows independent update schedules for different content types
+✓ Improves crawl efficiency for search engines
+✓ Better analytics (track indexing by content type)
+
+Usage:
+Submit this sitemap-index.xml to:
+- Google Search Console: https://search.google.com/search-console
+- Bing Webmaster Tools: https://www.bing.com/webmasters
+- robots.txt: Sitemap: https://your-domain.com/sitemap-index.xml
+==============================================================================
+-->
+
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- 
+  ==============================================================================
+  MAIN PAGES SITEMAP
+  Core pages: homepage, about, features, contact, help, etc.
+  ==============================================================================
+  -->
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-pages.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+    <!-- Updated daily as core pages change frequently -->
+  </sitemap>
+
+  <!-- 
+  ==============================================================================
+  BLOG SITEMAP
+  All blog posts, articles, news, and content updates
+  ==============================================================================
+  -->
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-blog.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+    <!-- Updated daily when new blog posts are published -->
+  </sitemap>
+
+  <!-- 
+  ==============================================================================
+  IMAGES SITEMAP
+  All public images, screenshots, OG images, marketing assets
+  ==============================================================================
+  -->
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-images.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+    <!-- Updated weekly when new images are added -->
+  </sitemap>
+
+  <!-- 
+  ==============================================================================
+  HELP & DOCUMENTATION SITEMAP (Optional - Create if you have extensive docs)
+  ==============================================================================
+  -->
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-help.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+    <!-- Help articles, guides, FAQs, tutorials -->
+  </sitemap>
+
+  <!-- 
+  ==============================================================================
+  USE CASES SITEMAP (Optional - Create if you have many case studies)
+  ==============================================================================
+  -->
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-use-cases.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+    <!-- Soccer, basketball, multi-sport academies, testimonials -->
+  </sitemap>
+
+  <!-- 
+  ==============================================================================
+  RESOURCES SITEMAP (Optional - Create if you have downloads/resources)
+  ==============================================================================
+  -->
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-resources.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+    <!-- Downloads, templates, guides, whitepapers -->
+  </sitemap>
+
+  <!-- 
+  ==============================================================================
+  VIDEO SITEMAP (Optional - Create if you have video content)
+  ==============================================================================
+  -->
+  <!-- Uncomment when you add video content
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-videos.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+  </sitemap>
+  -->
+
+  <!-- 
+  ==============================================================================
+  NEWS SITEMAP (Optional - For Google News if you publish news)
+  ==============================================================================
+  -->
+  <!-- Uncomment if you want to be in Google News
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-news.xml</loc>
+    <lastmod>2025-01-20T10:00:00+00:00</lastmod>
+  </sitemap>
+  -->
+
+  <!-- 
+  ==============================================================================
+  MONTHLY/ARCHIVE SITEMAPS (For sites with thousands of blog posts)
+  ==============================================================================
+  -->
+  <!-- Example: Blog posts by month -->
+  <!--
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-blog-2025-01.xml</loc>
+    <lastmod>2025-01-31T23:59:59+00:00</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://your-domain.com/sitemap-blog-2024-12.xml</loc>
+    <lastmod>2024-12-31T23:59:59+00:00</lastmod>
+  </sitemap>
+  -->
+
+  <!-- 
+  ==============================================================================
+  IMPORTANT NOTES & BEST PRACTICES
+  ==============================================================================
+  
+  SITEMAP INDEX RULES:
+  - Can contain up to 50,000 sitemap references
+  - Each sitemap file can have up to 50,000 URLs
+  - Maximum sitemap file size: 50MB (uncompressed)
+  - Can use gzip compression (recommended for large sitemaps)
+  - All URLs must be from the same domain/subdomain
+  
+  MAINTENANCE TASKS:
+  1. Update lastmod timestamps when sitemaps are regenerated
+  2. Add new sitemap files as content grows
+  3. Remove obsolete sitemap files
+  4. Verify all sitemap URLs are accessible (200 status)
+  5. Test with Google Search Console sitemap report
+  6. Monitor indexing coverage and errors
+  
+  AUTOMATION RECOMMENDATIONS:
+  - Auto-generate sitemaps when content is published
+  - Update lastmod dates automatically
+  - Use server-side scripts or CMS plugins
+  - Set up cron jobs for periodic regeneration
+  - Notify search engines of updates via ping
+  
+  DEPLOYMENT CHECKLIST:
+  ✓ Replace 'your-domain.com' with actual domain
+  ✓ Create all referenced sitemap files
+  ✓ Verify all sitemap URLs return 200 status
+  ✓ Test XML validity
+  ✓ Add to robots.txt: Sitemap: https://your-domain.com/sitemap-index.xml
+  ✓ Submit to Google Search Console
+  ✓ Submit to Bing Webmaster Tools
+  ✓ Monitor crawl stats and coverage
+  
+  SEARCH ENGINE PING URLS (Optional - for automatic updates):
+  - Google: http://www.google.com/ping?sitemap=https://your-domain.com/sitemap-index.xml
+  - Bing: http://www.bing.com/ping?sitemap=https://your-domain.com/sitemap-index.xml
+  
+  TROUBLESHOOTING:
+  - Error "Couldn't fetch sitemap": Check URL accessibility
+  - Error "Invalid XML": Validate with online XML validators
+  - Low indexing: Check for robots.txt blocks, canonicals, redirects
+  - Slow crawling: Verify server response times, check crawl budget
+  
+  PERFORMANCE TIPS:
+  ✓ Compress sitemaps with gzip (saves bandwidth)
+  ✓ Use CDN for sitemap hosting (faster access)
+  ✓ Cache sitemaps (reduce server load)
+  ✓ Split large sitemaps by date or category
+  ✓ Use absolute URLs (never relative)
+  
+  ACCELLAX 361° SPECIFIC NOTES:
+  - Only public marketing pages included
+  - All private/sensitive content excluded (dashboards, kid data, etc.)
+  - COPPA/GDPR compliant (no personal data in sitemaps)
+  - Mobile app download pages included for discovery
+  - Blog/help content for SEO and user education
+  
+  ==============================================================================
+  END OF SITEMAP INDEX - AccellaX 361°
+  ==============================================================================
+  -->
+
+</sitemapindex>

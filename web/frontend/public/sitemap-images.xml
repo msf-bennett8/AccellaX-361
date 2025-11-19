@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+AccellaX 361° - Image Sitemap
+Sports Academy Attendance & Management Platform
+
+File: web/frontend/public/sitemap-images.xml
+Version: 1.0.0
+Last Updated: 2025-01-20
+
+Purpose:
+This sitemap contains all public images used across AccellaX 361°.
+It helps search engines discover and index images, improving visibility
+in Google Images and other image search engines.
+
+Documentation:
+- Google Images: https://developers.google.com/search/docs/advanced/sitemaps/image-sitemaps
+- Best Practices: https://developers.google.com/search/docs/appearance/google-images
+
+Benefits:
+✓ Improved image search visibility
+✓ Better image SEO and discoverability
+✓ Faster indexing of new images
+✓ Rich snippets in search results
+✓ Traffic from Google Images
+✓ Brand exposure through visuals
+
+Image SEO Best Practices:
+✓ Use descriptive, keyword-rich filenames
+✓ Provide detailed alt text and captions
+✓ Optimize file sizes (compress images)
+✓ Use WebP or modern formats
+✓ Include relevant geo-location data
+✓ Use high-quality, original images
+✓ Add structured data (schema.org)
+
+IMPORTANT: Only include PUBLIC images. Exclude:
+✗ Kid photos (COPPA/GDPR compliance)
+✗ Profile pictures (privacy)
+✗ User-uploaded content (consent required)
+✗ Internal screenshots with sensitive data
+==============================================================================
+-->
+
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+                            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- 
+  ==============================================================================
+  HOMEPAGE IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/</loc>
+    
+    <!-- Hero Image -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/hero-banner.jpg</image:loc>
+      <image:title>AccellaX 361° - Sports Academy Management Platform</image:title>
+      <image:caption>Professional attendance tracking and management system for sports academies, coaches, and athletes</image:caption>
+      <image:geo_location>Nairobi, Kenya</image:geo_location>
+      <image:license>https://your-domain.com/license</image:license>
+    </image:image>
+
+    <!-- Open Graph Image -->
+    <image:image>
+      <image:loc>https://your-domain.com/og-image.png</image:loc>
+      <image:title>AccellaX 361° - Social Media Preview</image:title>
+      <image:caption>Share AccellaX 361° on social media - Sports academy attendance and management platform</image:caption>
+    </image:image>
+
+    <!-- Twitter Card Image -->
+    <image:image>
+      <image:loc>https://your-domain.com/twitter-card.png</image:loc>
+      <image:title>AccellaX 361° - Twitter Card</image:title>
+      <image:caption>AccellaX 361° on Twitter - Digital attendance tracking for sports academies</image:caption>
+    </image:image>
+
+    <!-- Logo -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/accellax-logo.png</image:loc>
+      <image:title>AccellaX 361° Logo</image:title>
+      <image:caption>Official logo of AccellaX 361° sports academy management platform</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  FEATURES PAGE IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/features</loc>
+    
+    <!-- Attendance Tracking Screenshot -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/features/attendance-tracking-screenshot.png</image:loc>
+      <image:title>Attendance Tracking Interface</image:title>
+      <image:caption>Quick and easy attendance marking with swipe gestures - mark 50+ students in under 2 minutes</image:caption>
+    </image:image>
+
+    <!-- Dashboard Screenshot -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/features/coach-dashboard.png</image:loc>
+      <image:title>Coach Dashboard</image:title>
+      <image:caption>Real-time analytics and insights for coaches - track attendance patterns and student progress</image:caption>
+    </image:image>
+
+    <!-- Mobile App Screenshot -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/features/mobile-app-offline.png</image:loc>
+      <image:title>Offline-First Mobile App</image:title>
+      <image:caption>Works without internet connection - perfect for outdoor training sessions and remote locations</image:caption>
+    </image:image>
+
+    <!-- Reports Screenshot -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/features/attendance-reports.png</image:loc>
+      <image:title>Attendance Reports & Analytics</image:title>
+      <image:caption>Generate comprehensive attendance reports with filters for chronic absentees and attendance patterns</image:caption>
+    </image:image>
+
+    <!-- Multi-Role Dashboard -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/features/multi-role-dashboard.png</image:loc>
+      <image:title>Multi-Role Dashboards</image:title>
+      <image:caption>Separate dashboards for coaches, parents, kids, and academy owners - everyone sees what they need</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  ABOUT PAGE IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/about</loc>
+    
+    <!-- Team Photo (if public) -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/about/team-photo.jpg</image:loc>
+      <image:title>AccellaX 361° Team</image:title>
+      <image:caption>Meet the team behind AccellaX 361° - passionate about sports education and technology</image:caption>
+      <image:geo_location>Nairobi, Kenya</image:geo_location>
+    </image:image>
+
+    <!-- Mission Image -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/about/mission-vision.jpg</image:loc>
+      <image:title>Our Mission</image:title>
+      <image:caption>Empowering sports academies with technology to improve attendance and student outcomes</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  DOWNLOAD APP PAGE IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/download-app</loc>
+    
+    <!-- App Icon -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/app-icon-512.png</image:loc>
+      <image:title>AccellaX 361° Mobile App Icon</image:title>
+      <image:caption>Download AccellaX 361° mobile app for Android and iOS - attendance tracking on the go</image:caption>
+    </image:image>
+
+    <!-- QR Code for Download -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/qr-code-download.png</image:loc>
+      <image:title>Download App - QR Code</image:title>
+      <image:caption>Scan QR code to download AccellaX 361° mobile app directly to your device</image:caption>
+    </image:image>
+
+    <!-- App Screenshots -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/app-screenshots/home-screen.png</image:loc>
+      <image:title>Mobile App - Home Screen</image:title>
+      <image:caption>AccellaX 361° mobile app home screen showing today's training sessions</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://your-domain.com/images/app-screenshots/attendance-marking.png</image:loc>
+      <image:title>Mobile App - Attendance Marking</image:title>
+      <image:caption>Swipe right to mark present, left for absent - intuitive attendance tracking interface</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  BLOG POST IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/blog/10-ways-to-improve-student-attendance-2025</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/blog/improve-attendance-featured.jpg</image:loc>
+      <image:title>10 Ways to Improve Student Attendance in 2025</image:title>
+      <image:caption>Proven strategies for sports coaches to boost attendance rates and student engagement</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://your-domain.com/images/blog/attendance-stats-infographic.png</image:loc>
+      <image:title>Attendance Statistics Infographic</image:title>
+      <image:caption>Visual breakdown of attendance patterns and their impact on student performance</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/blog/digital-transformation-sports-academies</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/blog/digital-transformation-featured.jpg</image:loc>
+      <image:title>Digital Transformation in Sports Academies</image:title>
+      <image:caption>How technology is revolutionizing sports education and academy management</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  USE CASE IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/use-cases/soccer</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/use-cases/soccer-academy.jpg</image:loc>
+      <image:title>AccellaX 361° for Soccer Academies</image:title>
+      <image:caption>Track attendance for soccer training sessions, tournaments, and camps with ease</image:caption>
+      <image:geo_location>Kenya</image:geo_location>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://your-domain.com/images/use-cases/soccer-dashboard.png</image:loc>
+      <image:title>Soccer Academy Dashboard</image:title>
+      <image:caption>Real-time analytics for soccer academies - attendance, performance, and progress tracking</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://your-domain.com/use-cases/basketball</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/use-cases/basketball-academy.jpg</image:loc>
+      <image:title>AccellaX 361° for Basketball Academies</image:title>
+      <image:caption>Manage basketball training attendance, track player progress, and communicate with parents</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  HELP CENTER IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/help/getting-started</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/help/onboarding-screen.png</image:loc>
+      <image:title>Getting Started - Onboarding Screen</image:title>
+      <image:caption>Step-by-step guide to setting up your AccellaX 361° account</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://your-domain.com/images/help/add-kids-tutorial.png</image:loc>
+      <image:title>How to Add Kids to Your Roster</image:title>
+      <image:caption>Tutorial showing how to add students/athletes to your academy roster</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  PRICING PAGE IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/pricing</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/pricing/pricing-comparison.png</image:loc>
+      <image:title>AccellaX 361° Pricing Plans</image:title>
+      <image:caption>Compare pricing plans for individual coaches, small academies, and large organizations</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  CONTACT PAGE IMAGES
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/contact</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/contact/office-location.jpg</image:loc>
+      <image:title>AccellaX 361° Office Location</image:title>
+      <image:caption>Visit our office in Nairobi, Kenya - We're here to help with your academy management needs</image:caption>
+      <image:geo_location>Nairobi, Kenya</image:geo_location>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  ICONS & UI ELEMENTS (If useful for SEO)
+  ==============================================================================
+  -->
+  <url>
+    <loc>https://your-domain.com/features</loc>
+    
+    <!-- Feature Icons -->
+    <image:image>
+      <image:loc>https://your-domain.com/images/icons/offline-icon.svg</image:loc>
+      <image:title>Offline Mode Icon</image:title>
+      <image:caption>Works without internet - offline-first architecture</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://your-domain.com/images/icons/cloud-sync-icon.svg</image:loc>
+      <image:title>Cloud Sync Icon</image:title>
+      <image:caption>Automatic cloud synchronization when internet is available</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://your-domain.com/images/icons/analytics-icon.svg</image:loc>
+      <image:title>Analytics Icon</image:title>
+      <image:caption>Comprehensive analytics and reporting tools</image:caption>
+    </image:image>
+  </url>
+
+  <!-- 
+  ==============================================================================
+  TESTIMONIALS / SOCIAL PROOF IMAGES (If you have them)
+  ==============================================================================
+  -->
+  <!-- Note: Only include if people have given explicit consent -->
+  <!--
+  <url>
+    <loc>https://your-domain.com/testimonials</loc>
+    
+    <image:image>
+      <image:loc>https://your-domain.com/images/testimonials/coach-testimonial.jpg</image:loc>
+      <image:title>Coach Testimonial</image:title>
+      <image:caption>Real feedback from coaches using AccellaX 361°</image:caption>
+    </image:image>
+  </url>
+  -->
+
+  <!-- 
+  ==============================================================================
+  IMPORTANT NOTES & BEST PRACTICES
+  ==============================================================================
+  
+  IMAGE SEO CHECKLIST:
+  ✓ Use descriptive filenames (not IMG_1234.jpg)
+  ✓ Compress images (use WebP, optimize JPG/PNG)
+  ✓ Add detailed alt text and captions
+  ✓ Include geo-location for local SEO
+  ✓ Use high-quality, original images (not stock photos)
+  ✓ Specify image license if applicable
+  ✓ Keep file sizes under 200KB when possible
+  ✓ Use responsive images (srcset)
+  
+  PRIVACY & COMPLIANCE:
+  ✗ NEVER include kid photos without parental consent
+  ✗ NEVER include profile pictures of users
+  ✗ NEVER include screenshots with personal data
+  ✗ NEVER include user-generated content without permission
+  ✓ Only use generic, non-identifying images
+  ✓ Use stock photos or created graphics for marketing
+  ✓ Get written consent for testimonial photos
+  
+  IMAGE FORMATS:
+  - WebP: Best for web (smaller file sizes, good quality)
+  - PNG: Transparent backgrounds, logos, icons
+  - JPG: Photos, complex images
+  - SVG: Vector graphics, icons, logos (scalable)
+  
+  OPTIMIZATION TOOLS:
+  - TinyPNG (compression)
+  - ImageOptim (Mac)
+  - Squoosh (online)
+  - Cloudflare Polish (automatic)
+  - WebP converter tools
+  
+  MAINTENANCE:
+  - Add new images immediately after upload
+  - Update captions to improve SEO
+  - Remove deleted/404 images
+  - Compress large images regularly
+  - Monitor image indexing in Search Console
+  - Track image search traffic in Analytics
+  
+  DEPLOYMENT CHECKLIST:
+  ✓ Replace 'your-domain.com' with actual domain
+  ✓ Verify all image URLs are accessible (200 status)
+  ✓ Check image file sizes (<200KB recommended)
+  ✓ Validate alt text and captions
+  ✓ Test XML validity
+  ✓ Submit to Google Search Console
+  ✓ Monitor image indexing
+  
+  ADVANCED TIPS:
+  ✓ Use CDN for faster image loading
+  ✓ Implement lazy loading
+  ✓ Add structured data (schema.org)
+  ✓ Use responsive images (multiple sizes)
+  ✓ Add EXIF data (camera info, location)
+  ✓ Create image thumbnails
+  ✓ Use alt text for accessibility
+  
+  ==============================================================================
+  END OF IMAGE SITEMAP - AccellaX 361°
+  ==============================================================================
+  -->
+
+</urlset>

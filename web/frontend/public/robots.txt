@@ -1,0 +1,700 @@
+# ==============================================================================
+# AccellaX 361° - Comprehensive Robots.txt File
+# Sports Academy Attendance & Management Platform
+# 
+# File: web/frontend/public/robots.txt
+# Version: 2.2.0
+# Last Updated: 2025-01-20
+# 
+# Purpose:
+# This file tells search engine crawlers which pages or files they can or 
+# cannot request from your site. This helps with SEO, security, and prevents
+# crawling of sensitive or duplicate content.
+# 
+# Documentation:
+# - Google: https://developers.google.com/search/docs/advanced/robots/intro
+# - Bing: https://www.bing.com/webmasters/help/robots-txt-file-faq-6f008ff9
+# - Standard: https://www.robotstxt.org/
+# ==============================================================================
+
+# ==============================================================================
+# MAIN SEARCH ENGINES - ALLOW ALL PUBLIC CONTENT
+# ==============================================================================
+
+# Google Bot (Main crawler)
+User-agent: Googlebot
+Allow: /
+Allow: /about
+Allow: /features
+Allow: /contact
+Allow: /help
+Allow: /faq
+Allow: /download-app
+Allow: /pricing
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /_next/
+Disallow: /node_modules/
+Disallow: /*.json$
+Disallow: /*?*source=
+Disallow: /search
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /settings/
+Disallow: /messages/
+Disallow: /payments/
+Disallow: /kids/
+Disallow: /attendance/
+Disallow: /reports/
+Disallow: /events/
+Disallow: /analytics/
+Crawl-delay: 1
+
+# Google Image Bot
+User-agent: Googlebot-Image
+Allow: /images/
+Allow: /screenshots/
+Allow: /og-image.png
+Allow: /twitter-card.png
+Allow: /assets/images/public/
+Disallow: /uploads/
+Disallow: /private/
+Disallow: /kids/photos/
+Disallow: /profile-pictures/
+Disallow: /assets/images/kids/
+Disallow: /assets/images/profiles/
+
+# Google Mobile Bot
+User-agent: Googlebot-Mobile
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+Crawl-delay: 1
+
+# Bing Bot
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /settings/
+Disallow: /kids/
+Disallow: /attendance/
+Crawl-delay: 1
+
+# Yahoo Bot
+User-agent: Slurp
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /dashboard/
+Crawl-delay: 2
+
+# DuckDuckGo Bot
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /dashboard/
+Crawl-delay: 1
+
+# Yandex Bot (Russian search engine)
+User-agent: Yandex
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /dashboard/
+Crawl-delay: 2
+
+# Baidu Bot (Chinese search engine)
+User-agent: Baiduspider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /dashboard/
+Crawl-delay: 3
+
+# ==============================================================================
+# SOCIAL MEDIA CRAWLERS - ALLOW OG TAGS & IMAGES
+# ==============================================================================
+
+# Facebook Bot (for Open Graph previews)
+User-agent: facebookexternalhit
+Allow: /
+Allow: /og-image.png
+Allow: /twitter-card.png
+Allow: /images/
+Allow: /screenshots/
+Allow: /assets/images/public/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+Disallow: /attendance/
+
+# Twitter Bot (for Twitter Card previews)
+User-agent: Twitterbot
+Allow: /
+Allow: /og-image.png
+Allow: /twitter-card.png
+Allow: /images/
+Allow: /screenshots/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+
+# LinkedIn Bot
+User-agent: LinkedInBot
+Allow: /
+Allow: /og-image.png
+Allow: /images/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+
+# Pinterest Bot
+User-agent: Pinterestbot
+Allow: /images/
+Allow: /screenshots/
+Allow: /assets/images/public/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+
+# WhatsApp Bot (for link previews)
+User-agent: WhatsApp
+Allow: /
+Allow: /og-image.png
+Allow: /images/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+
+# Telegram Bot (for link previews)
+User-agent: TelegramBot
+Allow: /
+Allow: /og-image.png
+Allow: /images/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+
+# ==============================================================================
+# GOOD BOTS - SEO & MONITORING TOOLS
+# ==============================================================================
+
+# Ahrefs Bot (SEO tool)
+User-agent: AhrefsBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+Crawl-delay: 5
+
+# Semrush Bot (SEO tool)
+User-agent: SemrushBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+Crawl-delay: 5
+
+# Moz Bot (SEO tool)
+User-agent: rogerbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+Crawl-delay: 5
+
+# Screaming Frog (SEO crawler)
+User-agent: Screaming Frog SEO Spider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /kids/
+
+# Lighthouse (Google performance tool)
+User-agent: Chrome-Lighthouse
+Allow: /
+
+# ==============================================================================
+# BAD BOTS - SCRAPERS & MALICIOUS CRAWLERS (BLOCK)
+# ==============================================================================
+
+# Generic scrapers
+User-agent: EmailCollector
+Disallow: /
+
+User-agent: EmailSiphon
+Disallow: /
+
+User-agent: WebBandit
+Disallow: /
+
+User-agent: EmailWolf
+Disallow: /
+
+User-agent: ExtractorPro
+Disallow: /
+
+User-agent: CopyRightCheck
+Disallow: /
+
+User-agent: Crescent
+Disallow: /
+
+User-agent: SiteSnagger
+Disallow: /
+
+User-agent: ProWebWalker
+Disallow: /
+
+User-agent: CheeseBot
+Disallow: /
+
+User-agent: Teleport
+Disallow: /
+
+User-agent: TeleportPro
+Disallow: /
+
+User-agent: MIIxpc
+Disallow: /
+
+User-agent: Telesoft
+Disallow: /
+
+User-agent: Website Quester
+Disallow: /
+
+User-agent: WebZip
+Disallow: /
+
+User-agent: moget
+Disallow: /
+
+User-agent: WebReaper
+Disallow: /
+
+User-agent: WebSauger
+Disallow: /
+
+User-agent: WebCopier
+Disallow: /
+
+User-agent: NetAnts
+Disallow: /
+
+User-agent: Mister PiX
+Disallow: /
+
+User-agent: WebAuto
+Disallow: /
+
+User-agent: TheNomad
+Disallow: /
+
+User-agent: WWW-Collector-E
+Disallow: /
+
+User-agent: RMA
+Disallow: /
+
+User-agent: libWeb/clsHTTP
+Disallow: /
+
+User-agent: asterias
+Disallow: /
+
+User-agent: httplib
+Disallow: /
+
+User-agent: turingos
+Disallow: /
+
+User-agent: spanner
+Disallow: /
+
+User-agent: InfoNaviRobot
+Disallow: /
+
+User-agent: Harvest
+Disallow: /
+
+User-agent: audit
+Disallow: /
+
+User-agent: sucker
+Disallow: /
+
+User-agent: wget
+Disallow: /
+
+User-agent: curl
+Disallow: /
+
+User-agent: Widow
+Disallow: /
+
+User-agent: Zeus
+Disallow: /
+
+User-agent: RepoMonkey
+Disallow: /
+
+User-agent: Microsoft URL Control
+Disallow: /
+
+User-agent: Vagabondo
+Disallow: /
+
+User-agent: WebStripper
+Disallow: /
+
+User-agent: NetMechanic
+Disallow: /
+
+User-agent: BackDoorBot
+Disallow: /
+
+# AI Scrapers (Consider blocking if you don't want AI training on your content)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+# Image Scrapers
+User-agent: ImageSaver
+Disallow: /
+
+User-agent: ImageSucker
+Disallow: /
+
+User-agent: FlickBot
+Disallow: /
+
+# SEO Spammers
+User-agent: SemrushBot-SA
+Disallow: /
+
+User-agent: SeznamBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+# ==============================================================================
+# DEFAULT RULES FOR ALL OTHER BOTS
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /contact
+Allow: /features
+Allow: /pricing
+Allow: /blog
+Allow: /help
+Allow: /faq
+Allow: /download-app
+
+# Block sensitive areas (AccellaX-specific)
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /register
+Disallow: /signup
+Disallow: /signin
+Disallow: /logout
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /verify-email
+Disallow: /elevate-role
+Disallow: /private/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /settings/
+Disallow: /account/
+Disallow: /messages/
+Disallow: /inbox/
+Disallow: /notifications/
+Disallow: /payments/
+Disallow: /billing/
+Disallow: /checkout/
+Disallow: /cart/
+
+# Block kid and attendance data (Privacy protection)
+Disallow: /kids/
+Disallow: /kid/
+Disallow: /children/
+Disallow: /athletes/
+Disallow: /students/
+Disallow: /coaches/
+Disallow: /coach/
+Disallow: /attendance/
+Disallow: /sessions/
+Disallow: /session/
+Disallow: /reports/
+Disallow: /analytics/
+Disallow: /export/
+Disallow: /import/
+Disallow: /uploads/
+Disallow: /download/
+
+# Block event-specific pages (Internal use)
+Disallow: /events/create
+Disallow: /events/edit
+Disallow: /events/delete
+Disallow: /activities/
+Disallow: /tournaments/
+
+# Block sponsor data
+Disallow: /sponsors/dashboard
+Disallow: /sponsor/
+Disallow: /scholarships/
+
+# Block technical directories
+Disallow: /_next/
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /.env
+Disallow: /config/
+Disallow: /src/
+Disallow: /build/
+Disallow: /dist/
+Disallow: /backend/
+Disallow: /frontend/
+
+# Block query parameters (to prevent duplicate content)
+Disallow: /*?*
+Disallow: /*?source=*
+Disallow: /*?utm_*
+Disallow: /*?ref=*
+Disallow: /*?fbclid=*
+Disallow: /*?gclid=*
+Disallow: /search?*
+Disallow: /*?page=*
+Disallow: /*?filter=*
+Disallow: /*?sort=*
+Disallow: /*?age_group=*
+Disallow: /*?date=*
+Disallow: /*?session=*
+
+# Block file types
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /*.yml$
+Disallow: /*.yaml$
+Disallow: /*.log$
+Disallow: /*.bak$
+Disallow: /*.tmp$
+Disallow: /*.temp$
+Disallow: /*.sql$
+Disallow: /*.db$
+Disallow: /*.sqlite$
+Disallow: /*.csv$
+Disallow: /*.xls$
+Disallow: /*.xlsx$
+
+# Block development files
+Disallow: /*.map$
+Disallow: /package.json
+Disallow: /package-lock.json
+Disallow: /yarn.lock
+Disallow: /composer.json
+Disallow: /composer.lock
+Disallow: /tsconfig.json
+Disallow: /vite.config.js
+Disallow: /webpack.config.js
+Disallow: /tailwind.config.js
+Disallow: /.eslintrc
+Disallow: /.prettierrc
+Disallow: /.gitignore
+Disallow: /.dockerignore
+Disallow: /Dockerfile
+Disallow: /docker-compose.yml
+Disallow: /README.md
+Disallow: /ARCHITECTURE.md
+
+# Block React Native mobile app files (if served)
+Disallow: /app.json
+Disallow: /App.js
+Disallow: /index.js
+Disallow: /metro.config.js
+Disallow: /babel.config.js
+
+# Block Laravel backend files
+Disallow: /artisan
+Disallow: /phpunit.xml
+Disallow: /.htaccess
+Disallow: /web.config
+
+# Crawl delay (seconds between requests)
+Crawl-delay: 2
+
+# ==============================================================================
+# SITEMAPS (UPDATE WITH YOUR ACTUAL DOMAIN)
+# ==============================================================================
+
+# Main sitemap - Replace 'your-domain.com' with your actual domain
+Sitemap: https://your-domain.com/sitemap.xml
+
+# Sitemap index (if you have multiple sitemaps)
+Sitemap: https://your-domain.com/sitemap-index.xml
+
+# Specific sitemaps
+Sitemap: https://your-domain.com/sitemap-pages.xml
+Sitemap: https://your-domain.com/sitemap-blog.xml
+Sitemap: https://your-domain.com/sitemap-images.xml
+
+# ==============================================================================
+# ACCELLAX 361° SPECIFIC NOTES
+# ==============================================================================
+
+# This robots.txt is specifically configured for AccellaX 361° platform with:
+# - Multi-role dashboards (Admin, Coach, Parent, Kid, Sponsor)
+# - Kid attendance and profile data protection (COPPA/GDPR compliance)
+# - Sensitive payment and messaging systems
+# - Offline-first mobile app sync endpoints
+# - Firebase real-time data synchronization
+# - Multi-academy support infrastructure
+
+# PRIVACY PROTECTION:
+# All kid data, attendance records, personal profiles, and family information
+# are completely blocked from search engine indexing to protect minors' privacy
+# and comply with child protection regulations (COPPA, GDPR, Kenya Data Protection Act)
+
+# PUBLIC CONTENT:
+# Only marketing pages (about, features, contact, help) are indexed
+# Download links for coach mobile app are allowed for discoverability
+
+# ==============================================================================
+# NOTES & BEST PRACTICES
+# ==============================================================================
+
+# Testing:
+# 1. Google Search Console > robots.txt Tester
+# 2. https://www.google.com/webmasters/tools/robots-testing-tool
+# 3. https://en.ryte.com/free-tools/robots-txt/
+# 4. Test URL: https://your-domain.com/robots.txt
+
+# Important Notes:
+# - Robots.txt is a public file - don't use it for security
+# - Use authentication/authorization for actual security
+# - Disallow doesn't mean search engines will remove pages from index
+# - Use meta robots tags or X-Robots-Tag headers for better control
+# - Googlebot may ignore crawl-delay (use Search Console instead)
+# - Changes may take days/weeks to take effect
+
+# Common Mistakes to Avoid:
+# ✗ Don't disallow CSS/JS files (breaks rendering in search results)
+# ✗ Don't block entire site unless intentional (e.g., staging site)
+# ✗ Don't use robots.txt for sensitive data (it's publicly accessible)
+# ✗ Don't forget trailing slashes (they matter!)
+# ✗ Don't block /api/ if you have public API documentation
+
+# Performance Tips:
+# ✓ Keep file size under 500 KB (limit for most crawlers)
+# ✓ Use specific rules instead of wildcards when possible
+# ✓ Test regularly with Search Console
+# ✓ Monitor crawl stats in Search Console
+# ✓ Update sitemaps when site structure changes
+
+# Security Considerations:
+# - This file doesn't provide security (it's just guidance)
+# - Use proper authentication for sensitive areas
+# - Consider rate limiting at server/CDN level
+# - Monitor for unusual bot traffic
+# - Block malicious IPs at firewall level
+
+# SEO Impact:
+# ✓ Prevents duplicate content issues
+# ✓ Saves crawl budget for important pages
+# ✓ Helps search engines understand site structure
+# ✓ Improves indexing efficiency
+# ✓ Reduces server load from bot traffic
+# ✓ Protects user privacy (kids, parents, attendance data)
+
+# Maintenance:
+# - Review quarterly
+# - Update when adding new protected sections
+# - Monitor Search Console for crawl errors
+# - Test after any changes
+# - Keep track of blocked vs indexed pages
+# - Audit for any accidental exposure of sensitive routes
+
+# ==============================================================================
+# ACCELLAX 361° DEPLOYMENT CHECKLIST
+# ==============================================================================
+
+# Before deploying this file to production:
+# ✓ Replace 'your-domain.com' with actual domain in Sitemap URLs
+# ✓ Create and upload sitemap.xml files
+# ✓ Test robots.txt with Google Search Console
+# ✓ Verify all sensitive routes are blocked
+# ✓ Ensure public pages are allowed
+# ✓ Test with curl: curl https://your-domain.com/robots.txt
+# ✓ Submit sitemap to Google Search Console
+# ✓ Submit sitemap to Bing Webmaster Tools
+# ✓ Monitor crawl errors in Search Console weekly
+# ✓ Review quarterly for new routes/pages
+
+# Testing Commands:
+# curl https://your-domain.com/robots.txt
+# wget https://your-domain.com/robots.txt
+# Test crawler simulation with Screaming Frog or similar tools
+
+# ==============================================================================
+# END OF ROBOTS.TXT - AccellaX 361° Sports Academy Management Platform
+# ==============================================================================

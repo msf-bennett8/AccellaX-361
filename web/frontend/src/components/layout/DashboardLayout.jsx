@@ -1,0 +1,1 @@
+import React from 'react'; export default function DashboardLayout({ children }) { return <div className='min-h-screen bg-gray-50'><nav className='bg-white shadow-sm px-6 py-4'><h1 className='text-xl font-bold text-blue-600'>AccellaX 361°</h1></nav><main className='container mx-auto p-6'>{children}</main></div>; }
