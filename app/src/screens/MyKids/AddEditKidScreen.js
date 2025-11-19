@@ -320,11 +320,11 @@ const AddEditKidScreen = ({ navigation, route }) => {
       />
 
       <ScrollView
-        style={styles.content}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.form}>
           {renderInput('Name', 'name', 'Enter kid\'s full name', {
             required: true,
             autoCapitalize: 'words',
@@ -461,7 +461,6 @@ const AddEditKidScreen = ({ navigation, route }) => {
               </Text>
             </View>
           )}
-        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -493,14 +492,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
-  },
-  form: {
     padding: 16,
+    paddingBottom: 20,
   },
   inputContainer: {
     marginBottom: 20,

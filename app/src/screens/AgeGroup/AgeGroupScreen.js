@@ -35,12 +35,19 @@ const AgeGroupScreen = ({ route, navigation }) => {
   const loadGroupStats = async () => {
     try {
       setLoading(true);
+      console.log('📊 Loading group stats for session:', sessionId);
+      
       const attendance = await getSessionAttendance(sessionId);
+      console.log('📋 Loaded attendance records:', attendance.length);
+      
       const stats = {};
       const completed = [];
 
       for (const ageGroup of AGE_GROUPS) {
+        console.log(`🔍 Loading kids for ${ageGroup}...`);
         const kids = await getKidsByAgeGroup(ageGroup);
+        console.log(`✅ Found ${kids.length} kids in ${ageGroup}`);
+        
         const totalKids = kids.length;
         const markedKids = attendance.filter(
           (a) => kids.some((k) => k.id === a.kid_id)

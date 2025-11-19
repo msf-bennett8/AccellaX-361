@@ -1,4 +1,3 @@
-// src/navigation/CustomDrawerContent.js
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS } from '../utils/constants';
@@ -7,6 +6,7 @@ const CustomDrawerContent = ({ navigation, state }) => {
   const routes = [
     { name: 'HomeStack', label: 'Home', icon: '🏠', screen: 'Home' },
     { name: 'MyKidsStack', label: 'My Kids', icon: '👶', screen: 'MyKids' },
+    { name: 'NotesStack', label: 'Notes', icon: '📝', screen: 'Notes' }, // ✅ ADD THIS
     { name: 'HistoryStack', label: 'History', icon: '📅', screen: 'History' },
     { name: 'Settings', label: 'Settings', icon: '⚙️' },
   ];
@@ -50,7 +50,7 @@ const CustomDrawerContent = ({ navigation, state }) => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Version 1.0.0</Text>
+        <Text style={styles.footerText}>Version 1.0.1</Text>
       </View>
     </View>
   );

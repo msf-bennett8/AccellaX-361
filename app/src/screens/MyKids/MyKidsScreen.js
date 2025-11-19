@@ -37,13 +37,17 @@ const MyKidsScreen = ({ navigation }) => {
     '13+': true,
   });
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'active', 'suspended'
-  const [sponsorProgramFilter, setSponsorProgramFilter] = useState('all'); // 'all', 'SC', 'SP', 'ELT', 'WW'
+  const [sponsorProgramFilter, setSponsorProgramFilter] = useState('all'); // 'all', 'SC', 'SP', 'ELT', 'WW', 'HP', 'TS', 'Trial', 'Other'
   const [filterCounts, setFilterCounts] = useState({
     all: 0,
     SC: 0,
     SP: 0,
     ELT: 0,
     WW: 0,
+    HP: 0,
+    TS: 0,
+    Trial: 0,
+    Other: 0,
   });
 
   // Load kids when screen comes into focus
@@ -97,13 +101,22 @@ const MyKidsScreen = ({ navigation }) => {
       
       console.log(`📊 Loaded ${academyKids.length} kids from academy`);
       
-      // Calculate filter counts
+      // Calculate filter counts (show counts for all statuses)
       const counts = {
         all: academyKids.length,
+        active: academyKids.filter(k => k.status === 'active' || !k.status).length,
+        suspended: academyKids.filter(k => k.status === 'suspended').length,
+        inactive: academyKids.filter(k => k.status === 'inactive').length,
+        discontinued: academyKids.filter(k => k.status === 'discontinued').length,
+        trial: academyKids.filter(k => k.status === 'trial').length,
         SC: academyKids.filter(k => k.sponsorshipType === 'SC').length,
         SP: academyKids.filter(k => k.sponsorshipType === 'SP').length,
         ELT: academyKids.filter(k => k.programType === 'ELT').length,
         WW: academyKids.filter(k => k.programType === 'WW').length,
+        HP: academyKids.filter(k => k.programType === 'HP').length,
+        TS: academyKids.filter(k => k.programType === 'TS').length,
+        Trial: academyKids.filter(k => k.programType === 'Trial').length,
+        Other: academyKids.filter(k => k.programType === 'Other').length,
       };
       setFilterCounts(counts);
       
@@ -121,18 +134,27 @@ const MyKidsScreen = ({ navigation }) => {
   const applyFilters = (kidsData, statusFilter, sponsorFilter) => {
     let filtered = kidsData;
     
-    // Apply status filter (all/active/suspended)
+    // Apply status filter (all/active/suspended/inactive/discontinued/trial)
     if (statusFilter === 'active') {
-      filtered = filtered.filter(k => k.status === 'active');
+      filtered = filtered.filter(k => k.status === 'active' || !k.status);
     } else if (statusFilter === 'suspended') {
       filtered = filtered.filter(k => k.status === 'suspended');
+    } else if (statusFilter === 'inactive') {
+      filtered = filtered.filter(k => k.status === 'inactive');
+    } else if (statusFilter === 'discontinued') {
+      filtered = filtered.filter(k => k.status === 'discontinued');
+    } else if (statusFilter === 'trial') {
+      filtered = filtered.filter(k => k.status === 'trial');
     }
+    // 'all' shows all kids regardless of status
     
     // Apply sponsor/program filter
     if (sponsorFilter !== 'all') {
       if (sponsorFilter === 'SC' || sponsorFilter === 'SP') {
+        // Sponsorship filter
         filtered = filtered.filter(k => k.sponsorshipType === sponsorFilter);
-      } else if (sponsorFilter === 'ELT' || sponsorFilter === 'WW') {
+      } else if (['ELT', 'WW', 'HP', 'TS', 'Trial', 'Other'].includes(sponsorFilter)) {
+        // Program type filter
         filtered = filtered.filter(k => k.programType === sponsorFilter);
       }
     }
@@ -173,7 +195,7 @@ const MyKidsScreen = ({ navigation }) => {
     if (sponsorProgramFilter !== 'all') {
       if (sponsorProgramFilter === 'SC' || sponsorProgramFilter === 'SP') {
         baseKids = baseKids.filter(k => k.sponsorshipType === sponsorProgramFilter);
-      } else if (sponsorProgramFilter === 'ELT' || sponsorProgramFilter === 'WW') {
+      } else if (['ELT', 'WW', 'HP', 'TS', 'Trial', 'Other'].includes(sponsorProgramFilter)) {
         baseKids = baseKids.filter(k => k.programType === sponsorProgramFilter);
       }
     }
@@ -197,21 +219,7 @@ const MyKidsScreen = ({ navigation }) => {
     navigation.navigate(SCREEN_NAMES.ADD_EDIT_KID, { kid: selectedKid });
   };
 
-  const handleToggleStatus = async () => {
-    try {
-      const newStatus = selectedKid.status === 'active' ? 'suspended' : 'active';
-      await updateKidStatus(selectedKid.id, newStatus);
-      setModalVisible(false);
-      Alert.alert(
-        'Success',
-        `${selectedKid.name} has been ${newStatus === 'suspended' ? 'suspended' : 'activated'}.`
-      );
-      loadKids();
-    } catch (error) {
-      console.error('Error updating kid status:', error);
-      Alert.alert('Error', 'Failed to update status. Please try again.');
-    }
-  };
+  // handleToggleStatus removed - now using inline status handlers in modal
 
   const handleDelete = () => {
     setModalVisible(false);
@@ -371,7 +379,7 @@ const MyKidsScreen = ({ navigation }) => {
         {/* FilterBar */}
         {kids.length > 0 && (
           <FilterBar
-            filters={['all', 'SC', 'SP', 'ELT', 'WW']}
+            filters={['all', 'SC', 'SP', 'ELT', 'WW', 'HP', 'TS', 'Trial', 'Other']}
             activeFilter={sponsorProgramFilter}
             onFilterChange={handleSponsorProgramFilterChange}
             counts={filterCounts}
@@ -380,7 +388,12 @@ const MyKidsScreen = ({ navigation }) => {
 
         {/* Stats Summary */}
         {kids.length > 0 && (
-          <View style={styles.statsContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.statsScrollView}
+            contentContainerStyle={styles.statsContainer}
+          >
             <TouchableOpacity
               style={[
                 styles.statCard,
@@ -425,7 +438,7 @@ const MyKidsScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+             <TouchableOpacity
               style={[
                 styles.statCard,
                 activeFilter === 'suspended' && styles.statCardActive
@@ -446,7 +459,73 @@ const MyKidsScreen = ({ navigation }) => {
                 Suspended
               </Text>
             </TouchableOpacity>
-          </View>
+
+            <TouchableOpacity
+              style={[
+                styles.statCard,
+                activeFilter === 'inactive' && styles.statCardActive
+              ]}
+              onPress={() => handleFilterChange('inactive')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.statValue,
+                activeFilter === 'inactive' && styles.statValueActive
+              ]}>
+                {kids.filter((k) => k.status === 'inactive').length}
+              </Text>
+              <Text style={[
+                styles.statLabel,
+                activeFilter === 'inactive' && styles.statLabelActive
+              ]}>
+                Inactive
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.statCard,
+                activeFilter === 'discontinued' && styles.statCardActive
+              ]}
+              onPress={() => handleFilterChange('discontinued')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.statValue,
+                activeFilter === 'discontinued' && styles.statValueActive
+              ]}>
+                {kids.filter((k) => k.status === 'discontinued').length}
+              </Text>
+              <Text style={[
+                styles.statLabel,
+                activeFilter === 'discontinued' && styles.statLabelActive
+              ]}>
+                Discontinued
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.statCard,
+                activeFilter === 'trial' && styles.statCardActive
+              ]}
+              onPress={() => handleFilterChange('trial')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.statValue,
+                activeFilter === 'trial' && styles.statValueActive
+              ]}>
+                {kids.filter((k) => k.status === 'trial').length}
+              </Text>
+              <Text style={[
+                styles.statLabel,
+                activeFilter === 'trial' && styles.statLabelActive
+              ]}>
+                Trial
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         )}
 
         {/* Content */}
@@ -486,27 +565,229 @@ const MyKidsScreen = ({ navigation }) => {
               <Text style={styles.modalOptionText}>Edit</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.modalOption}
-              onPress={handleToggleStatus}
-            >
-              <Text style={styles.modalOptionIcon}>
-                {selectedKid?.status === 'suspended' ? '✓' : '⏸'}
-              </Text>
-              <Text style={styles.modalOptionText}>
-                {selectedKid?.status === 'suspended' ? 'Activate' : 'Suspend'}
-              </Text>
-            </TouchableOpacity>
+            {/* Dynamic Status Options based on current status */}
+            {selectedKid?.status === 'active' && (
+              <>
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={async () => {
+                    try {
+                      await updateKidStatus(selectedKid.id, 'suspended');
+                      setModalVisible(false);
+                      Alert.alert('Success', `${selectedKid.name} has been suspended.`);
+                      loadKids();
+                    } catch (error) {
+                      console.error('Error updating kid status:', error);
+                      Alert.alert('Error', 'Failed to update status. Please try again.');
+                    }
+                  }}
+                >
+                  <Text style={styles.modalOptionIcon}>⏸</Text>
+                  <Text style={styles.modalOptionText}>Suspend</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modalOption, styles.modalOptionDanger]}
-              onPress={handleDelete}
-            >
-              <Text style={styles.modalOptionIcon}>🗑️</Text>
-              <Text style={[styles.modalOptionText, styles.modalOptionTextDanger]}>
-                Delete
-              </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={async () => {
+                    try {
+                      await updateKidStatus(selectedKid.id, 'inactive');
+                      setModalVisible(false);
+                      Alert.alert('Success', `${selectedKid.name} has been marked as inactive.`);
+                      loadKids();
+                    } catch (error) {
+                      console.error('Error updating kid status:', error);
+                      Alert.alert('Error', 'Failed to update status. Please try again.');
+                    }
+                  }}
+                >
+                  <Text style={styles.modalOptionIcon}>💤</Text>
+                  <Text style={styles.modalOptionText}>Mark as Inactive</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={async () => {
+                    Alert.alert(
+                      'Mark as Discontinued',
+                      `Mark ${selectedKid.name} as discontinued? This is for kids who permanently left.`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Mark Discontinued',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await updateKidStatus(selectedKid.id, 'discontinued');
+                              setModalVisible(false);
+                              Alert.alert('Success', `${selectedKid.name} has been marked as discontinued.`);
+                              loadKids();
+                            } catch (error) {
+                              console.error('Error updating kid status:', error);
+                              Alert.alert('Error', 'Failed to update status. Please try again.');
+                            }
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.modalOptionIcon}>🚫</Text>
+                  <Text style={[styles.modalOptionText, { color: COLORS.error }]}>
+                    Mark as Discontinued
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {selectedKid?.status === 'suspended' && (
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={async () => {
+                  try {
+                    await updateKidStatus(selectedKid.id, 'active');
+                    setModalVisible(false);
+                    Alert.alert('Success', `${selectedKid.name} has been activated.`);
+                    loadKids();
+                  } catch (error) {
+                    console.error('Error updating kid status:', error);
+                    Alert.alert('Error', 'Failed to update status. Please try again.');
+                  }
+                }}
+              >
+                <Text style={styles.modalOptionIcon}>✓</Text>
+                <Text style={styles.modalOptionText}>Activate</Text>
+              </TouchableOpacity>
+            )}
+
+            {selectedKid?.status === 'inactive' && (
+              <>
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={async () => {
+                    try {
+                      await updateKidStatus(selectedKid.id, 'active');
+                      setModalVisible(false);
+                      Alert.alert('Success', `${selectedKid.name} has been activated.`);
+                      loadKids();
+                    } catch (error) {
+                      console.error('Error updating kid status:', error);
+                      Alert.alert('Error', 'Failed to update status. Please try again.');
+                    }
+                  }}
+                >
+                  <Text style={styles.modalOptionIcon}>✓</Text>
+                  <Text style={styles.modalOptionText}>Activate</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={async () => {
+                    Alert.alert(
+                      'Mark as Discontinued',
+                      `Mark ${selectedKid.name} as discontinued? This is for kids who permanently left.`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Mark Discontinued',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await updateKidStatus(selectedKid.id, 'discontinued');
+                              setModalVisible(false);
+                              Alert.alert('Success', `${selectedKid.name} has been marked as discontinued.`);
+                              loadKids();
+                            } catch (error) {
+                              console.error('Error updating kid status:', error);
+                              Alert.alert('Error', 'Failed to update status. Please try again.');
+                            }
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.modalOptionIcon}>🚫</Text>
+                  <Text style={[styles.modalOptionText, { color: COLORS.error }]}>
+                    Mark as Discontinued
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {selectedKid?.status === 'discontinued' && (
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={async () => {
+                  try {
+                    await updateKidStatus(selectedKid.id, 'active');
+                    setModalVisible(false);
+                    Alert.alert('Success', `${selectedKid.name} has been activated.`);
+                    loadKids();
+                  } catch (error) {
+                    console.error('Error updating kid status:', error);
+                    Alert.alert('Error', 'Failed to update status. Please try again.');
+                  }
+                }}
+              >
+                <Text style={styles.modalOptionIcon}>✓</Text>
+                <Text style={styles.modalOptionText}>Activate</Text>
+              </TouchableOpacity>
+            )}
+
+            {selectedKid?.status === 'trial' && (
+              <>
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={async () => {
+                    try {
+                      await updateKidStatus(selectedKid.id, 'active');
+                      setModalVisible(false);
+                      Alert.alert('Success', `${selectedKid.name} has been activated (trial ended).`);
+                      loadKids();
+                    } catch (error) {
+                      console.error('Error updating kid status:', error);
+                      Alert.alert('Error', 'Failed to update status. Please try again.');
+                    }
+                  }}
+                >
+                  <Text style={styles.modalOptionIcon}>✓</Text>
+                  <Text style={styles.modalOptionText}>Activate (End Trial)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={async () => {
+                    Alert.alert(
+                      'Mark as Discontinued',
+                      `Mark ${selectedKid.name} as discontinued? Trial did not convert.`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Mark Discontinued',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await updateKidStatus(selectedKid.id, 'discontinued');
+                              setModalVisible(false);
+                              Alert.alert('Success', `${selectedKid.name} has been marked as discontinued.`);
+                              loadKids();
+                            } catch (error) {
+                              console.error('Error updating kid status:', error);
+                              Alert.alert('Error', 'Failed to update status. Please try again.');
+                            }
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.modalOptionIcon}>🚫</Text>
+                  <Text style={[styles.modalOptionText, { color: COLORS.error }]}>
+                    Mark as Discontinued
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
 
             <TouchableOpacity
               style={styles.modalCancel}
@@ -565,14 +846,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.textSecondary,
   },
-  statsContainer: {
-    flexDirection: 'row',
+  statsScrollView: {
     marginHorizontal: 16,
     marginBottom: 16,
+  },
+  statsContainer: {
+    flexDirection: 'row',
     gap: 8,
+    paddingRight: 16, // Extra padding at the end
   },
   statCard: {
-    flex: 1,
+    minWidth: 100, // Fixed width for horizontal scroll
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 16,

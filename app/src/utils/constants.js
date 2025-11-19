@@ -242,6 +242,32 @@ export const SCREEN_NAMES = {
   HISTORY: 'History',
   SESSION_DETAIL: 'SessionDetail',
   SETTINGS: 'Settings',
+  NOTES: 'Notes',
+  ADD_EDIT_NOTE: 'AddEditNote',
+};
+
+export const NOTE_TYPES = {
+  GENERAL: 'general',
+  SESSION: 'session',
+  KID: 'kid',
+};
+
+export const NOTE_TYPE_LABELS = {
+  general: 'General Note',
+  session: 'Session Note',
+  kid: 'Kid Note',
+};
+
+export const NOTE_TYPE_ICONS = {
+  general: '📝',
+  session: '📅',
+  kid: '👶',
+};
+
+export const NOTE_TYPE_COLORS = {
+  general: '#FF9800',
+  session: '#2196F3',
+  kid: '#4CAF50',
 };
 
 export const ANIMATION_DURATION = {
@@ -254,4 +280,4 @@ export const SWIPE_THRESHOLD = 100;
 export const SWIPE_DISAPPEAR_DELAY = 3000; // 3 seconds
 
 export const APP_NAME = 'AccellaX 361°';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.1';

@@ -13,6 +13,7 @@ const webDB = {
   kids: [],
   sessions: [],
   attendance: [],
+  notes: [], // ✅ ADD THIS
 };
 
 // ========== INITIALIZATION ==========
@@ -29,6 +30,7 @@ export const initDatabase = async () => {
         webDB.kids = parsed.kids || [];
         webDB.sessions = parsed.sessions || [];
         webDB.attendance = parsed.attendance || [];
+        webDB.notes = parsed.notes || []; // ✅ ADD THIS
       }
     } catch (error) {
       console.error('Error loading web DB:', error);
@@ -67,8 +69,11 @@ export const initDatabase = async () => {
     age_group TEXT NOT NULL,
     sponsorshipType TEXT DEFAULT 'SP',
     programType TEXT DEFAULT 'ELT',
+    programTypeOther TEXT,
+    trialNotes TEXT,
     status TEXT DEFAULT 'active',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     firebase_synced INTEGER DEFAULT 0
   );
 
@@ -96,9 +101,23 @@ export const initDatabase = async () => {
       FOREIGN KEY (session_id) REFERENCES sessions(id),
       FOREIGN KEY (kid_id) REFERENCES kids(id)
     );
+
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      academy_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      note_type TEXT NOT NULL,
+      related_id INTEGER,
+      related_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      firebase_synced INTEGER DEFAULT 0
+    );
   `);
   
-  console.log('SQLite database initialized');
+  console.log('SQLite database initialized with notes table');
 };
 
 // Save web DB to AsyncStorage
@@ -305,7 +324,7 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
     [userId, name, age, gender, area, ageGroup, sponsorshipType, programType, programTypeOther, trialNotes, programType === 'Trial' ? 'trial' : 'active']
   );
   
-  return {
+  const kid = {
     id: result.lastInsertRowId,
     user_id: userId,
     name,
@@ -321,6 +340,42 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
     created_at: new Date().toISOString(),
     firebase_synced: 0,
   };
+  
+  // Background sync to Firebase (non-blocking)
+  try {
+    const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+    const { db: firebaseDb } = await import('../config/firebase.js');
+    const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+    
+    const kidRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/kids`, kid.id.toString());
+    await setDoc(kidRef, {
+      id: kid.id.toString(),
+      name: kid.name,
+      age: kid.age,
+      gender: kid.gender,
+      area_of_residence: kid.area_of_residence,
+      age_group: kid.age_group,
+      sponsorshipType: kid.sponsorshipType,
+      programType: kid.programType,
+      programTypeOther: kid.programTypeOther || null,
+      trialNotes: kid.trialNotes || null,
+      status: kid.status,
+      created_at: Timestamp.fromDate(new Date(kid.created_at)),
+      created_by: userId,
+      updated_at: Timestamp.now(),
+      synced_at: Timestamp.now(),
+    });
+    
+    // Mark as synced
+    await db.runAsync('UPDATE kids SET firebase_synced = 1 WHERE id = ?', [kid.id]);
+    console.log('✅ [Mobile] Kid synced to Firebase');
+    
+  } catch (error) {
+    console.warn('⚠️ [Mobile] Failed to sync kid to Firebase (will retry later):', error);
+    // Don't fail the operation - kid is saved locally
+  }
+  
+  return kid;
 };
 
 export const getAllKids = async () => {
@@ -332,47 +387,60 @@ export const getAllKids = async () => {
 
 export const getKidsByAgeGroup = async (ageGroup) => {
   if (isWeb) {
-    // Load kids from Firebase academy collection (single source of truth)
+    // Web: Always load from Firebase (no local storage)
     try {
       const FIXED_ACADEMY_ID = 'academy_accellax361_main';
       const { collection, getDocs } = await import('firebase/firestore');
-      const { db } = await import('../config/firebase');
+      const { db: firebaseDb } = await import('../config/firebase');
       
-      const kidsRef = collection(db, `academies/${FIXED_ACADEMY_ID}/kids`);
+      const kidsRef = collection(firebaseDb, `academies/${FIXED_ACADEMY_ID}/kids`);
       const snapshot = await getDocs(kidsRef);
       
       const academyKids = [];
       snapshot.forEach(doc => {
         const kid = doc.data();
-        academyKids.push({
-          id: parseInt(kid.id) || kid.id,
-          name: kid.name,
-          age: kid.age,
-          gender: kid.gender,
-          area_of_residence: kid.area_of_residence,
-          age_group: kid.age_group,
-          sponsorshipType: kid.sponsorshipType,
-          programType: kid.programType,
-          programTypeOther: kid.programTypeOther || null,
-          trialNotes: kid.trialNotes || null,
-          status: kid.status || 'active',
-          created_at: kid.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
-        });
+        // Only include kids in this age group AND with active status
+        if (kid.age_group === ageGroup && (kid.status === 'active' || !kid.status)) {
+          academyKids.push({
+            id: parseInt(kid.id) || kid.id,
+            name: kid.name,
+            age: kid.age,
+            gender: kid.gender,
+            area_of_residence: kid.area_of_residence,
+            age_group: kid.age_group,
+            sponsorshipType: kid.sponsorshipType,
+            programType: kid.programType,
+            programTypeOther: kid.programTypeOther || null,
+            trialNotes: kid.trialNotes || null,
+            status: kid.status || 'active',
+            created_at: kid.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+          });
+        }
       });
       
-      // Filter by age group and active status
-      return academyKids.filter(k => k.age_group === ageGroup && k.status === 'active');
+      console.log(`✅ [Web] Found ${academyKids.length} active kids in ${ageGroup}`);
+      return academyKids;
       
     } catch (error) {
-      console.error('❌ Error loading kids from Firebase:', error);
-      return []; // Return empty array on error
+      console.error('❌ [Web] Error loading kids from Firebase:', error);
+      return [];
     }
   }
   
-  return await db.getAllAsync(
-    'SELECT * FROM kids WHERE age_group = ? AND status = "active" ORDER BY name',
-    [ageGroup]
-  );
+  // Mobile: Use SQLite as primary (offline-first)
+  try {
+    const kids = await db.getAllAsync(
+      'SELECT * FROM kids WHERE age_group = ? AND status = "active" ORDER BY name',
+      [ageGroup]
+    );
+    
+    console.log(`✅ [Mobile] Found ${kids.length} active kids in ${ageGroup} from SQLite`);
+    return kids;
+    
+  } catch (error) {
+    console.error('❌ [Mobile] Error loading kids from SQLite:', error);
+    return [];
+  }
 };
 
 export const getKidById = async (id) => {
@@ -1063,6 +1131,183 @@ export const getOverallAttendancePercentage = async () => {
   return Math.round((result.present / result.total) * 100);
 };
 
+// ========== NOTES CRUD ==========
+
+export const insertNote = async (userId, noteData) => {
+  const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+  
+  if (isWeb) {
+    const note = {
+      id: generateId(),
+      user_id: userId,
+      academy_id: FIXED_ACADEMY_ID,
+      title: noteData.title,
+      content: noteData.content,
+      note_type: noteData.note_type, // 'general', 'session', 'kid'
+      related_id: noteData.related_id || null,
+      related_name: noteData.related_name || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      firebase_synced: 0,
+    };
+
+    // Initialize notes array if it doesn't exist
+    if (!webDB.notes) {
+      webDB.notes = [];
+    }
+
+    webDB.notes.push(note);
+    await saveWebDB();
+
+    // Upload to Firebase
+    try {
+      const { db: firebaseDb } = await import('../config/firebase.js');
+      const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+
+      const noteRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/notes`, note.id.toString());
+      await setDoc(noteRef, {
+        ...note,
+        id: note.id.toString(),
+        created_at: Timestamp.fromDate(new Date(note.created_at)),
+        updated_at: Timestamp.now(),
+        synced_at: Timestamp.now(),
+      });
+
+      note.firebase_synced = 1;
+      console.log('✅ Note added to Firebase');
+    } catch (error) {
+      console.error('⚠️ Failed to add note to Firebase:', error);
+      note.firebase_synced = 0;
+    }
+
+    return note;
+  }
+
+  // Mobile SQLite
+  const result = await db.runAsync(
+    `INSERT INTO notes (user_id, academy_id, title, content, note_type, related_id, related_name) 
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [userId, FIXED_ACADEMY_ID, noteData.title, noteData.content, noteData.note_type, noteData.related_id, noteData.related_name]
+  );
+
+  return {
+    id: result.lastInsertRowId,
+    user_id: userId,
+    academy_id: FIXED_ACADEMY_ID,
+    ...noteData,
+    created_at: new Date().toISOString(),
+    firebase_synced: 0,
+  };
+};
+
+export const getAllNotes = async () => {
+  if (isWeb) {
+    // Initialize notes array if it doesn't exist
+    if (!webDB.notes) {
+      webDB.notes = [];
+    }
+    return webDB.notes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  return await db.getAllAsync('SELECT * FROM notes ORDER BY created_at DESC');
+};
+
+export const getNoteById = async (id) => {
+  if (isWeb) {
+    if (!webDB.notes) return null;
+    return webDB.notes.find(n => n.id === id);
+  }
+  return await db.getFirstAsync('SELECT * FROM notes WHERE id = ?', [id]);
+};
+
+export const getNotesByType = async (noteType) => {
+  if (isWeb) {
+    if (!webDB.notes) return [];
+    return webDB.notes.filter(n => n.note_type === noteType)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  return await db.getAllAsync(
+    'SELECT * FROM notes WHERE note_type = ? ORDER BY created_at DESC',
+    [noteType]
+  );
+};
+
+export const getNotesByRelatedId = async (relatedId, noteType) => {
+  if (isWeb) {
+    if (!webDB.notes) return [];
+    return webDB.notes.filter(n => n.related_id === relatedId && n.note_type === noteType)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  return await db.getAllAsync(
+    'SELECT * FROM notes WHERE related_id = ? AND note_type = ? ORDER BY created_at DESC',
+    [relatedId, noteType]
+  );
+};
+
+export const updateNote = async (id, noteData) => {
+  if (isWeb) {
+    if (!webDB.notes) return;
+    
+    const index = webDB.notes.findIndex(n => n.id === id);
+    if (index !== -1) {
+      webDB.notes[index] = {
+        ...webDB.notes[index],
+        ...noteData,
+        updated_at: new Date().toISOString(),
+        firebase_synced: 0,
+      };
+      await saveWebDB();
+
+      // Update in Firebase
+      try {
+        const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+        const { db: firebaseDb } = await import('../config/firebase.js');
+        const { doc, updateDoc, Timestamp } = await import('firebase/firestore');
+
+        const noteRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/notes`, id.toString());
+        await updateDoc(noteRef, {
+          ...noteData,
+          updated_at: Timestamp.now(),
+        });
+        console.log('✅ Note updated in Firebase');
+      } catch (error) {
+        console.warn('⚠️ Failed to update note in Firebase:', error);
+      }
+    }
+    return;
+  }
+
+  const { title, content, note_type, related_id, related_name } = noteData;
+  await db.runAsync(
+    'UPDATE notes SET title = ?, content = ?, note_type = ?, related_id = ?, related_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [title, content, note_type, related_id, related_name, id]
+  );
+};
+
+export const deleteNote = async (id) => {
+  if (isWeb) {
+    if (!webDB.notes) return;
+    
+    webDB.notes = webDB.notes.filter(n => n.id !== id);
+    await saveWebDB();
+
+    // Delete from Firebase
+    try {
+      const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+      const { db: firebaseDb } = await import('../config/firebase.js');
+      const { doc, deleteDoc } = await import('firebase/firestore');
+
+      const noteRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/notes`, id.toString());
+      await deleteDoc(noteRef);
+      console.log('✅ Note deleted from Firebase');
+    } catch (error) {
+      console.warn('⚠️ Failed to delete note from Firebase:', error);
+    }
+    return;
+  }
+
+  await db.runAsync('DELETE FROM notes WHERE id = ?', [id]);
+};
+
 // ========== UTILITY ==========
 
 export const getDatabase = () => db;
@@ -1073,11 +1318,13 @@ export const clearAllData = async () => {
     webDB.kids = [];
     webDB.sessions = [];
     webDB.attendance = [];
+    webDB.notes = []; // ✅ ADD THIS
     await saveWebDB();
     return;
   }
 
   await db.execAsync(`
+    DELETE FROM notes;
     DELETE FROM attendance;
     DELETE FROM sessions;
     DELETE FROM kids;

@@ -33,6 +33,10 @@ import {
   createUser,
   getUserById,
   updateUser,
+  getAllNotes,
+  insertNote,
+  updateNote,
+  deleteNote,
 } from './db';
 
 const isWeb = Platform.OS === 'web';
@@ -358,7 +362,7 @@ const uploadKidsToFirebase = async (userId, academyId) => {
     let uploadCount = 0;
     
     for (const kid of userKids) {
-      const kidRef = doc(db, `users/${userId}/kids`, kid.id.toString());
+      const kidRef = doc(db, `academies/${academyId}/kids`, kid.id.toString());
       
       const kidData = {
         ...kid,
@@ -477,6 +481,68 @@ const uploadSessionsToFirebase = async (userId, academyId) => {
   }
 };
 
+const uploadNotesToFirebase = async (userId, academyId) => {
+  debugLog('NOTES_UPLOAD', 'Starting notes upload', { userId, academyId });
+  
+  try {
+    const unsyncedNotes = await getUnsyncedRecords('notes', getAllNotes);
+    const userNotes = unsyncedNotes.filter(n => n.user_id === userId);
+    
+    debugLog('NOTES_UPLOAD', 'Found notes to upload', { 
+      totalUnsynced: unsyncedNotes.length,
+      forThisUser: userNotes.length 
+    });
+    
+    if (userNotes.length === 0) {
+      return { success: true, count: 0 };
+    }
+    
+    const batch = writeBatch(db);
+    let uploadCount = 0;
+    
+    for (const note of userNotes) {
+      const noteRef = doc(db, `academies/${academyId}/notes`, note.id.toString());
+      
+      const noteData = {
+        ...note,
+        id: note.id.toString(),
+        created_at: Timestamp.fromDate(new Date(note.created_at)),
+        updated_at: Timestamp.now(),
+        synced_at: Timestamp.now(),
+      };
+      
+      debugLog('NOTES_UPLOAD', 'Adding note to batch', { 
+        noteId: note.id, 
+        noteTitle: note.title 
+      });
+      
+      batch.set(noteRef, noteData);
+      uploadCount++;
+      
+      if (uploadCount % SYNC_CONFIG.batchSize === 0) {
+        debugLog('NOTES_UPLOAD', 'Committing batch', { count: uploadCount });
+        await batch.commit();
+      }
+    }
+    
+    if (uploadCount % SYNC_CONFIG.batchSize !== 0) {
+      await batch.commit();
+    }
+    
+    // Mark as synced locally
+    for (const note of userNotes) {
+      await markAsSynced('notes', note.id);
+    }
+    
+    debugLog('NOTES_UPLOAD', 'Notes upload completed', { uploadCount });
+    return { success: true, count: uploadCount };
+    
+  } catch (error) {
+    debugError('NOTES_UPLOAD', 'Notes upload failed', error);
+    return { success: false, error: error.message, count: 0 };
+  }
+};
+
 // ========== DOWNLOAD FROM FIREBASE ==========
 
 const downloadUserProfileFromFirebase = async (userId) => {
@@ -525,10 +591,12 @@ const downloadKidsFromFirebase = async (userId) => {
   debugLog('KIDS_DOWNLOAD', 'Starting kids download', { userId });
   
   try {
-    const kidsRef = collection(db, `users/${userId}/kids`);
+    // Download from ACADEMY collection (not user collection)
+    const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+    const kidsRef = collection(db, `academies/${FIXED_ACADEMY_ID}/kids`);
     const snapshot = await getDocs(kidsRef);
     
-    debugLog('KIDS_DOWNLOAD', 'Retrieved kids from Firebase user collection', { 
+    debugLog('KIDS_DOWNLOAD', 'Retrieved kids from Firebase academy collection', { 
       count: snapshot.size 
     });
     
@@ -538,29 +606,17 @@ const downloadKidsFromFirebase = async (userId) => {
     
     let downloadCount = 0;
     
-    // ✅ FIX: Load kids from Firebase ACADEMY collection (not webDB)
-    // Since kids are stored in academy collection, check there for duplicates
-    const FIXED_ACADEMY_ID = 'academy_accellax361_main';
-    const academyKidsRef = collection(db, `academies/${FIXED_ACADEMY_ID}/kids`);
-    const academySnapshot = await getDocs(academyKidsRef);
-    
-    const existingAcademyKids = new Set();
-    academySnapshot.forEach(doc => {
-      existingAcademyKids.add(doc.data().id.toString());
-    });
-    
-    debugLog('KIDS_DOWNLOAD', 'Existing academy kids', { 
-      count: existingAcademyKids.size,
-      kidIds: Array.from(existingAcademyKids)
-    });
+    // Get existing local kids to prevent duplicates
+    const localKids = await getAllKids();
+    const existingKidIds = new Set(localKids.map(k => k.id.toString()));
     
     for (const docSnap of snapshot.docs) {
       const firebaseKid = docSnap.data();
       const kidId = firebaseKid.id;
       
-      // ✅ FIX: Check if kid already exists in academy collection
-      if (existingAcademyKids.has(kidId)) {
-        debugLog('KIDS_DOWNLOAD', 'Skipping existing kid (already in academy)', { 
+      // Skip if kid already exists locally
+      if (existingKidIds.has(kidId.toString())) {
+        debugLog('KIDS_DOWNLOAD', 'Skipping existing kid', { 
           kidId, 
           kidName: firebaseKid.name 
         });
@@ -573,7 +629,7 @@ const downloadKidsFromFirebase = async (userId) => {
         ageGroup: firebaseKid.age_group 
       });
       
-      // Insert kid (will be added to academy collection)
+      // Insert kid
       await insertKid(
         userId,
         firebaseKid.name,
@@ -582,7 +638,9 @@ const downloadKidsFromFirebase = async (userId) => {
         firebaseKid.area_of_residence,
         firebaseKid.age_group,
         firebaseKid.sponsorshipType || 'SP',
-        firebaseKid.programType || 'ELT'
+        firebaseKid.programType || 'ELT',
+        firebaseKid.programTypeOther || null,
+        firebaseKid.trialNotes || null
       );
       
       downloadCount++;
@@ -778,6 +836,118 @@ const downloadSessionsFromFirebase = async (userId, academyId) => {
   }
 };
 
+const downloadNotesFromFirebase = async (userId, academyId) => {
+  debugLog('NOTES_DOWNLOAD', 'Starting notes download', { userId, academyId });
+  
+  try {
+    const notesRef = collection(db, `academies/${academyId}/notes`);
+    const snapshot = await getDocs(notesRef);
+    
+    debugLog('NOTES_DOWNLOAD', 'Retrieved notes from Firebase', { 
+      count: snapshot.size 
+    });
+    
+    if (snapshot.empty) {
+      return { success: true, count: 0 };
+    }
+    
+    let downloadCount = 0;
+    const localNotes = await getAllNotes();
+    const localNoteIds = new Set(localNotes.map(n => n.id.toString()));
+    
+    debugLog('NOTES_DOWNLOAD', 'Local notes state', {
+      localCount: localNotes.length,
+      localNoteIds: Array.from(localNoteIds),
+    });
+    
+    const { getWebDB } = require('./db');
+    const webDB = getWebDB();
+    
+    for (const docSnap of snapshot.docs) {
+      const firebaseNote = docSnap.data();
+      const noteId = docSnap.id;
+      
+      // Check for duplicates
+      if (localNoteIds.has(noteId)) {
+        debugLog('NOTES_DOWNLOAD', 'Skipping duplicate note', { noteId });
+        continue;
+      }
+      
+      debugLog('NOTES_DOWNLOAD', 'Downloading new note', {
+        noteId,
+        noteTitle: firebaseNote.title,
+      });
+      
+      const noteData = {
+        id: noteId,
+        user_id: firebaseNote.user_id || userId,
+        academy_id: academyId,
+        title: firebaseNote.title,
+        content: firebaseNote.content,
+        note_type: firebaseNote.note_type,
+        related_id: firebaseNote.related_id || null,
+        related_name: firebaseNote.related_name || null,
+        created_at: firebaseNote.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+        updated_at: firebaseNote.updated_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+        firebase_synced: 1,
+      };
+      
+      if (isWeb && webDB) {
+        const currentWebDB = await getWebDB() || webDB;
+        
+        if (!currentWebDB.notes) {
+          currentWebDB.notes = [];
+        }
+        
+        currentWebDB.notes.push(noteData);
+        downloadCount++;
+      } else {
+        // Native SQLite
+        const db = getDatabase();
+        try {
+          await db.runAsync(
+            `INSERT INTO notes (id, user_id, academy_id, title, content, note_type, related_id, related_name, created_at, updated_at, firebase_synced) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              noteId,
+              noteData.user_id,
+              noteData.academy_id,
+              noteData.title,
+              noteData.content,
+              noteData.note_type,
+              noteData.related_id,
+              noteData.related_name,
+              noteData.created_at,
+              noteData.updated_at,
+              1
+            ]
+          );
+          downloadCount++;
+        } catch (error) {
+          debugError('NOTES_DOWNLOAD', 'Error inserting note', error);
+        }
+      }
+    }
+    
+    if (isWeb) {
+      const finalWebDB = await getWebDB();
+      if (finalWebDB) {
+        await AsyncStorage.setItem('webDB', JSON.stringify(finalWebDB));
+        debugLog('NOTES_DOWNLOAD', 'Saved notes to webDB', { 
+          totalNotes: finalWebDB.notes?.length || 0
+        });
+      }
+    }
+    
+    debugLog('NOTES_DOWNLOAD', 'Notes download completed', { downloadCount });
+    return { success: true, count: downloadCount };
+    
+  } catch (error) {
+    debugError('NOTES_DOWNLOAD', 'Notes download failed', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // ========== CONFLICT RESOLUTION ==========
 
 const resolveConflicts = async (userId) => {
@@ -863,6 +1033,8 @@ export const performFullSync = async (userId) => {
       sessionsUploaded: 0,
       kidsDownloaded: 0,
       sessionsDownloaded: 0,
+      notesUploaded: 0,
+      notesDownloaded: 0,
       errors: [],
     };
     
@@ -906,6 +1078,16 @@ export const performFullSync = async (userId) => {
       debugLog('FULL_SYNC', 'Sessions upload failed', { error });
     }
     
+    // Step 2.5: Upload local notes to Firebase
+    debugLog('FULL_SYNC', 'Step 2.5: Uploading notes');
+    const notesUpload = await uploadNotesToFirebase(userId, academyId);
+    results.notesUploaded = notesUpload.count || 0;
+    if (!notesUpload.success) {
+      const error = `Notes upload: ${notesUpload.error}`;
+      results.errors.push(error);
+      debugLog('FULL_SYNC', 'Notes upload failed', { error });
+    }
+    
     // Step 3: Download kids from Firebase
     debugLog('FULL_SYNC', 'Step 3: Downloading kids');
     const kidsDownload = await downloadKidsFromFirebase(userId);
@@ -924,6 +1106,16 @@ export const performFullSync = async (userId) => {
       const error = `Sessions download: ${sessionsDownload.error}`;
       results.errors.push(error);
       debugLog('FULL_SYNC', 'Sessions download failed', { error });
+    }
+    
+    // Step 4.5: Download notes from Firebase
+    debugLog('FULL_SYNC', 'Step 4.5: Downloading notes');
+    const notesDownload = await downloadNotesFromFirebase(userId, academyId);
+    results.notesDownloaded = notesDownload.count || 0;
+    if (!notesDownload.success) {
+      const error = `Notes download: ${notesDownload.error}`;
+      results.errors.push(error);
+      debugLog('FULL_SYNC', 'Notes download failed', { error });
     }
     
     // Step 5: Resolve conflicts
@@ -1164,6 +1356,16 @@ export const downloadUserProfile = async (userId) => {
   return await downloadUserProfileFromFirebase(userId);
 };
 
+export const uploadNotes = async (userId) => {
+  const academyId = await getAcademyId();
+  return await uploadNotesToFirebase(userId, academyId);
+};
+
+export const downloadNotes = async (userId) => {
+  const academyId = await getAcademyId();
+  return await downloadNotesFromFirebase(userId, academyId);
+};
+
 // ========== RESET SYNC STATUS ==========
 
 export const resetSyncStatus = async () => {
@@ -1181,6 +1383,7 @@ export const resetSyncStatus = async () => {
         UPDATE kids SET firebase_synced = 0;
         UPDATE sessions SET firebase_synced = 0;
         UPDATE attendance SET firebase_synced = 0;
+        UPDATE notes SET firebase_synced = 0;
       `);
       debugLog('RESET', 'Reset firebase_synced flags in database');
     }
@@ -1235,10 +1438,12 @@ export const getSyncDiagnostics = async () => {
     // Get local data counts
     const localKids = await getAllKids();
     const localSessions = await getAllSessions();
+    const localNotes = await getAllNotes();
     
     // Get unsynced counts
     const unsyncedKids = await getUnsyncedRecords('kids', getAllKids);
     const unsyncedSessions = await getUnsyncedRecords('sessions', getAllSessions);
+    const unsyncedNotes = await getUnsyncedRecords('notes', getAllNotes);
     
     // Check Firebase user existence
     let firebaseUserExists = false;
@@ -1258,8 +1463,10 @@ export const getSyncDiagnostics = async () => {
       local: {
         totalKids: localKids.length,
         totalSessions: localSessions.length,
+        totalNotes: localNotes.length,
         unsyncedKids: unsyncedKids.length,
         unsyncedSessions: unsyncedSessions.length,
+        unsyncedNotes: unsyncedNotes.length,
       },
     };
     
@@ -1301,6 +1508,8 @@ export default {
   downloadSessions,
   uploadUserProfile,
   downloadUserProfile,
+  uploadNotes,
+  downloadNotes,
   resetSyncStatus,
   initializeSync,
   getSyncDebugLogs,

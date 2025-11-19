@@ -1,13 +1,13 @@
-// src/navigation/DrawerNavigator.js
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import CustomDrawerContent from './CustomDrawerContent';
 import StackNavigator from './StackNavigator';
 import MyKidsStackNavigator from './MyKidsStackNavigator';
 import HistoryStackNavigator from './HistoryStackNavigator';
+import NotesStackNavigator from './NotesStackNavigator'; // ✅ ADD THIS
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
-import SyncDiagnosticsScreen from '../screens/debug/SyncDiagnosticsScreen'; // ✅ ADD THIS
+import SyncDiagnosticsScreen from '../screens/debug/SyncDiagnosticsScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -37,6 +37,12 @@ const DrawerNavigator = () => {
         component={HistoryStackNavigator}
         options={{ title: 'History' }}
       />
+      {/* ✅ ADD NOTES STACK */}
+      <Drawer.Screen 
+        name="NotesStack" 
+        component={NotesStackNavigator}
+        options={{ title: 'Notes' }}
+      />
       <Drawer.Screen 
         name="Profile" 
         component={ProfileScreen}
@@ -47,7 +53,6 @@ const DrawerNavigator = () => {
         component={SettingsScreen}
         options={{ title: 'Settings' }}
       />
-      {/* ✅ ADD THIS SCREEN */}
       <Drawer.Screen 
         name="SyncDiagnostics" 
         component={SyncDiagnosticsScreen}

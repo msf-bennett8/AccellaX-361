@@ -100,6 +100,7 @@ export const CREATE_ALL_TABLES = `
   ${KIDS_TABLE_SCHEMA}
   ${SESSIONS_TABLE_SCHEMA}
   ${ATTENDANCE_TABLE_SCHEMA}
+  ${NOTES_TABLE_SCHEMA}
   ${SETTINGS_TABLE_SCHEMA}
 `;
 
@@ -108,18 +109,41 @@ export const CREATE_ALL_TABLES = `
  */
 export const CREATE_INDEXES = `
   CREATE INDEX IF NOT EXISTS idx_kids_user_id ON kids(user_id);
-  CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_sessions_academy_id ON sessions(academy_id);
   CREATE INDEX IF NOT EXISTS idx_kids_age_group ON kids(age_group);
   CREATE INDEX IF NOT EXISTS idx_kids_status ON kids(status);
   CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(session_date);
   CREATE INDEX IF NOT EXISTS idx_attendance_session ON attendance(session_id);
   CREATE INDEX IF NOT EXISTS idx_attendance_kid ON attendance(kid_id);
+  CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
+  CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(note_type);
+  CREATE INDEX IF NOT EXISTS idx_notes_related ON notes(related_id);
+`;
+
+/**
+ * SQL schema for Notes table
+ */
+export const NOTES_TABLE_SCHEMA = `
+  CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    academy_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    note_type TEXT NOT NULL,
+    related_id INTEGER,
+    related_name TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    firebase_synced INTEGER DEFAULT 0
+  );
 `;
 
 /**
  * Drop all tables (use with caution!)
  */
 export const DROP_ALL_TABLES = `
+  DROP TABLE IF EXISTS notes;
   DROP TABLE IF EXISTS attendance;
   DROP TABLE IF EXISTS sessions;
   DROP TABLE IF EXISTS kids;

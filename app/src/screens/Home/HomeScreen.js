@@ -57,6 +57,13 @@ const HomeScreen = () => {
   // Future session modal state
   const [showFutureModal, setShowFutureModal] = useState(false);
   const [futureSessionInfo, setFutureSessionInfo] = useState(null);
+  const [showNoKidsModal, setShowNoKidsModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [showExistingSessionModal, setShowExistingSessionModal] = useState(false);
+  const [existingSessionData, setExistingSessionData] = useState(null);
+  // showQuickNoteModal state removed - navigates directly to notes screen
 
   useEffect(() => {
     loadAcademyName();
@@ -84,11 +91,13 @@ const HomeScreen = () => {
       }
       
       // Load kids from Firebase (academy-wide)
-      const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+      const AsyncStorage = await import('@react-native-async-storage/async-storage');
+      const academyId = (await AsyncStorage.default.getItem('academyId')) || 'academy_accellax361_main';
+      
       const { collection, getDocs } = await import('firebase/firestore');
       const { db: firebaseDb } = await import('../../config/firebase');
       
-      const kidsRef = collection(firebaseDb, `academies/${FIXED_ACADEMY_ID}/kids`);
+      const kidsRef = collection(firebaseDb, `academies/${academyId}/kids`);
       const snapshot = await getDocs(kidsRef);
       
       const activeKids = [];
@@ -99,6 +108,7 @@ const HomeScreen = () => {
         }
       });
       
+      console.log(`📊 Loaded ${activeKids.length} active kids from academy`);
       setTotalKids(activeKids.length);
       
       // Load this week's sessions
@@ -198,47 +208,40 @@ const HomeScreen = () => {
       });
     } catch (error) {
       console.error('Error creating session:', error);
-      Alert.alert('Error', 'Failed to start session. Please try again.');
+      setErrorMessage('Failed to start session. Please try again.');
+      setShowErrorModal(true);
     }
   };
 
   const handleAddActivity = () => {
-    Alert.alert(
-      'Add Special Activity',
-      'Start a special session for today?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Start Session',
-          onPress: async () => {
-            try {
-              const userId = await getCurrentUserId();
-              if (!userId) {
-                Alert.alert('Error', 'User not found. Please log in again.');
-                return;
-              }
-              
-              const sessionDate = currentDate.toISOString().split('T')[0];
-              const timeSlot = { display: 'Special Event' };
-              const session = await createSession(userId, sessionDate, timeSlot.display, currentDay);
-              
-              navigation.navigate(SCREEN_NAMES.AGE_GROUP, {
-                sessionId: session.id,
-                sessionDate,
-                sessionTime: 'Special Event',
-                dayOfWeek: currentDay,
-              });
-            } catch (error) {
-              console.error('Error creating special session:', error);
-              Alert.alert('Error', 'Failed to start session. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+    setShowAddActivityModal(true);
+  };
+
+  const handleAddActivityConfirm = async () => {
+    setShowAddActivityModal(false);
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        setErrorMessage('User not found. Please log in again.');
+        setShowErrorModal(true);
+        return;
+      }
+      
+      const sessionDate = currentDate.toISOString().split('T')[0];
+      const timeSlot = { display: 'Special Event' };
+      const session = await createSession(userId, sessionDate, timeSlot.display, currentDay);
+      
+      navigation.navigate(SCREEN_NAMES.AGE_GROUP, {
+        sessionId: session.id,
+        sessionDate,
+        sessionTime: 'Special Event',
+        dayOfWeek: currentDay,
+      });
+    } catch (error) {
+      console.error('Error creating special session:', error);
+      setErrorMessage('Failed to start session. Please try again.');
+      setShowErrorModal(true);
+    }
   };
 
 
@@ -248,26 +251,31 @@ const handleTakeAttendance = async () => {
     
     const userId = await getCurrentUserId();
     if (!userId) {
-      Alert.alert('Error', 'User not found. Please log in again.');
+      setErrorMessage('User not found. Please log in again.');
+      setShowErrorModal(true);
       return;
     }
     
-    // Check if there are any kids for this user
-    const allKids = await getAllKids();
-    const userKids = allKids.filter(k => k.user_id === userId);
+    // Check if there are any kids in the academy
+    const AsyncStorage = await import('@react-native-async-storage/async-storage');
+    const academyId = (await AsyncStorage.default.getItem('academyId')) || 'academy_accellax361_main';
     
-    if (userKids.length === 0) {
-      Alert.alert(
-        'No Kids',
-        'Please add kids before taking attendance.',
-        [
-          { text: 'OK', style: 'cancel' },
-          { 
-            text: 'Add Kids', 
-            onPress: () => navigation.navigate('MyKidsStack')
-          },
-        ]
-      );
+    const { collection, getDocs } = await import('firebase/firestore');
+    const { db: firebaseDb } = await import('../../config/firebase');
+    
+    const kidsRef = collection(firebaseDb, `academies/${academyId}/kids`);
+    const snapshot = await getDocs(kidsRef);
+    
+    const activeKids = [];
+    snapshot.forEach(doc => {
+      const kid = doc.data();
+      if (kid.status === 'active' || !kid.status) {
+        activeKids.push(kid);
+      }
+    });
+    
+    if (activeKids.length === 0) {
+      setShowNoKidsModal(true);
       return;
     }
 
@@ -288,26 +296,14 @@ const handleTakeAttendance = async () => {
       new Date(session.created_at).getTime() < Date.now() - 5000;
     
     if (isExisting) {
-      // Show alert for existing session
-      Alert.alert(
-        'Existing Session Found',
-        'A session already exists for today. Do you want to edit the existing attendance?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Edit Session',
-            onPress: () => {
-              navigation.navigate(SCREEN_NAMES.AGE_GROUP, {
-                sessionId: session.id,
-                sessionDate,
-                sessionTime: timeSlot.display,
-                dayOfWeek: currentDay,
-                isExistingSession: true,
-              });
-            }
-          }
-        ]
-      );
+      // Show modal for existing session
+      setExistingSessionData({
+        sessionId: session.id,
+        sessionDate,
+        sessionTime: timeSlot.display,
+        dayOfWeek: currentDay,
+      });
+      setShowExistingSessionModal(true);
     } else {
       // Navigate directly for new session
       navigation.navigate(SCREEN_NAMES.AGE_GROUP, {
@@ -320,16 +316,15 @@ const handleTakeAttendance = async () => {
     }
   } catch (error) {
     console.error('Error in handleTakeAttendance:', error);
-    Alert.alert('Error', 'Failed to start attendance. Please try again.');
+    setErrorMessage('Failed to start attendance. Please try again.');
+    setShowErrorModal(true);
   }
 };
 
   const handleQuickNote = () => {
-    Alert.alert(
-      'Quick Note',
-      'This feature will be available soon!\n\nYou can add notes after taking attendance in a session.',
-      [{ text: 'OK' }]
-    );
+    navigation.navigate('NotesStack', {
+      screen: 'AddEditNote',
+    });
   };
 
   const handleAddNewKid = () => {
@@ -524,6 +519,173 @@ const handleTakeAttendance = async () => {
     </Modal>
   );
 
+  const renderErrorModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showErrorModal}
+      onRequestClose={() => setShowErrorModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalIcon}>⚠️</Text>
+            <Text style={styles.modalTitle}>Error</Text>
+          </View>
+          
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              {errorMessage}
+            </Text>
+          </View>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalCloseButton]}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderAddActivityModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showAddActivityModal}
+      onRequestClose={() => setShowAddActivityModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalIcon}>⚽</Text>
+            <Text style={styles.modalTitle}>Add Special Activity</Text>
+          </View>
+          
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              Start a special session for today?
+            </Text>
+          </View>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalCloseButton]}
+              onPress={() => setShowAddActivityModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalEditButton]}
+              onPress={handleAddActivityConfirm}
+            >
+              <Text style={styles.modalEditButtonText}>Start Session</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderExistingSessionModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showExistingSessionModal}
+      onRequestClose={() => setShowExistingSessionModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalIcon}>📋</Text>
+            <Text style={styles.modalTitle}>Existing Session Found</Text>
+          </View>
+          
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              A session already exists for today. Do you want to edit the existing attendance?
+            </Text>
+          </View>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalCloseButton]}
+              onPress={() => setShowExistingSessionModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalEditButton]}
+              onPress={() => {
+                setShowExistingSessionModal(false);
+                navigation.navigate(SCREEN_NAMES.AGE_GROUP, {
+                  sessionId: existingSessionData.sessionId,
+                  sessionDate: existingSessionData.sessionDate,
+                  sessionTime: existingSessionData.sessionTime,
+                  dayOfWeek: existingSessionData.dayOfWeek,
+                  isExistingSession: true,
+                });
+              }}
+            >
+              <Text style={styles.modalEditButtonText}>Edit Session</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // renderQuickNoteModal - REMOVED (no longer needed, navigates directly to notes)
+
+  const renderNoKidsModal = () => (
+  <Modal
+    animationType="fade"
+    transparent={true}
+    visible={showNoKidsModal}
+    onRequestClose={() => setShowNoKidsModal(false)}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalIcon}>👥</Text>
+          <Text style={styles.modalTitle}>No Kids Found</Text>
+        </View>
+        
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            Please add kids before taking attendance.
+          </Text>
+          <Text style={[styles.modalWarning, { color: COLORS.primary }]}>
+            You need to register players first to start a session.
+          </Text>
+        </View>
+        
+        <View style={styles.modalButtons}>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.modalCloseButton]}
+            onPress={() => setShowNoKidsModal(false)}
+          >
+            <Text style={styles.modalCloseButtonText}>Close</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.modalEditButton]}
+            onPress={() => {
+              setShowNoKidsModal(false);
+              navigation.navigate('MyKidsStack');
+            }}
+          >
+            <Text style={styles.modalEditButtonText}>Add Kids</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
@@ -656,9 +818,13 @@ const handleTakeAttendance = async () => {
       
       {/* Modals */}
       {futureSessionInfo?.isPast ? renderPastSessionModal() : renderFutureSessionModal()}
-    </View>
-  );
-};
+      {renderNoKidsModal()}
+      {renderErrorModal()}
+      {renderAddActivityModal()}
+      {renderExistingSessionModal()}
+          </View>
+        );
+      };
 
 const styles = StyleSheet.create({
   container: {
@@ -885,6 +1051,8 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     elevation: 2,
+    minHeight: 80,
+    maxHeight: 100,
   },
   statValue: {
     fontSize: 24,

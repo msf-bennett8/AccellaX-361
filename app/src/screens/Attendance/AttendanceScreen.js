@@ -32,6 +32,13 @@ const AttendanceScreen = ({ route, navigation }) => {
   const [allKidsData, setAllKidsData] = useState([]);
   const [attendanceFilter, setAttendanceFilter] = useState('unmarked'); // Will be set based on mode
   const [showRedoModal, setShowRedoModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showMarkAllModal, setShowMarkAllModal] = useState(false);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const scrollViewRef = useRef(null);
 
@@ -55,9 +62,17 @@ const AttendanceScreen = ({ route, navigation }) => {
       setLoading(true);
       
       console.log(`📊 Loading kids for age group: ${ageGroup}`);
+      console.log('📍 Session ID:', sessionId);
+      console.log('📍 Session Date:', sessionDate);
       
       const allKidsData = await getKidsByAgeGroup(ageGroup);
       console.log(`📊 Loaded ${allKidsData.length} kids for attendance`);
+      
+      if (allKidsData.length === 0) {
+        console.warn(`⚠️ No kids found in ${ageGroup} age group`);
+      } else {
+        console.log('📋 Kid names:', allKidsData.map(k => k.name).join(', '));
+      }
       
       // Load existing attendance records for this session and age group
       const existingAttendance = await getSessionAttendance(sessionId);
@@ -100,7 +115,8 @@ const AttendanceScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Error loading kids:', error);
-      Alert.alert('Error', 'Failed to load kids list');
+      setErrorMessage('Failed to load kids list');
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -199,7 +215,8 @@ const AttendanceScreen = ({ route, navigation }) => {
       }, 500); // Reduced from 3000ms to 500ms
     } catch (error) {
       console.error('Error marking attendance:', error);
-      Alert.alert('Error', 'Failed to mark attendance');
+      setErrorMessage('Failed to mark attendance');
+      setShowErrorModal(true);
       
       // Revert on error
       setMarkedKids((prev) => {
@@ -216,42 +233,37 @@ const AttendanceScreen = ({ route, navigation }) => {
   };
 
   const handleMarkAllPresent = () => {
-    Alert.alert(
-      'Mark All Present',
-      `Mark all ${filteredKids.length} kids as present?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark All',
-          onPress: async () => {
-            try {
-              const markedBy = 'Admin';
-              
-              for (const kid of filteredKids) {
-                if (!markedKids.has(kid.id)) {
-                  await markAttendance(sessionId, kid.id, 'present', markedBy);
-                  setMarkedKids((prev) => new Map(prev).set(kid.id, {
-                    status: 'present',
-                    markedBy,
-                    markedAt: new Date().toISOString(),
-                  }));
-                }
-              }
-              
-              setTimeout(() => {
-                setKids([]);
-                setFilteredKids([]);
-              }, 500);
-              
-              Alert.alert('Success', 'All kids marked as present!');
-            } catch (error) {
-              console.error('Error marking all present:', error);
-              Alert.alert('Error', 'Failed to mark all present');
-            }
-          },
-        },
-      ]
-    );
+    setShowMarkAllModal(true);
+  };
+
+  const handleMarkAllConfirm = async () => {
+    setShowMarkAllModal(false);
+    try {
+      const markedBy = 'Admin';
+      
+      for (const kid of filteredKids) {
+        if (!markedKids.has(kid.id)) {
+          await markAttendance(sessionId, kid.id, 'present', markedBy);
+          setMarkedKids((prev) => new Map(prev).set(kid.id, {
+            status: 'present',
+            markedBy,
+            markedAt: new Date().toISOString(),
+          }));
+        }
+      }
+      
+      setTimeout(() => {
+        setKids([]);
+        setFilteredKids([]);
+      }, 500);
+      
+      setSuccessMessage('All kids marked as present!');
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Error marking all present:', error);
+      setErrorMessage('Failed to mark all present');
+      setShowErrorModal(true);
+    }
   };
 
   const handleRedoConfirm = async () => {
@@ -289,10 +301,12 @@ const AttendanceScreen = ({ route, navigation }) => {
       console.log('✅ Reset complete - showing all unmarked kids');
       
       // Show success message
-      Alert.alert('Reset Complete', 'Attendance has been reset. All kids are now unmarked.');
+      setSuccessMessage('Attendance has been reset. All kids are now unmarked.');
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('❌ Error resetting attendance:', error);
-      Alert.alert('Error', 'Failed to reset attendance. Please try again.');
+      setErrorMessage('Failed to reset attendance. Please try again.');
+      setShowErrorModal(true);
     }
   };
 
@@ -304,14 +318,7 @@ const AttendanceScreen = ({ route, navigation }) => {
         navigation.goBack();
       } else {
         // New session or no attendance - confirm discard
-        Alert.alert(
-          'Discard Attendance?',
-          'No changes were made. Do you want to go back?',
-          [
-            { text: 'Stay', style: 'cancel' },
-            { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() }
-          ]
-        );
+        setShowDiscardModal(true);
       }
       return;
     }
@@ -320,32 +327,7 @@ const AttendanceScreen = ({ route, navigation }) => {
     const unmarkedCount = allKidsData.length - markedKids.size;
     
     if (unmarkedCount > 0) {
-      Alert.alert(
-        'Incomplete Attendance',
-        `${unmarkedCount} kid(s) not marked. Mark remaining as absent?`,
-        [
-          { text: 'Go Back', style: 'cancel' },
-          {
-            text: 'Mark Absent & Continue',
-            onPress: async () => {
-              try {
-                const markedBy = 'Admin';
-                
-                for (const kid of allKidsData) {
-                  if (!markedKids.has(kid.id)) {
-                    await markAttendance(sessionId, kid.id, 'absent', markedBy);
-                  }
-                }
-                
-                navigation.goBack();
-              } catch (error) {
-                console.error('Error marking remaining absent:', error);
-                Alert.alert('Error', 'Failed to mark remaining kids');
-              }
-            },
-          },
-        ]
-      );
+      setShowIncompleteModal(true);
     } else {
       // All marked and changes made - save and go back
       navigation.goBack();
@@ -484,6 +466,202 @@ const AttendanceScreen = ({ route, navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Error Modal */}
+      <Modal
+        visible={showErrorModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowErrorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>⚠️ Error</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalMessage}>
+                {errorMessage}
+              </Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={() => setShowErrorModal(false)}
+              >
+                <Text style={styles.modalConfirmText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>✓ Success</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalMessage}>
+                {successMessage}
+              </Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={() => setShowSuccessModal(false)}
+              >
+                <Text style={styles.modalConfirmText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Mark All Present Modal */}
+      <Modal
+        visible={showMarkAllModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMarkAllModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Mark All Present</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalMessage}>
+                Mark all {filteredKids.length} kids as present?
+              </Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowMarkAllModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={handleMarkAllConfirm}
+              >
+                <Text style={styles.modalConfirmText}>Mark All</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Incomplete Attendance Modal */}
+      <Modal
+        visible={showIncompleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowIncompleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Incomplete Attendance</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalMessage}>
+                {allKidsData.length - markedKids.size} kid(s) not marked. Mark remaining as absent?
+              </Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowIncompleteModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Go Back</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={async () => {
+                  setShowIncompleteModal(false);
+                  try {
+                    const markedBy = 'Admin';
+                    
+                    for (const kid of allKidsData) {
+                      if (!markedKids.has(kid.id)) {
+                        await markAttendance(sessionId, kid.id, 'absent', markedBy);
+                      }
+                    }
+                    
+                    navigation.goBack();
+                  } catch (error) {
+                    console.error('Error marking remaining absent:', error);
+                    setErrorMessage('Failed to mark remaining kids');
+                    setShowErrorModal(true);
+                  }
+                }}
+              >
+                <Text style={styles.modalConfirmText}>Mark Absent & Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Discard Modal */}
+      <Modal
+        visible={showDiscardModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDiscardModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Discard Attendance?</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalMessage}>
+                No changes were made. Do you want to go back?
+              </Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowDiscardModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Stay</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={() => {
+                  setShowDiscardModal(false);
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.modalConfirmText}>Discard</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Redo Confirmation Modal */}
       <Modal
