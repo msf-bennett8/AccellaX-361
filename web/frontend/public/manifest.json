@@ -1,16 +1,576 @@
+/**
+ * File: web/frontend/public/manifest.json
+ * AccellaX 361° - Progressive Web App Manifest
+ * 
+ * Description:
+ * This manifest file configures the Progressive Web App (PWA) capabilities
+ * for AccellaX 361°. It defines how the app appears and behaves when installed
+ * on a user's device, including icons, colors, display modes, and launch behavior.
+ * 
+ * PWA Features Enabled:
+ * - Install to home screen (Android, iOS, Desktop)
+ * - Standalone app experience (no browser UI)
+ * - Custom splash screen
+ * - Offline functionality
+ * - App shortcuts for quick actions
+ * - Share target integration
+ * - Screenshots for app stores
+ * 
+ * Browser Support:
+ * - Chrome/Edge: Full support
+ * - Safari: Partial support (uses apple-touch-icon from HTML)
+ * - Firefox: Full support
+ * - Samsung Internet: Full support
+ * 
+ * Resources:
+ * - MDN: https://developer.mozilla.org/en-US/docs/Web/Manifest
+ * - Google PWA Guide: https://web.dev/progressive-web-apps/
+ * 
+ * Last Updated: 2025-01-19
+ */
+
 {
-  "short_name": "AccellaX",
-  "name": "AccellaX 361° - Sports Academy Platform",
+  /**
+   * ==================== BASIC APP INFORMATION ====================
+   */
+  
+  "name": "AccellaX 361° - Sports Academy Management Platform",
+  "short_name": "AccellaX 361°",
+  
+  /**
+   * Description shown in app stores and install prompts
+   * Keep under 300 characters for best compatibility
+   */
+  "description": "Real-time attendance tracking, analytics, and comprehensive management platform for sports academies. Track kids, coaches, sessions, and performance with offline-first technology designed for NextGen Multisport Academy and beyond.",
+  
+  /**
+   * ==================== START URL & SCOPE ====================
+   */
+  
+  /**
+   * The URL that loads when the app is launched
+   * Query parameters can be used to track PWA installs
+   */
+  "start_url": "/?source=pwa",
+  
+  /**
+   * Navigation scope - URLs outside this scope open in browser
+   * Use "/" to allow navigation to all pages in your domain
+   */
+  "scope": "/",
+  
+  /**
+   * ==================== DISPLAY & ORIENTATION ====================
+   */
+  
+  /**
+   * Display mode options:
+   * - "standalone": Looks like a native app (recommended)
+   * - "fullscreen": Full screen, hides all browser UI
+   * - "minimal-ui": Minimal browser controls
+   * - "browser": Opens in regular browser tab
+   */
+  "display": "standalone",
+  
+  /**
+   * Display override for more granular control (newest browsers)
+   * Falls back to "display" if not supported
+   */
+  "display_override": ["window-controls-overlay", "standalone"],
+  
+  /**
+   * Preferred screen orientation
+   * Options: "any", "natural", "portrait", "landscape"
+   * "any" allows rotation based on device orientation
+   */
+  "orientation": "any",
+  
+  /**
+   * ==================== THEME & COLORS ====================
+   */
+  
+  /**
+   * Theme color - appears in browser UI and task switcher
+   * Used for: Address bar, status bar, task switcher
+   */
+  "theme_color": "#2196F3",
+  
+  /**
+   * Background color - shown during app launch (splash screen)
+   * Should match your app's primary background
+   */
+  "background_color": "#FFFFFF",
+  
+  /**
+   * ==================== ICONS ====================
+   * 
+   * Icon Guidelines:
+   * - Provide multiple sizes for different contexts
+   * - Use PNG format for broad compatibility
+   * - Include maskable icons for adaptive icon systems (Android)
+   * - Minimum recommended: 192x192 and 512x512
+   * 
+   * Icon Purposes:
+   * - "any": Standard icon (default)
+   * - "maskable": Adaptive icon (safe zone in center 80%)
+   * - "monochrome": Single color icon for special contexts
+   */
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/monochrome-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "monochrome"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#2196F3",
-  "background_color": "#ffffff",
-  "description": "Attendance tracking and management for sports academies"
+  
+  /**
+   * ==================== APP SHORTCUTS ====================
+   * 
+   * Quick actions accessible from app icon (long-press on Android)
+   * Maximum 4 shortcuts recommended for best UX
+   * 
+   * Requirements:
+   * - Each shortcut needs a unique URL
+   * - Icons should be 96x96 or 192x192
+   * - Short names (12 chars) work best on small screens
+   */
+  "shortcuts": [
+    {
+      "name": "Mark Attendance",
+      "short_name": "Attendance",
+      "description": "Quickly mark today's attendance",
+      "url": "/attendance/today?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/shortcut-attendance.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open main dashboard",
+      "url": "/dashboard?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/shortcut-dashboard.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "My Kids",
+      "short_name": "Kids",
+      "description": "Manage kids roster",
+      "url": "/kids?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/shortcut-kids.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Check messages and notifications",
+      "url": "/messages?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/shortcut-messages.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  
+  /**
+   * ==================== SHARE TARGET ====================
+   * 
+   * Allows users to share content from other apps directly to AccellaX
+   * Example: Share a photo to create a new kid profile with image
+   * 
+   * Browser Support: Chrome 76+, Edge 79+
+   */
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "media",
+          "accept": ["image/*", "application/pdf"]
+        }
+      ]
+    }
+  },
+  
+  /**
+   * ==================== CATEGORIES ====================
+   * 
+   * App store categories for better discoverability
+   * Helps users find your app in PWA stores and catalogs
+   */
+  "categories": [
+    "sports",
+    "education",
+    "productivity",
+    "business",
+    "utilities",
+    "lifestyle"
+  ],
+  
+  /**
+   * ==================== RELATED APPLICATIONS ====================
+   * 
+   * Link to native apps (if available)
+   * Allows browsers to suggest native app installation
+   */
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.accellax.mobile",
+      "id": "com.accellax.mobile"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/accellax/id1234567890"
+    }
+  ],
+  
+  /**
+   * Set to true to prefer native app over PWA
+   * Set to false to prefer PWA (recommended for web-first approach)
+   */
+  "prefer_related_applications": false,
+  
+  /**
+   * ==================== SCREENSHOTS ====================
+   * 
+   * Screenshots displayed in app stores and install dialogs
+   * Requirements:
+   * - JPEG or PNG format
+   * - Between 320px and 3840px in width/height
+   * - Aspect ratio between 1:2.4 and 2.4:1
+   * - Maximum 8 screenshots
+   * 
+   * Types: "narrow" (mobile), "wide" (tablet/desktop)
+   */
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard - Mobile View"
+    },
+    {
+      "src": "/screenshots/attendance-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Attendance Marking - Mobile"
+    },
+    {
+      "src": "/screenshots/kids-roster-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Kids Roster - Mobile"
+    },
+    {
+      "src": "/screenshots/analytics-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Analytics - Mobile"
+    },
+    {
+      "src": "/screenshots/dashboard-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard - Desktop View"
+    },
+    {
+      "src": "/screenshots/attendance-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Attendance Management - Desktop"
+    },
+    {
+      "src": "/screenshots/reports-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Reports & Analytics - Desktop"
+    }
+  ],
+  
+  /**
+   * ==================== PROTOCOL HANDLERS ====================
+   * 
+   * Register custom URL protocols (e.g., web+accellax://)
+   * Allows deep linking from other apps
+   * 
+   * Example: web+accellax://kid/123 opens kid profile
+   */
+  "protocol_handlers": [
+    {
+      "protocol": "web+accellax",
+      "url": "/handle?type=%s"
+    }
+  ],
+  
+  /**
+   * ==================== FILE HANDLERS ====================
+   * 
+   * Handle specific file types when opened from file system
+   * Example: Open .attendance files directly in the app
+   */
+  "file_handlers": [
+    {
+      "action": "/import",
+      "accept": {
+        "text/csv": [".csv"],
+        "application/vnd.ms-excel": [".xls"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "application/pdf": [".pdf"]
+      }
+    }
+  ],
+  
+  /**
+   * ==================== LAUNCH HANDLER ====================
+   * 
+   * Controls behavior when app is already open and launched again
+   * Options:
+   * - "auto": Browser decides (default)
+   * - "focus-existing": Focus existing window
+   * - "navigate-new": Open in existing window but navigate
+   * - "navigate-existing": Navigate existing window
+   */
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  
+  /**
+   * ==================== EDGE SIDEBAR (Microsoft Edge) ====================
+   * 
+   * Optimizations for Microsoft Edge sidebar feature
+   */
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  /**
+   * ==================== ADDITIONAL METADATA ====================
+   */
+  
+  /**
+   * Language direction: "ltr" (left-to-right) or "rtl" (right-to-left)
+   */
+  "dir": "ltr",
+  
+  /**
+   * Primary language (BCP 47 language tag)
+   */
+  "lang": "en-US",
+  
+  /**
+   * Text direction for reading UI
+   */
+  "iarc_rating_id": "",
+  
+  /**
+   * ==================== CUSTOM PROPERTIES ====================
+   * 
+   * These are custom properties specific to AccellaX
+   * Not part of standard manifest spec but useful for app logic
+   */
+  "custom": {
+    "version": "1.0.0",
+    "build": "2025.01.19",
+    "features": {
+      "offline_mode": true,
+      "push_notifications": true,
+      "background_sync": true,
+      "file_import": true,
+      "biometric_auth": false
+    },
+    "minimum_requirements": {
+      "chrome": "90",
+      "firefox": "88",
+      "safari": "14",
+      "edge": "90"
+    },
+    "api_endpoints": {
+      "production": "https://api.accellax.com",
+      "staging": "https://staging-api.accellax.com",
+      "development": "http://localhost:8000"
+    },
+    "firebase": {
+      "project_id": "accellax-361",
+      "supports_fcm": true
+    },
+    "academy": {
+      "default_name": "NextGen Multisport Academy",
+      "sports": ["Soccer", "Basketball", "Athletics"],
+      "location": "Nairobi, Kenya"
+    }
+  }
 }
+
+/**
+ * ==================== INSTALLATION NOTES ====================
+ * 
+ * PWA Installation Criteria (Chrome):
+ * 1. ✅ Served over HTTPS (or localhost for testing)
+ * 2. ✅ Valid manifest.json with:
+ *    - name or short_name
+ *    - icons (192x192 and 512x512 minimum)
+ *    - start_url
+ *    - display set to standalone/fullscreen
+ * 3. ✅ Registered service worker
+ * 4. ✅ User engagement signals (visits, time spent)
+ * 
+ * Testing PWA Installation:
+ * 1. Chrome DevTools > Application > Manifest
+ * 2. Look for "Add to Home Screen" errors
+ * 3. Use Lighthouse PWA audit
+ * 4. Test on real devices (Android, iOS, Desktop)
+ * 
+ * iOS Considerations:
+ * - iOS uses <link rel="apple-touch-icon"> from HTML, not manifest icons
+ * - Limited manifest support (display, orientation partially supported)
+ * - No app shortcuts or share target support
+ * - Always include apple-mobile-web-app meta tags in HTML
+ * 
+ * Android Considerations:
+ * - Full manifest support on Chrome/Edge
+ * - WebAPK generation for better native feel
+ * - Maskable icons highly recommended
+ * - Shortcuts appear in long-press menu
+ * 
+ * Desktop (Windows/Mac/Linux):
+ * - Chrome 73+, Edge 79+: Full PWA support
+ * - Can be installed like native apps
+ * - Appears in Start Menu/Applications folder
+ * - Window controls overlay support
+ * 
+ * ==================== DEBUGGING ====================
+ * 
+ * Common Issues:
+ * 1. Icons not showing: Check paths, sizes, and formats
+ * 2. Install prompt not appearing: Check HTTPS, service worker, user engagement
+ * 3. Theme color not applying: Ensure hex color format (#RRGGBB)
+ * 4. Shortcuts not working: Verify URLs and icon paths
+ * 
+ * Useful Tools:
+ * - Chrome DevTools > Application > Manifest
+ * - Lighthouse PWA audit
+ * - https://web.dev/measure/ (Web.dev measure tool)
+ * - https://realfavicongenerator.net/ (Generate all icon sizes)
+ * 
+ * ==================== MAINTENANCE ====================
+ * 
+ * When to Update Manifest:
+ * - App name/branding changes
+ * - New features requiring shortcuts
+ * - Icon/color scheme updates
+ * - URL structure changes
+ * - New platform support
+ * 
+ * Version Control:
+ * - Increment "custom.version" on each update
+ * - Update "custom.build" with date
+ * - Document changes in commit messages
+ * 
+ * ==================== RESOURCES ====================
+ * 
+ * Official Documentation:
+ * - https://developer.mozilla.org/en-US/docs/Web/Manifest
+ * - https://web.dev/progressive-web-apps/
+ * - https://w3c.github.io/manifest/ (W3C Spec)
+ * 
+ * Tools:
+ * - https://www.pwabuilder.com/ (PWA Builder)
+ * - https://manifest-validator.appspot.com/ (Manifest Validator)
+ * - https://realfavicongenerator.net/ (Icon Generator)
+ * 
+ * Testing:
+ * - https://www.webpagetest.org/
+ * - Chrome Lighthouse
+ * - Microsoft PWA Builder
+ */
