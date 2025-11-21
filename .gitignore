@@ -45,3 +45,17 @@ bootstrap/cache/*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Firebase Credentials (NEVER commit these!)
+web/backend/storage/app/firebase-credentials.json
+web/backend/storage/accellax-361-firebase-adminsdk-*.json
+web/backend/storage/app/accellax-361-firebase-adminsdk-*.json
+
+# Laravel Storage (compiled views, sessions, etc.)
+web/backend/storage/framework/sessions/*
+web/backend/storage/framework/views/*
+web/backend/storage/logs/*
+
+# Temporary files
+web/backend/name
+web/backend/er->name*
