@@ -173,11 +173,6 @@ const UnauthorizedPage = lazy(() => import('@pages/errors/UnauthorizedPage'));
 const ServerErrorPage = lazy(() => import('@pages/errors/ServerErrorPage'));
 const MaintenancePage = lazy(() => import('@pages/errors/MaintenancePage'));
 
-// ==================== GLOBAL STYLES ====================
-import '@/styles/globals.css';
-import '@/index.css';
-import '@/App.css';
-
 // ==================== UTILITIES ====================
 import { ROLES } from '@utils/constants';
 import { getRoleDashboard } from '@utils/roleHelpers';

@@ -188,7 +188,10 @@ const HomeScreen = () => {
         return;
       }
       
-      const sessionDate = dateInfo.date;
+      // Use TODAY's date for today, not dateInfo.date (which can be off by timezone)
+      const sessionDate = dateInfo.daysFromNow === 0 
+        ? new Date().toISOString().split('T')[0]  // Use actual today's date
+        : dateInfo.date;  // Use calculated date for past/future
       const session = await createOrGetSession(userId, sessionDate, timeSlot.display, day);
       
       // Check if this is an existing session

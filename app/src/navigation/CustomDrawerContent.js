@@ -50,7 +50,7 @@ const CustomDrawerContent = ({ navigation, state }) => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Version 1.0.1</Text>
+        <Text style={styles.footerText}>Version 1.0.4</Text>
       </View>
     </View>
   );

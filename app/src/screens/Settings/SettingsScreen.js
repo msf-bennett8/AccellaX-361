@@ -858,7 +858,7 @@ const SettingsScreen = ({ navigation }) => {
       
       <View style={styles.infoItem}>
         <Text style={styles.infoLabel}>App Version</Text>
-        <Text style={styles.infoValue}>1.0.1</Text>
+        <Text style={styles.infoValue}>1.0.4</Text>
       </View>
       
       <View style={styles.infoItem}>

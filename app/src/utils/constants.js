@@ -280,4 +280,4 @@ export const SWIPE_THRESHOLD = 100;
 export const SWIPE_DISAPPEAR_DELAY = 3000; // 3 seconds
 
 export const APP_NAME = 'AccellaX 361°';
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.0.4';

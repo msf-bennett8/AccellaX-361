@@ -96,6 +96,7 @@ export const initDatabase = async () => {
       session_id INTEGER NOT NULL,
       kid_id INTEGER NOT NULL,
       status TEXT NOT NULL,
+      marked_by TEXT DEFAULT 'System',
       marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       firebase_synced INTEGER DEFAULT 0,
       FOREIGN KEY (session_id) REFERENCES sessions(id),
@@ -117,7 +118,122 @@ export const initDatabase = async () => {
     );
   `);
   
+  // ========== MIGRATIONS ==========
+  // Add marked_by column if it doesn't exist (for existing databases)
+  try {
+    await db.execAsync(`
+      ALTER TABLE attendance ADD COLUMN marked_by TEXT DEFAULT 'System';
+    `);
+    console.log('✅ Migration: Added marked_by column to attendance table');
+  } catch (error) {
+    // Column already exists, ignore error
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
   console.log('SQLite database initialized with notes table');
+
+  // ========== MIGRATION: Change ID columns from INTEGER to TEXT ==========
+  try {
+    // Check if migration is needed
+    const tableInfo = await db.getAllAsync(`PRAGMA table_info(kids)`);
+    const idColumn = tableInfo.find(col => col.name === 'id');
+    
+    if (idColumn && idColumn.type === 'INTEGER') {
+      console.log('🔄 Migrating database IDs from INTEGER to TEXT...');
+      
+      // Backup and recreate tables with TEXT IDs
+      await db.execAsync(`
+        -- Backup existing data
+        CREATE TABLE kids_backup AS SELECT * FROM kids;
+        CREATE TABLE sessions_backup AS SELECT * FROM sessions;
+        CREATE TABLE attendance_backup AS SELECT * FROM attendance;
+        CREATE TABLE notes_backup AS SELECT * FROM notes;
+        
+        -- Drop old tables
+        DROP TABLE attendance;
+        DROP TABLE notes;
+        DROP TABLE sessions;
+        DROP TABLE kids;
+        
+        -- Recreate with TEXT IDs
+        CREATE TABLE kids (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          age INTEGER NOT NULL,
+          gender TEXT,
+          area_of_residence TEXT,
+          age_group TEXT NOT NULL,
+          sponsorshipType TEXT DEFAULT 'SP',
+          programType TEXT DEFAULT 'ELT',
+          programTypeOther TEXT,
+          trialNotes TEXT,
+          status TEXT DEFAULT 'active',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          firebase_synced INTEGER DEFAULT 0
+        );
+        
+        CREATE TABLE sessions (
+          id TEXT PRIMARY KEY,
+          academy_id TEXT NOT NULL,
+          session_date DATE NOT NULL,
+          session_time TEXT NOT NULL,
+          day_of_week TEXT NOT NULL,
+          status TEXT DEFAULT 'draft',
+          general_notes TEXT,
+          created_by TEXT,
+          last_modified_by TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          firebase_synced INTEGER DEFAULT 0
+        );
+        
+        CREATE TABLE attendance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL,
+          kid_id TEXT NOT NULL,
+          status TEXT NOT NULL,
+          marked_by TEXT DEFAULT 'System',
+          marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          firebase_synced INTEGER DEFAULT 0,
+          FOREIGN KEY (session_id) REFERENCES sessions(id),
+          FOREIGN KEY (kid_id) REFERENCES kids(id)
+        );
+        
+        CREATE TABLE notes (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          academy_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          note_type TEXT NOT NULL,
+          related_id TEXT,
+          related_name TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          firebase_synced INTEGER DEFAULT 0
+        );
+        
+        -- Restore data (convert IDs to strings)
+        INSERT INTO kids SELECT CAST(id AS TEXT), user_id, name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, status, created_at, updated_at, firebase_synced FROM kids_backup;
+        INSERT INTO sessions SELECT CAST(id AS TEXT), academy_id, session_date, session_time, day_of_week, status, general_notes, created_by, last_modified_by, created_at, firebase_synced FROM sessions_backup;
+        INSERT INTO attendance SELECT id, CAST(session_id AS TEXT), CAST(kid_id AS TEXT), status, marked_by, marked_at, firebase_synced FROM attendance_backup;
+        INSERT INTO notes SELECT CAST(id AS TEXT), user_id, academy_id, title, content, note_type, CAST(related_id AS TEXT), related_name, created_at, updated_at, firebase_synced FROM notes_backup;
+        
+        -- Drop backup tables
+        DROP TABLE kids_backup;
+        DROP TABLE sessions_backup;
+        DROP TABLE attendance_backup;
+        DROP TABLE notes_backup;
+      `);
+      
+      console.log('✅ Migration complete: IDs are now TEXT');
+    }
+  } catch (error) {
+    console.warn('⚠️ Migration note:', error.message);
+  }
 };
 
 // Save web DB to AsyncStorage
@@ -249,8 +365,7 @@ export const updateUserField = async (userId, field, value) => {
 };
 
 // ========== KIDS CRUD ==========
-
-export const insertKid = async (userId, name, age, gender, area, ageGroup, sponsorshipType = 'SP', programType = 'ELT', programTypeOther = null, trialNotes = null) => {
+export const insertKid = async (userId, name, age, gender, area, ageGroup, sponsorshipType = 'SP', programType = 'ELT', programTypeOther = null, trialNotes = null, skipFirebaseSync = false) => {
   // ALWAYS use the fixed academy ID
   const FIXED_ACADEMY_ID = 'academy_accellax361_main';
   
@@ -273,14 +388,16 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
     };
     
     // Upload to Firebase academy collection (single source of truth)
-    try {
-      console.log('🔄 Adding kid to Firebase academy collection...');
-      console.log('🏫 Academy ID:', FIXED_ACADEMY_ID);
-      
-      const { db } = await import('../config/firebase.js');
-      const { doc, setDoc, Timestamp } = await import('firebase/firestore');
-      
-      const kidRef = doc(db, `academies/${FIXED_ACADEMY_ID}/kids`, kid.id.toString());
+    // Skip if this is being called from sync download
+    if (!skipFirebaseSync) {
+      try {
+        console.log('🔄 Adding kid to Firebase academy collection...');
+        console.log('🏫 Academy ID:', FIXED_ACADEMY_ID);
+        
+        const { db } = await import('../config/firebase.js');
+        const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+        
+        const kidRef = doc(db, `academies/${FIXED_ACADEMY_ID}/kids`, kid.id.toString());
         await setDoc(kidRef, {
           id: kid.id.toString(),
           name: kid.name,
@@ -301,17 +418,21 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
         });
         
         // Mark as synced
+        kid.firebase_synced = 1;
+        
+        console.log('✅ Kid added to academy Firebase collection');
+        
+        // Ensure academy ID is set in localStorage
+        await AsyncStorage.setItem('academyId', FIXED_ACADEMY_ID);
+        
+      } catch (error) {
+        console.error('⚠️ Failed to add kid to Firebase:', error);
+        console.error('Error details:', error.message);
+        kid.firebase_synced = 0;
+      }
+    } else {
+      console.log('⏭️ Skipping Firebase sync (download operation)');
       kid.firebase_synced = 1;
-      
-      console.log('✅ Kid added to academy Firebase collection');
-      
-      // Ensure academy ID is set in localStorage
-      await AsyncStorage.setItem('academyId', FIXED_ACADEMY_ID);
-      
-    } catch (error) {
-      console.error('⚠️ Failed to add kid to Firebase:', error);
-      console.error('Error details:', error.message);
-      kid.firebase_synced = 0;
     }
     
     // Note: We don't save to local webDB - kids are only in Firebase
@@ -319,13 +440,17 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
     return kid;
   }
 
+  // Mobile path starts here
+  // Generate unique ID before insert (like web does)
+  const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   const result = await db.runAsync(
-    'INSERT INTO kids (user_id, name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [userId, name, age, gender, area, ageGroup, sponsorshipType, programType, programTypeOther, trialNotes, programType === 'Trial' ? 'trial' : 'active']
+    'INSERT INTO kids (id, user_id, name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [uniqueId, userId, name, age, gender, area, ageGroup, sponsorshipType, programType, programTypeOther, trialNotes, programType === 'Trial' ? 'trial' : 'active']
   );
   
   const kid = {
-    id: result.lastInsertRowId,
+    id: uniqueId,
     user_id: userId,
     name,
     age,
@@ -342,37 +467,43 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
   };
   
   // Background sync to Firebase (non-blocking)
-  try {
-    const FIXED_ACADEMY_ID = 'academy_accellax361_main';
-    const { db: firebaseDb } = await import('../config/firebase.js');
-    const { doc, setDoc, Timestamp } = await import('firebase/firestore');
-    
-    const kidRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/kids`, kid.id.toString());
-    await setDoc(kidRef, {
-      id: kid.id.toString(),
-      name: kid.name,
-      age: kid.age,
-      gender: kid.gender,
-      area_of_residence: kid.area_of_residence,
-      age_group: kid.age_group,
-      sponsorshipType: kid.sponsorshipType,
-      programType: kid.programType,
-      programTypeOther: kid.programTypeOther || null,
-      trialNotes: kid.trialNotes || null,
-      status: kid.status,
-      created_at: Timestamp.fromDate(new Date(kid.created_at)),
-      created_by: userId,
-      updated_at: Timestamp.now(),
-      synced_at: Timestamp.now(),
-    });
-    
-    // Mark as synced
+  // Skip if this is being called from sync download
+  if (!skipFirebaseSync) {
+    try {
+      const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+      const { db: firebaseDb } = await import('../config/firebase.js');
+      const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+      
+      const kidRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/kids`, kid.id.toString());
+      await setDoc(kidRef, {
+        id: kid.id.toString(),
+        name: kid.name,
+        age: kid.age,
+        gender: kid.gender,
+        area_of_residence: kid.area_of_residence,
+        age_group: kid.age_group,
+        sponsorshipType: kid.sponsorshipType,
+        programType: kid.programType,
+        programTypeOther: kid.programTypeOther || null,
+        trialNotes: kid.trialNotes || null,
+        status: kid.status,
+        created_at: Timestamp.fromDate(new Date(kid.created_at)),
+        created_by: userId,
+        updated_at: Timestamp.now(),
+        synced_at: Timestamp.now(),
+      });
+      
+      // Mark as synced
+      await db.runAsync('UPDATE kids SET firebase_synced = 1 WHERE id = ?', [kid.id]);
+      console.log('✅ [Mobile] Kid synced to Firebase');
+      
+    } catch (error) {
+      console.warn('⚠️ [Mobile] Failed to sync kid to Firebase (will retry later):', error);
+      // Don't fail the operation - kid is saved locally
+    }
+  } else {
+    console.log('⏭️ [Mobile] Skipping Firebase sync (download operation)');
     await db.runAsync('UPDATE kids SET firebase_synced = 1 WHERE id = ?', [kid.id]);
-    console.log('✅ [Mobile] Kid synced to Firebase');
-    
-  } catch (error) {
-    console.warn('⚠️ [Mobile] Failed to sync kid to Firebase (will retry later):', error);
-    // Don't fail the operation - kid is saved locally
   }
   
   return kid;
@@ -723,13 +854,16 @@ export const createSession = async (userId, date, time, dayOfWeek) => {
     return session;
   }
 
+  // Generate unique ID before insert (like web does)
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   const result = await db.runAsync(
-    'INSERT INTO sessions (academy_id, session_date, session_time, day_of_week, status, created_by, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [FIXED_ACADEMY_ID, date, time, dayOfWeek, 'draft', userId, userId]
+    'INSERT INTO sessions (id, academy_id, session_date, session_time, day_of_week, status, created_by, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [sessionId, FIXED_ACADEMY_ID, date, time, dayOfWeek, 'draft', userId, userId]
   );
   
   return {
-    id: result.lastInsertRowId,
+    id: sessionId,
     academy_id: FIXED_ACADEMY_ID,
     session_date: date,
     session_time: time,
@@ -1184,14 +1318,17 @@ export const insertNote = async (userId, noteData) => {
   }
 
   // Mobile SQLite
+  // Generate unique ID before insert (like web does)
+  const noteId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   const result = await db.runAsync(
-    `INSERT INTO notes (user_id, academy_id, title, content, note_type, related_id, related_name) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, FIXED_ACADEMY_ID, noteData.title, noteData.content, noteData.note_type, noteData.related_id, noteData.related_name]
+    `INSERT INTO notes (id, user_id, academy_id, title, content, note_type, related_id, related_name) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [noteId, userId, FIXED_ACADEMY_ID, noteData.title, noteData.content, noteData.note_type, noteData.related_id, noteData.related_name]
   );
 
   return {
-    id: result.lastInsertRowId,
+    id: noteId,
     user_id: userId,
     academy_id: FIXED_ACADEMY_ID,
     ...noteData,

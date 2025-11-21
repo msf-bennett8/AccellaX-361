@@ -2,7 +2,7 @@
   "expo": {
     "name": "AccellaX 361°",
     "slug": "accellax-361",
-    "version": "1.0.1",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

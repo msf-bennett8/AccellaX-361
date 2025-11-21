@@ -5,7 +5,7 @@
  */
 export const KIDS_TABLE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS kids (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     age INTEGER NOT NULL,
@@ -28,7 +28,7 @@ export const KIDS_TABLE_SCHEMA = `
  */
 export const SESSIONS_TABLE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     academy_id TEXT NOT NULL,
     session_date DATE NOT NULL,
     session_time TEXT NOT NULL,
@@ -49,9 +49,10 @@ export const SESSIONS_TABLE_SCHEMA = `
 export const ATTENDANCE_TABLE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS attendance (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id INTEGER NOT NULL,
-    kid_id INTEGER NOT NULL,
+    session_id TEXT NOT NULL,
+    kid_id TEXT NOT NULL,
     status TEXT NOT NULL,
+    marked_by TEXT DEFAULT 'System',
     marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     firebase_synced INTEGER DEFAULT 0,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
@@ -125,7 +126,7 @@ export const CREATE_INDEXES = `
  */
 export const NOTES_TABLE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS notes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     academy_id TEXT NOT NULL,
     title TEXT NOT NULL,

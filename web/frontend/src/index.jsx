@@ -56,8 +56,9 @@ import { getStorage } from 'firebase/storage';
 import { getAnalytics, logEvent, setUserId, setUserProperties } from 'firebase/analytics';
 import { getPerformance } from 'firebase/performance';
 
-// ==================== GLOBAL STYLES ====================
+// ==================== GLOBAL STYLES (MUST BE FIRST) ====================
 import './index.css';
+import './App.css';
 
 // ==================== CONSTANTS ====================
 const APP_VERSION = '2.0.0';

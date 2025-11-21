@@ -629,7 +629,7 @@ const downloadKidsFromFirebase = async (userId) => {
         ageGroup: firebaseKid.age_group 
       });
       
-      // Insert kid
+      // Insert kid (skip Firebase sync to prevent loop)
       await insertKid(
         userId,
         firebaseKid.name,
@@ -640,7 +640,8 @@ const downloadKidsFromFirebase = async (userId) => {
         firebaseKid.sponsorshipType || 'SP',
         firebaseKid.programType || 'ELT',
         firebaseKid.programTypeOther || null,
-        firebaseKid.trialNotes || null
+        firebaseKid.trialNotes || null,
+        true  // ← Skip Firebase sync
       );
       
       downloadCount++;

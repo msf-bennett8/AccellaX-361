@@ -907,7 +907,7 @@ const OnboardingScreen = ({ onComplete }) => {
         </View>
 
         <Text style={styles.footer}>
-          Made with ❤️ for coaches | v1.0.1
+          Made with ❤️ for coaches | v1.0.4
         </Text>
       </ScrollView>
       </View>
