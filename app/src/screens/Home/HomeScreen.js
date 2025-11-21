@@ -188,9 +188,9 @@ const HomeScreen = () => {
         return;
       }
       
-      // Use TODAY's date for today, not dateInfo.date (which can be off by timezone)
+      // Use TODAY's date for today in local timezone
       const sessionDate = dateInfo.daysFromNow === 0 
-        ? new Date().toISOString().split('T')[0]  // Use actual today's date
+        ? new Date().toLocaleDateString('en-CA')  // ✅ Use local date (YYYY-MM-DD format)
         : dateInfo.date;  // Use calculated date for past/future
       const session = await createOrGetSession(userId, sessionDate, timeSlot.display, day);
       
@@ -282,8 +282,8 @@ const handleTakeAttendance = async () => {
       return;
     }
 
-    // Create session
-    const sessionDate = currentDate.toISOString().split('T')[0];
+    // Create session - use local date to avoid timezone issues
+    const sessionDate = currentDate.toLocaleDateString('en-CA');  // ✅ YYYY-MM-DD in local timezone
     const timeSlot = isTrainingDay(currentDay) 
       ? TRAINING_SCHEDULE[currentDay] 
       : { display: 'Special Event' };

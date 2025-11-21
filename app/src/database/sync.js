@@ -586,7 +586,7 @@ const downloadUserProfileFromFirebase = async (userId) => {
   }
 };
 
-// ✅ FIXED: Download kids from Firebase (checks academy collection for duplicates)
+// ✅ FIXED: Download kids from Firebase (prevents duplicates during sync)
 const downloadKidsFromFirebase = async (userId) => {
   debugLog('KIDS_DOWNLOAD', 'Starting kids download', { userId });
   
@@ -605,21 +605,36 @@ const downloadKidsFromFirebase = async (userId) => {
     }
     
     let downloadCount = 0;
+    let skippedCount = 0;
     
     // Get existing local kids to prevent duplicates
     const localKids = await getAllKids();
     const existingKidIds = new Set(localKids.map(k => k.id.toString()));
     
+    // Also track kids we're about to insert in THIS sync run
+    const insertedInThisRun = new Set();
+    
     for (const docSnap of snapshot.docs) {
       const firebaseKid = docSnap.data();
-      const kidId = firebaseKid.id;
+      const kidId = firebaseKid.id.toString();
       
       // Skip if kid already exists locally
-      if (existingKidIds.has(kidId.toString())) {
-        debugLog('KIDS_DOWNLOAD', 'Skipping existing kid', { 
+      if (existingKidIds.has(kidId)) {
+        debugLog('KIDS_DOWNLOAD', 'Skipping existing kid (already in local DB)', { 
           kidId, 
           kidName: firebaseKid.name 
         });
+        skippedCount++;
+        continue;
+      }
+      
+      // Skip if we already inserted this kid in this sync run
+      if (insertedInThisRun.has(kidId)) {
+        debugLog('KIDS_DOWNLOAD', 'Skipping duplicate in same sync run', { 
+          kidId, 
+          kidName: firebaseKid.name 
+        });
+        skippedCount++;
         continue;
       }
       
@@ -629,26 +644,39 @@ const downloadKidsFromFirebase = async (userId) => {
         ageGroup: firebaseKid.age_group 
       });
       
-      // Insert kid (skip Firebase sync to prevent loop)
-      await insertKid(
-        userId,
-        firebaseKid.name,
-        firebaseKid.age,
-        firebaseKid.gender,
-        firebaseKid.area_of_residence,
-        firebaseKid.age_group,
-        firebaseKid.sponsorshipType || 'SP',
-        firebaseKid.programType || 'ELT',
-        firebaseKid.programTypeOther || null,
-        firebaseKid.trialNotes || null,
-        true  // ← Skip Firebase sync
-      );
-      
-      downloadCount++;
+      try {
+        // Insert kid WITH the Firebase kid ID (this is the critical fix!)
+        await insertKid(
+          userId,
+          firebaseKid.name,
+          firebaseKid.age,
+          firebaseKid.gender,
+          firebaseKid.area_of_residence,
+          firebaseKid.age_group,
+          firebaseKid.sponsorshipType || 'SP',
+          firebaseKid.programType || 'ELT',
+          firebaseKid.programTypeOther || null,
+          firebaseKid.trialNotes || null,
+          true,  // ← Skip Firebase sync
+          kidId  // ← CRITICAL: Pass the Firebase kid ID!
+        );
+        
+        // Mark as inserted in this run
+        insertedInThisRun.add(kidId);
+        downloadCount++;
+        
+      } catch (insertError) {
+        debugError('KIDS_DOWNLOAD', 'Failed to insert kid', insertError);
+        // Continue with next kid instead of failing entire sync
+      }
     }
     
-    debugLog('KIDS_DOWNLOAD', 'Kids download completed', { downloadCount });
-    return { success: true, count: downloadCount };
+    debugLog('KIDS_DOWNLOAD', 'Kids download completed', { 
+      downloadCount, 
+      skippedCount,
+      totalProcessed: snapshot.size
+    });
+    return { success: true, count: downloadCount, skipped: skippedCount };
     
   } catch (error) {
     debugError('KIDS_DOWNLOAD', 'Kids download failed', error);
@@ -752,14 +780,14 @@ const downloadSessionsFromFirebase = async (userId, academyId) => {
         if (firebaseSession.attendance && firebaseSession.attendance.length > 0) {
           for (const att of firebaseSession.attendance) {
             const existingAttendance = webDB.attendance.find(
-              a => a.session_id === sessionId && a.kid_id === parseInt(att.kid_id)
+              a => a.session_id === sessionId && a.kid_id.toString() === att.kid_id.toString()
             );
             
             if (!existingAttendance) {
               const attendanceRecord = {
                 id: Date.now() + Math.random(),
                 session_id: sessionId,
-                kid_id: parseInt(att.kid_id),
+                kid_id: att.kid_id.toString(),  // ✅ Keep as string
                 status: att.status,
                 marked_at: att.marked_at?.toDate?.()?.toISOString() || new Date().toISOString(),
                 firebase_synced: 1,
@@ -799,7 +827,7 @@ const downloadSessionsFromFirebase = async (userId, academyId) => {
                  VALUES (?, ?, ?, ?, ?)`,
                 [
                   sessionId,
-                  parseInt(att.kid_id),
+                  att.kid_id.toString(),  // ✅ Keep as string to match kids.id
                   att.status,
                   att.marked_at?.toDate?.()?.toISOString() || new Date().toISOString(),
                   1

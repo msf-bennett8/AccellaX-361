@@ -31,7 +31,11 @@ const AuthChoiceScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>⚽</Text>
+            <Image 
+              source={require('../../../assets/icon.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
         </View>
         
@@ -148,8 +152,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
-  logoText: {
-    fontSize: 40,
+  logoImage: {
+    width: 60,
+    height: 60,
   },
   appName: {
     fontSize: 28,

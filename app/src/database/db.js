@@ -51,6 +51,7 @@ export const initDatabase = async () => {
       phone TEXT,
       password_hash TEXT,
       auth_method TEXT DEFAULT 'accellax',
+      role TEXT DEFAULT 'coach',
       avatar_base64 TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -125,6 +126,19 @@ export const initDatabase = async () => {
       ALTER TABLE attendance ADD COLUMN marked_by TEXT DEFAULT 'System';
     `);
     console.log('✅ Migration: Added marked_by column to attendance table');
+  } catch (error) {
+    // Column already exists, ignore error
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+
+  // Add role column to users table if it doesn't exist (for existing databases)
+  try {
+    await db.execAsync(`
+      ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'coach';
+    `);
+    console.log('✅ Migration: Added role column to users table');
   } catch (error) {
     // Column already exists, ignore error
     if (!error.message.includes('duplicate column')) {
@@ -365,13 +379,13 @@ export const updateUserField = async (userId, field, value) => {
 };
 
 // ========== KIDS CRUD ==========
-export const insertKid = async (userId, name, age, gender, area, ageGroup, sponsorshipType = 'SP', programType = 'ELT', programTypeOther = null, trialNotes = null, skipFirebaseSync = false) => {
+export const insertKid = async (userId, name, age, gender, area, ageGroup, sponsorshipType = 'SP', programType = 'ELT', programTypeOther = null, trialNotes = null, skipFirebaseSync = false, providedKidId = null) => {
   // ALWAYS use the fixed academy ID
   const FIXED_ACADEMY_ID = 'academy_accellax361_main';
   
   if (isWeb) {
     const kid = {
-      id: generateId(),
+      id: providedKidId || generateId(),
       user_id: userId,
       name,
       age,
@@ -441,8 +455,15 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
   }
 
   // Mobile path starts here
-  // Generate unique ID before insert (like web does)
-  const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Use provided ID or generate unique ID
+  const uniqueId = providedKidId || `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Check if kid already exists (prevent duplicates)
+  const existingKid = await db.getFirstAsync('SELECT id FROM kids WHERE id = ?', [uniqueId]);
+  if (existingKid) {
+    console.log('⚠️ Kid already exists, skipping insert:', uniqueId);
+    return existingKid;
+  }
   
   const result = await db.runAsync(
     'INSERT INTO kids (id, user_id, name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -561,7 +582,7 @@ export const getKidsByAgeGroup = async (ageGroup) => {
   // Mobile: Use SQLite as primary (offline-first)
   try {
     const kids = await db.getAllAsync(
-      'SELECT * FROM kids WHERE age_group = ? AND status = "active" ORDER BY name',
+      'SELECT DISTINCT id, user_id, name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, status, created_at, updated_at, firebase_synced FROM kids WHERE age_group = ? AND status = "active" GROUP BY id ORDER BY name',
       [ageGroup]
     );
     
@@ -805,9 +826,23 @@ const attendanceWithKids = sessionAttendance.map(a => {
   }
 
   // For native (SQLite)
-  let query = `
-    SELECT a.*, k.name, k.age, k.gender, k.area_of_residence, k.age_group, 
-           k.sponsorshipType, k.programType, k.status
+   let query = `
+    SELECT 
+      a.id,
+      a.session_id,
+      a.kid_id,
+      a.status as status,
+      a.marked_at,
+      a.marked_by,
+      a.firebase_synced,
+      k.name,
+      k.age,
+      k.gender,
+      k.area_of_residence,
+      k.age_group,
+      k.sponsorshipType,
+      k.programType,
+      k.status as kid_status
     FROM attendance a
     JOIN kids k ON a.kid_id = k.id
     WHERE a.session_id = ?
@@ -825,7 +860,14 @@ const attendanceWithKids = sessionAttendance.map(a => {
   
   query += ` ORDER BY k.age_group, k.name`;
   
-  return await db.getAllAsync(query, params);
+  const results = await db.getAllAsync(query, params);
+  
+  console.log(`✅ [Mobile] Loaded ${results.length} attendance records with kid details`);
+  if (results.length > 0) {
+    console.log('📋 Sample record:', results[0]);
+  }
+  
+  return results;
 };
 
 // ========== SESSIONS ==========
@@ -988,12 +1030,10 @@ export const markAttendance = async (sessionId, kidId, status, markedBy = 'Syste
     );
 
     if (existingIndex !== -1) {
-      // Update existing attendance
       webDB.attendance[existingIndex].status = status;
       webDB.attendance[existingIndex].marked_at = timestamp;
       webDB.attendance[existingIndex].marked_by = markedBy;
     } else {
-      // Create new attendance record
       const attendance = {
         id: generateId(),
         session_id: sessionId,
@@ -1006,7 +1046,6 @@ export const markAttendance = async (sessionId, kidId, status, markedBy = 'Syste
       webDB.attendance.push(attendance);
     }
     
-    // Update session status to 'in_progress' on first attendance
     const session = webDB.sessions.find(s => s.id === sessionId);
     if (session && session.status === 'draft') {
       session.status = 'in_progress';
@@ -1019,17 +1058,72 @@ export const markAttendance = async (sessionId, kidId, status, markedBy = 'Syste
 
   // For mobile, use REPLACE to handle duplicates
   await db.runAsync(
-    `INSERT OR REPLACE INTO attendance (session_id, kid_id, status, marked_at, marked_by) 
-     VALUES (?, ?, ?, ?, ?)`,
-    [sessionId, kidId, status, timestamp, markedBy]
+    `INSERT OR REPLACE INTO attendance (session_id, kid_id, status, marked_at, marked_by, firebase_synced) 
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [sessionId, kidId, status, timestamp, markedBy, 0]
   );
   
   // Update session status to 'in_progress' on first attendance
   await db.runAsync(
-    `UPDATE sessions SET status = 'in_progress', last_modified_by = ? 
+    `UPDATE sessions SET status = 'in_progress', last_modified_by = ?, firebase_synced = 0 
      WHERE id = ? AND status = 'draft'`,
     [markedBy, sessionId]
   );
+  
+  // ✅ CRITICAL FIX: Sync attendance to Firebase immediately
+  try {
+    const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+    const { db: firebaseDb } = await import('../config/firebase.js');
+    const { doc, getDoc, updateDoc, arrayUnion, Timestamp } = await import('firebase/firestore');
+    
+    const sessionRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/sessions`, sessionId);
+    
+    // Get current session to update attendance array
+    const sessionSnap = await getDoc(sessionRef);
+    
+    if (sessionSnap.exists()) {
+      const sessionData = sessionSnap.data();
+      const existingAttendance = sessionData.attendance || [];
+      
+      // Check if this kid already has attendance
+      const existingIndex = existingAttendance.findIndex(a => a.kid_id === kidId.toString());
+      
+      if (existingIndex !== -1) {
+        // Update existing attendance
+        existingAttendance[existingIndex] = {
+          kid_id: kidId.toString(),
+          status: status,
+          marked_at: Timestamp.fromDate(new Date(timestamp)),
+        };
+      } else {
+        // Add new attendance
+        existingAttendance.push({
+          kid_id: kidId.toString(),
+          status: status,
+          marked_at: Timestamp.fromDate(new Date(timestamp)),
+        });
+      }
+      
+      // Update the entire attendance array
+      await updateDoc(sessionRef, {
+        attendance: existingAttendance,
+        status: 'in_progress',
+        last_modified_by: markedBy,
+        updated_at: Timestamp.now(),
+      });
+      
+      // Mark as synced locally
+      await db.runAsync(
+        'UPDATE attendance SET firebase_synced = 1 WHERE session_id = ? AND kid_id = ?',
+        [sessionId, kidId]
+      );
+      
+      console.log('✅ [Mobile] Attendance synced to Firebase');
+    }
+  } catch (error) {
+    console.warn('⚠️ [Mobile] Failed to sync attendance to Firebase:', error);
+    // Don't fail the operation - attendance is saved locally
+  }
 };
 
 export const getSessionAttendance = async (sessionId) => {

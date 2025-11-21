@@ -63,8 +63,10 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
         
         // Trigger sync to download kids and sessions from academy
         console.log('🔄 Triggering initial sync after login...');
+        console.log('📋 User ID for sync:', result.userProfile.userId);
+
         const { performFullSync } = await import('../../database/sync');
-        const syncResult = await performFullSync(result.userProfile.id);
+        const syncResult = await performFullSync(result.userProfile.userId);
         
         if (syncResult.success) {
           console.log('✅ Initial sync completed:', syncResult.results);

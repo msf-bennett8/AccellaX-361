@@ -312,25 +312,28 @@ const AttendanceScreen = ({ route, navigation }) => {
 
   const handleDone = () => {
     if (!hasChanges) {
-      // No changes made - ask if they want to discard
       if (isExistingSession && markedKids.size > 0) {
-        // Edit mode with existing attendance - just go back
         navigation.goBack();
       } else {
-        // New session or no attendance - confirm discard
         setShowDiscardModal(true);
       }
       return;
     }
     
-    // Changes were made - check if all kids are marked
     const unmarkedCount = allKidsData.length - markedKids.size;
     
     if (unmarkedCount > 0) {
       setShowIncompleteModal(true);
     } else {
-      // All marked and changes made - save and go back
-      navigation.goBack();
+      // ✅ All marked and changes made - show success modal
+      setSuccessMessage(`✓ Attendance complete! All ${markedKids.size} kids marked.`);
+      setShowSuccessModal(true);
+      
+      // Navigate back after showing success
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        navigation.goBack();
+      }, 2000);
     }
   };
 
