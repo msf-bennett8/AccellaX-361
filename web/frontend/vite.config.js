@@ -4,17 +4,22 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  
+  // ✅ FIXED: Process both .js and .jsx files as JSX
   esbuild: {
     loader: 'jsx',
-    include: /src\/.*\.js$/,
+    include: /src\/.*\.[jt]sx?$/,  // Process .js, .jsx, .ts, .tsx
   },
+  
   optimizeDeps: {
     esbuildOptions: {
       loader: {
         '.js': 'jsx',
+        '.jsx': 'jsx',  // ✅ ADDED: Explicitly handle .jsx files
       },
     },
   },
+  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -27,6 +32,7 @@ export default defineConfig({
       '@assets': path.resolve(__dirname, './src/assets'),
     },
   },
+  
   server: {
     port: 3000,
     proxy: {

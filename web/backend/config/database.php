@@ -1,14 +1,3 @@
-Perfect! The error is clear - we need to create the bootstrap/cache directory. Let's fix this:
-bashcd ~/ctrl.dev/studio.dev/AccellaX\ 361°/web/backend
-
-# Create bootstrap/cache directory
-mkdir -p bootstrap/cache
-
-# Make it writable
-chmod -R 775 bootstrap/cache
-
-# Also fix the database config (it got truncated)
-cat > config/database.php << 'EOF'
 <?php
 
 use Illuminate\Support\Str;

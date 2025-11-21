@@ -4,10 +4,11 @@
     "description": "AccellaX 361° Backend API",
     "require": {
         "php": "^8.1|^8.2|^8.3|^8.4",
+        "google/cloud-firestore": "^1.54",
         "guzzlehttp/guzzle": "^7.2",
-        "kreait/firebase-php": "^7.14",
+        "kreait/firebase-php": "*",
         "laravel/framework": "^11.0",
-        "laravel/sanctum": "^4.0",
+        "laravel/sanctum": "^4.2",
         "laravel/tinker": "^2.9"
     },
     "require-dev": {

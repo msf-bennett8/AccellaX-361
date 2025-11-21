@@ -175,8 +175,8 @@ const MaintenancePage = lazy(() => import('@pages/errors/MaintenancePage'));
 
 // ==================== GLOBAL STYLES ====================
 import '@/styles/globals.css';
-import '@/styles/index.css';
-import '@/styles/App.css';
+import '@/index.css';
+import '@/App.css';
 
 // ==================== UTILITIES ====================
 import { ROLES } from '@utils/constants';
@@ -638,9 +638,7 @@ const AppRoutes = () => {
         path="/login"
         element={
           <PublicRoute restricted>
-            <AuthLayout>
-              <LoginPage />
-            </AuthLayout>
+            <LoginPage />
           </PublicRoute>
         }
       />
@@ -648,9 +646,7 @@ const AppRoutes = () => {
         path="/register"
         element={
           <PublicRoute restricted>
-            <AuthLayout>
-              <RegisterPage />
-            </AuthLayout>
+            <RegisterPage />
           </PublicRoute>
         }
       />
@@ -658,9 +654,7 @@ const AppRoutes = () => {
         path="/forgot-password"
         element={
           <PublicRoute restricted>
-            <AuthLayout>
-              <ForgotPasswordPage />
-            </AuthLayout>
+            <ForgotPasswordPage />
           </PublicRoute>
         }
       />
@@ -668,9 +662,7 @@ const AppRoutes = () => {
         path="/reset-password"
         element={
           <PublicRoute restricted>
-            <AuthLayout>
-              <ResetPasswordPage />
-            </AuthLayout>
+            <ResetPasswordPage />
           </PublicRoute>
         }
       />
@@ -1300,7 +1292,7 @@ const AppRoutes = () => {
       <Route path="/404" element={<NotFoundPage />} />
 
       {/* ==================== ROOT & CATCH-ALL ==================== */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );

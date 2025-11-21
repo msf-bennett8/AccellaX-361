@@ -122,13 +122,19 @@ const initializeFirebaseWithRetry = async (attempt = 1) => {
     console.log('✅ Firebase Auth initialized with local persistence');
     
     // Initialize Firestore with custom settings
-    db = initializeFirestore(firebaseApp, {
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-      experimentalForceLongPolling: false, // Better for most scenarios
-      experimentalAutoDetectLongPolling: true,
-    });
-    console.log('✅ Firestore initialized with unlimited cache');
-    
+    try {
+      // Try to get existing Firestore instance first
+      db = getFirestore(firebaseApp);
+      console.log('✅ Using existing Firestore instance');
+    } catch (error) {
+      // If it doesn't exist, initialize it with custom settings
+      db = initializeFirestore(firebaseApp, {
+        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+        experimentalForceLongPolling: false,
+        experimentalAutoDetectLongPolling: true,
+      });
+      console.log('✅ Firestore initialized with custom settings');
+    }
     // Enable offline persistence with multi-tab support
     try {
       await enableMultiTabIndexedDbPersistence(db);
@@ -574,13 +580,14 @@ const setupPerformanceMonitoring = () => {
  * ==================== MEMORY MANAGEMENT ====================
  */
 const setupMemoryMonitoring = () => {
-  if (!performance.memory) {
+  // Check if performance API and memory property exist
+  if (!window.performance || !window.performance.memory) {
     console.log('ℹ️ Memory API not available (Chrome only)');
     return;
   }
   
   const checkMemory = () => {
-    const { usedJSHeapSize, jsHeapSizeLimit } = performance.memory;
+    const { usedJSHeapSize, jsHeapSizeLimit } = window.performance.memory;
     const usedPercent = (usedJSHeapSize / jsHeapSizeLimit) * 100;
     
     if (usedPercent > MEMORY_WARNING_THRESHOLD) {

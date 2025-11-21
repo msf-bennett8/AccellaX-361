@@ -12,10 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
-
+        // Don't prepend Sanctum's stateful middleware - we're using token auth only
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'academy' => \App\Http\Middleware\AcademyMiddleware::class,
