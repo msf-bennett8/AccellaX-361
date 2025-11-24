@@ -7,7 +7,7 @@ export const hasRole = (user, roles) => {
 };
 
 export const isAdmin = (user) => {
-  return hasRole(user, [ROLES.SUPER_ADMIN, ROLES.OWNER]);
+  return hasRole(user, [ROLES.SUPER_ADMIN, ROLES.ADMIN]);
 };
 
 export const isCoach = (user) => {
@@ -17,24 +17,24 @@ export const isCoach = (user) => {
 export const canManageKids = (user) => {
   return hasRole(user, [
     ROLES.SUPER_ADMIN,
-    ROLES.OWNER,
+    ROLES.ADMIN,
     ROLES.HEAD_COACH,
     ROLES.COACH,
   ]);
 };
 
 export const canViewAllSessions = (user) => {
-  return hasRole(user, [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]);
+  return hasRole(user, [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]);
 };
 
 export const canCreateEvents = (user) => {
-  return hasRole(user, [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]);
+  return hasRole(user, [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]);
 };
 
 export const canManagePayments = (user) => {
   return hasRole(user, [
     ROLES.SUPER_ADMIN,
-    ROLES.OWNER,
+    ROLES.ADMIN,
     ROLES.PAYMENT_RECORDER,
   ]);
 };
@@ -42,7 +42,7 @@ export const canManagePayments = (user) => {
 export const getRoleDashboard = (role) => {
   const dashboards = {
     [ROLES.SUPER_ADMIN]: '/dashboard/admin',
-    [ROLES.OWNER]: '/dashboard/admin',
+    [ROLES.ADMIN]: '/dashboard/admin',
     [ROLES.HEAD_COACH]: '/dashboard/coach',
     [ROLES.COACH]: '/dashboard/coach',
     [ROLES.PAYMENT_RECORDER]: '/dashboard/payments',
@@ -56,7 +56,7 @@ export const getRoleDashboard = (role) => {
 export const getRoleLabel = (role) => {
   const labels = {
     [ROLES.SUPER_ADMIN]: 'Super Admin',
-    [ROLES.OWNER]: 'Academy Owner',
+    [ROLES.ADMIN]: 'Admin',
     [ROLES.HEAD_COACH]: 'Head Coach',
     [ROLES.COACH]: 'Coach',
     [ROLES.PAYMENT_RECORDER]: 'Payment Recorder',

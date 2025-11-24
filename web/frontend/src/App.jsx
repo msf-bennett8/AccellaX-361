@@ -89,7 +89,7 @@ const RoleElevationPage = lazy(() => import('@pages/auth/RoleElevationPage'));
 const VerifyEmailPage = lazy(() => import('@pages/auth/VerifyEmailPage'));
 
 // DASHBOARD PAGES (Role-Specific)
-const AdminDashboard = lazy(() => import('@pages/dashboard/AdminDashboard'));
+import AdminDashboard from '@pages/dashboard/AdminDashboard';
 const OwnerDashboard = lazy(() => import('@pages/dashboard/OwnerDashboard'));
 const CoachDashboard = lazy(() => import('@pages/dashboard/CoachDashboard'));
 const HeadCoachDashboard = lazy(() => import('@pages/dashboard/HeadCoachDashboard'));
@@ -696,77 +696,68 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Admin/Owner Dashboard */}
-      <Route
-        path="/dashboard/admin"
-        element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER]}>
-            <DashboardLayout>
+      {/* ==================== DASHBOARD ROUTES (NESTED) ==================== */}
+      <Route path="/dashboard" element={<DashboardLayout />}>
+        {/* Admin Dashboard */}
+        <Route 
+          path="admin" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
               <AdminDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Coach Dashboards */}
-      <Route
-        path="/dashboard/coach"
-        element={
-          <ProtectedRoute allowedRoles={[ROLES.HEAD_COACH, ROLES.COACH]}>
-            <DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Coach Dashboard */}
+        <Route 
+          path="coach" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.HEAD_COACH, ROLES.COACH]}>
               <CoachDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Parent Dashboard */}
-      <Route
-        path="/dashboard/parent"
-        element={
-          <ProtectedRoute allowedRoles={[ROLES.PARENT]}>
-            <DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Parent Dashboard */}
+        <Route 
+          path="parent" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.PARENT]}>
               <ParentDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Kid Dashboard */}
-      <Route
-        path="/dashboard/kid"
-        element={
-          <ProtectedRoute allowedRoles={[ROLES.KID]}>
-            <DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Kid Dashboard */}
+        <Route 
+          path="kid" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.KID]}>
               <KidDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Sponsor Dashboard */}
-      <Route
-        path="/dashboard/sponsor"
-        element={
-          <ProtectedRoute allowedRoles={[ROLES.SPONSOR]}>
-            <DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Sponsor Dashboard */}
+        <Route 
+          path="sponsor" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.SPONSOR]}>
               <SponsorDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Payment Recorder Dashboard */}
-      <Route
-        path="/dashboard/payment-recorder"
-        element={
-          <ProtectedRoute allowedRoles={[ROLES.PAYMENT_RECORDER]}>
-            <DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Payment Recorder Dashboard */}
+        <Route 
+          path="payment-recorder" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.PAYMENT_RECORDER]}>
               <PaymentRecorderDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+            </ProtectedRoute>
+          } 
+        />
+      </Route>
 
       {/* ==================== ATTENDANCE ROUTES ==================== */}
       <Route
@@ -802,7 +793,7 @@ const AppRoutes = () => {
       <Route
         path="/attendance/reports"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <AttendanceReport />
             </DashboardLayout>
@@ -812,7 +803,7 @@ const AppRoutes = () => {
       <Route
         path="/attendance/bulk"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH, ROLES.COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH, ROLES.COACH]}>
             <DashboardLayout>
               <BulkAttendance />
             </DashboardLayout>
@@ -844,7 +835,7 @@ const AppRoutes = () => {
       <Route
         path="/kids/:kidId/edit"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH, ROLES.COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH, ROLES.COACH]}>
             <DashboardLayout>
               <EditKidPage />
             </DashboardLayout>
@@ -874,7 +865,7 @@ const AppRoutes = () => {
       <Route
         path="/kids/add"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH, ROLES.COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH, ROLES.COACH]}>
             <DashboardLayout>
               <AddKidPage />
             </DashboardLayout>
@@ -916,7 +907,7 @@ const AppRoutes = () => {
       <Route
         path="/events/:eventId/edit"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <EditEventPage />
             </DashboardLayout>
@@ -936,7 +927,7 @@ const AppRoutes = () => {
       <Route
         path="/events/create"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <CreateEventPage />
             </DashboardLayout>
@@ -968,7 +959,7 @@ const AppRoutes = () => {
       <Route
         path="/messages/broadcast"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <BroadcastPage />
             </DashboardLayout>
@@ -990,7 +981,7 @@ const AppRoutes = () => {
       <Route
         path="/payments"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.PAYMENT_RECORDER, ROLES.PARENT]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PAYMENT_RECORDER, ROLES.PARENT]}>
             <DashboardLayout>
               <PaymentsPage />
             </DashboardLayout>
@@ -1000,7 +991,7 @@ const AppRoutes = () => {
       <Route
         path="/payments/history"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.PAYMENT_RECORDER, ROLES.PARENT]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PAYMENT_RECORDER, ROLES.PARENT]}>
             <DashboardLayout>
               <PaymentHistoryPage />
             </DashboardLayout>
@@ -1020,7 +1011,7 @@ const AppRoutes = () => {
       <Route
         path="/payments/reports"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
             <DashboardLayout>
               <PaymentReportPage />
             </DashboardLayout>
@@ -1032,7 +1023,7 @@ const AppRoutes = () => {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <ReportsPage />
             </DashboardLayout>
@@ -1042,7 +1033,7 @@ const AppRoutes = () => {
       <Route
         path="/reports/attendance"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <AttendanceReportsPage />
             </DashboardLayout>
@@ -1052,7 +1043,7 @@ const AppRoutes = () => {
       <Route
         path="/reports/performance"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <PerformanceReportsPage />
             </DashboardLayout>
@@ -1062,7 +1053,7 @@ const AppRoutes = () => {
       <Route
         path="/reports/financial"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER]} requireElevation>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]} requireElevation>
             <DashboardLayout>
               <FinancialReportsPage />
             </DashboardLayout>
@@ -1072,7 +1063,7 @@ const AppRoutes = () => {
       <Route
         path="/reports/export"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <ExportPage />
             </DashboardLayout>
@@ -1082,7 +1073,7 @@ const AppRoutes = () => {
       <Route
         path="/reports/analytics"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <AnalyticsPage />
             </DashboardLayout>
@@ -1094,7 +1085,7 @@ const AppRoutes = () => {
       <Route
         path="/coaches"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <CoachesPage />
             </DashboardLayout>
@@ -1104,7 +1095,7 @@ const AppRoutes = () => {
       <Route
         path="/coaches/:coachId"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <CoachDetailPage />
             </DashboardLayout>
@@ -1114,7 +1105,7 @@ const AppRoutes = () => {
       <Route
         path="/coaches/:coachId/schedule"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HEAD_COACH]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HEAD_COACH]}>
             <DashboardLayout>
               <CoachSchedulePage />
             </DashboardLayout>
@@ -1124,7 +1115,7 @@ const AppRoutes = () => {
       <Route
         path="/coaches/add"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER]} requireElevation>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]} requireElevation>
             <DashboardLayout>
               <AddCoachPage />
             </DashboardLayout>
@@ -1136,7 +1127,7 @@ const AppRoutes = () => {
       <Route
         path="/sponsors"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.SPONSOR]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.SPONSOR]}>
             <DashboardLayout>
               <SponsorsPage />
             </DashboardLayout>
@@ -1146,7 +1137,7 @@ const AppRoutes = () => {
       <Route
         path="/sponsors/:sponsorId"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.SPONSOR]}>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.SPONSOR]}>
             <DashboardLayout>
               <SponsorDetailPage />
             </DashboardLayout>
@@ -1200,7 +1191,7 @@ const AppRoutes = () => {
       <Route
         path="/settings/academy"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.OWNER]} requireElevation>
+          <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]} requireElevation>
             <DashboardLayout>
               <AcademySettingsPage />
             </DashboardLayout>

@@ -343,9 +343,9 @@ export const updateProfile = async (profileData) => {
 export const elevateRole = async (secretCode, password, targetRole) => {
   try {
     const response = await api.post('/auth/elevate-role', {
-      secret_code: secretCode,
+      secretCode: secretCode,
       password,
-      target_role: targetRole,
+      targetRole: targetRole,
     });
     
     const { token, user } = response.data;

@@ -64,6 +64,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Initialize authentication
+  // Initialize authentication
   const initializeAuth = () => {
     try {
       // Check if user is authenticated via localStorage/session
@@ -71,8 +72,11 @@ export const AuthProvider = ({ children }) => {
         const currentUser = authService.getCurrentUser();
         setUser(currentUser);
       }
+      
+      // Set loading to false immediately since we have the user from localStorage
+      setLoading(false);
 
-      // Listen to Firebase auth state changes
+      // Listen to Firebase auth state changes (but don't block on it)
       const firebaseAuth = getAuth();
       const unsubscribe = onAuthStateChanged(firebaseAuth, (fbUser) => {
         setFirebaseUser(fbUser);
@@ -84,13 +88,8 @@ export const AuthProvider = ({ children }) => {
           // Firebase logged out but local user still exists - clear it
           setUser(null);
         }
-        
-        // Only set loading to false after Firebase auth state is determined
-        setLoading(false);
       });
 
-      // Remove this line - don't set loading to false here!
-      // setLoading(false);
       return unsubscribe;
     } catch (error) {
       console.error('❌ Auth initialization error:', error);
@@ -294,8 +293,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+  <AuthContext.Provider value={value}>
+      {children}
     </AuthContext.Provider>
   );
 };

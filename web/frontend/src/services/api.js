@@ -78,12 +78,19 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Clear auth data
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
+      // Don't auto-redirect if on auth pages (prevents elevation loop)
+      const currentPath = window.location.pathname;
+      const isAuthPage = currentPath.includes('/login') || currentPath.includes('/dashboard');
+      
+      if (!isAuthPage) {
+        // Clear auth data
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
 
-      // Redirect to login
-      window.location.href = '/login';
+        // Redirect to login
+        window.location.href = '/login';
+      }
+      
       return Promise.reject(error);
     }
 
@@ -150,6 +157,7 @@ export const getCurrentUser = () => {
  * Helper function to set auth data
  */
 export const setAuthData = (token, user) => {
+  console.log('💾 Saving auth data:', { token: token?.substring(0, 20) + '...', role: user?.role });
   localStorage.setItem('auth_token', token);
   localStorage.setItem('user', JSON.stringify(user));
 };

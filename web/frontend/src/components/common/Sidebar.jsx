@@ -5,6 +5,8 @@
  * Description:
  * Role-based sidebar navigation with collapsible sections.
  * Responsive design with mobile drawer functionality.
+ * 
+ * FIXED: Changed 'owner' to 'admin' to match database roles
  */
 
 import React from 'react';
@@ -36,28 +38,28 @@ const Sidebar = ({ isOpen, onClose }) => {
       {
         label: 'Dashboard',
         icon: LayoutDashboard,
-        path: `/dashboard/${user?.role?.includes('admin') || user?.role === 'owner' ? 'admin' : user?.role?.includes('coach') ? 'coach' : user?.role}`,
-        roles: ['super_admin', 'owner', 'head_coach', 'coach', 'parent', 'kid', 'sponsor', 'payment_recorder'],
+        path: `/dashboard/${user?.role?.includes('admin') ? 'admin' : user?.role?.includes('coach') ? 'coach' : user?.role}`,
+        roles: ['super_admin', 'admin', 'head_coach', 'coach', 'parent', 'kid', 'sponsor', 'payment_recorder'],
       },
     ];
 
     // Kids Management
-    if (hasRole(['super_admin', 'owner', 'head_coach', 'coach'])) {
+    if (hasRole(['super_admin', 'admin', 'head_coach', 'coach'])) {
       items.push({
         label: 'Kids',
         icon: Users,
         path: '/kids',
-        roles: ['super_admin', 'owner', 'head_coach', 'coach'],
+        roles: ['super_admin', 'admin', 'head_coach', 'coach'],
       });
     }
 
     // Attendance
-    if (hasRole(['super_admin', 'owner', 'head_coach', 'coach', 'parent'])) {
+    if (hasRole(['super_admin', 'admin', 'head_coach', 'coach', 'parent'])) {
       items.push({
         label: 'Attendance',
         icon: ClipboardCheck,
         path: '/attendance',
-        roles: ['super_admin', 'owner', 'head_coach', 'coach', 'parent'],
+        roles: ['super_admin', 'admin', 'head_coach', 'coach', 'parent'],
       });
     }
 
@@ -66,7 +68,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       label: 'Events',
       icon: Calendar,
       path: '/events',
-      roles: ['super_admin', 'owner', 'head_coach', 'coach', 'parent', 'kid'],
+      roles: ['super_admin', 'admin', 'head_coach', 'coach', 'parent', 'kid'],
     });
 
     // Messages
@@ -74,56 +76,56 @@ const Sidebar = ({ isOpen, onClose }) => {
       label: 'Messages',
       icon: MessageSquare,
       path: '/messages',
-      roles: ['super_admin', 'owner', 'head_coach', 'coach', 'parent'],
+      roles: ['super_admin', 'admin', 'head_coach', 'coach', 'parent'],
     });
 
-    // Coaches (Admin/Owner only)
-    if (hasRole(['super_admin', 'owner', 'head_coach'])) {
+    // Coaches (Admin only)
+    if (hasRole(['super_admin', 'admin', 'head_coach'])) {
       items.push({
         label: 'Coaches',
         icon: UserCheck,
         path: '/coaches',
-        roles: ['super_admin', 'owner', 'head_coach'],
+        roles: ['super_admin', 'admin', 'head_coach'],
       });
     }
 
     // Reports
-    if (hasRole(['super_admin', 'owner', 'head_coach', 'coach'])) {
+    if (hasRole(['super_admin', 'admin', 'head_coach', 'coach'])) {
       items.push({
         label: 'Reports',
         icon: FileText,
         path: '/reports',
-        roles: ['super_admin', 'owner', 'head_coach', 'coach'],
+        roles: ['super_admin', 'admin', 'head_coach', 'coach'],
       });
     }
 
     // Payments
-    if (hasRole(['super_admin', 'owner', 'payment_recorder'])) {
+    if (hasRole(['super_admin', 'admin', 'payment_recorder'])) {
       items.push({
         label: 'Payments',
         icon: DollarSign,
         path: '/payments',
-        roles: ['super_admin', 'owner', 'payment_recorder'],
+        roles: ['super_admin', 'admin', 'payment_recorder'],
       });
     }
 
     // Analytics
-    if (hasRole(['super_admin', 'owner', 'head_coach', 'sponsor'])) {
+    if (hasRole(['super_admin', 'admin', 'head_coach', 'sponsor'])) {
       items.push({
         label: 'Analytics',
         icon: TrendingUp,
         path: '/analytics',
-        roles: ['super_admin', 'owner', 'head_coach', 'sponsor'],
+        roles: ['super_admin', 'admin', 'head_coach', 'sponsor'],
       });
     }
 
     // Sponsors
-    if (hasRole(['super_admin', 'owner'])) {
+    if (hasRole(['super_admin', 'admin'])) {
       items.push({
         label: 'Sponsors',
         icon: Award,
         path: '/sponsors',
-        roles: ['super_admin', 'owner'],
+        roles: ['super_admin', 'admin'],
       });
     }
 
@@ -132,7 +134,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       label: 'Settings',
       icon: Settings,
       path: '/settings',
-      roles: ['super_admin', 'owner', 'head_coach', 'coach', 'parent', 'payment_recorder'],
+      roles: ['super_admin', 'admin', 'head_coach', 'coach', 'parent', 'payment_recorder'],
     });
 
     // Help
@@ -140,7 +142,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       label: 'Help & Support',
       icon: HelpCircle,
       path: '/help',
-      roles: ['super_admin', 'owner', 'head_coach', 'coach', 'parent', 'kid', 'sponsor', 'payment_recorder'],
+      roles: ['super_admin', 'admin', 'head_coach', 'coach', 'parent', 'kid', 'sponsor', 'payment_recorder'],
     });
 
     // Filter by user role

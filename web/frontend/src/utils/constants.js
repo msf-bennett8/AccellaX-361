@@ -1,7 +1,7 @@
 // User Roles
 export const ROLES = {
   SUPER_ADMIN: 'super_admin',
-  OWNER: 'owner',
+  ADMIN: 'admin',
   HEAD_COACH: 'head_coach',
   COACH: 'coach',
   PAYMENT_RECORDER: 'payment_recorder',

@@ -279,4 +279,101 @@ class AuthController extends Controller
     {
         return response()->json(['success' => true, 'user' => $request->user()], 200);
     }
+
+
+    /**
+     * Elevate user role (Admin or Super Admin)
+     */
+    public function elevateRole(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'secretCode' => 'required|string',
+            'password' => 'required|string',
+            'targetRole' => 'required|in:admin,super_admin',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $user = $request->user();
+            $targetRole = $request->targetRole;
+            $providedPassword = $request->password;
+
+            // Get the correct elevation secret from .env
+            $correctSecret = $targetRole === 'super_admin' 
+                ? env('SUPER_ADMIN_ELEVATION_SECRET')
+                : env('ADMIN_ELEVATION_SECRET');
+
+            // Verify password
+            if ($providedPassword !== $correctSecret) {
+                Log::warning("Failed elevation attempt for user {$user->id} to {$targetRole}");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid elevation password'
+                ], 403);
+            }
+
+            // Prevent downgrading super_admin
+            if ($user->role === 'super_admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Super admin cannot be downgraded'
+                ], 403);
+            }
+
+            // Update user role
+            $oldRole = $user->role;
+            $user->role = $targetRole;
+            $user->elevation_secret = Hash::make($providedPassword); // Store hashed for audit
+            $user->save();
+
+            // Sync to Firestore
+            try {
+                $firebaseUser = $this->firebaseAuth->getUserByEmail($user->email);
+                $this->createFirestoreDocument('users', $firebaseUser->uid, [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '',
+                    'role' => $user->role,
+                    'academy_id' => $user->academy_id,
+                    'firebase_uid' => $firebaseUser->uid,
+                    'updated_at' => new \DateTime(),
+                ]);
+            } catch (\Exception $e) {
+                Log::warning("Firestore sync failed during elevation: " . $e->getMessage());
+            }
+
+            Log::info("✅ User {$user->id} elevated from {$oldRole} to {$targetRole}");
+
+            // Generate new Sanctum token with elevated role
+            $newToken = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => "Role elevated to {$targetRole} successfully",
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+                'token' => $newToken,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error("Elevation error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Role elevation failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
