@@ -59,3 +59,6 @@ web/backend/storage/logs/*
 # Temporary files
 web/backend/name
 web/backend/er->name*
+firebase-admin-key.json
+app/firebase-admin-key.json
+web/backend/google-services.json
