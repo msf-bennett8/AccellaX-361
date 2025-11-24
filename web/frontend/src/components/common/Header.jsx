@@ -21,7 +21,13 @@ import {
   Search,
   ChevronDown,
   Shield,
-  Crown
+  Crown,
+  Plus,
+  UserPlus,
+  Activity,
+  Users,
+  Calendar,
+  BarChart3
 } from 'lucide-react';
 
 const Header = ({ onMenuToggle, showMenuButton = true }) => {
@@ -32,6 +38,7 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
   // UI State
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Elevation State
@@ -46,6 +53,7 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
   
   const userMenuRef = useRef(null);
   const notificationRef = useRef(null);
+  const quickActionsRef = useRef(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -55,6 +63,9 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
       }
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false);
+      }
+      if (quickActionsRef.current && !quickActionsRef.current.contains(event.target)) {
+        setShowQuickActions(false);
       }
     };
 
@@ -185,7 +196,7 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
     <>
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 py-3">
             {/* Left: Logo + Menu Toggle */}
             <div className="flex items-center space-x-4">
               {showMenuButton && (
@@ -198,30 +209,30 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
                 </button>
               )}
               
-              <Link to="/" className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">A</span>
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold text-gray-900">
-                    AccellaX 361°
-                  </h1>
-                  <p className="text-xs text-gray-500">Sports Academy Platform</p>
-                </div>
-              </Link>
+              <Link to="/" className="flex items-center space-x-3 h-10">
+              <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-xl">A</span>
+              </div>
+              <div className="hidden md:block flex flex-col justify-center h-full">
+                <h1 className="text-xl font-bold text-gray-900 leading-none mb-1">
+                  AccellaX 361°
+                </h1>
+                <p className="text-xs text-gray-500 leading-none">Sports Academy Platform</p>
+              </div>
+            </Link>
             </div>
 
             {/* Center: Search Bar (Desktop) */}
             <div className="hidden md:flex flex-1 max-w-md mx-8">
               <form onSubmit={handleSearch} className="w-full">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search kids, sessions, events..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-gray-500 focus:bg-gray-700 transition-colors placeholder:text-gray-400 shadow-sm text-white"
+                    style={{ color: '#ffffffff', WebkitTextFillColor: '#ffffff' }}
                   />
                 </div>
               </form>
@@ -233,6 +244,129 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
               <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-md md:hidden">
                 <Search className="w-5 h-5" />
               </button>
+
+              {/* Quick Actions Dropdown */}
+              <div className="relative" ref={quickActionsRef}>
+                <button
+                  onClick={() => setShowQuickActions(!showQuickActions)}
+                  className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shadow-sm"
+                  aria-label="Quick Actions"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden lg:inline font-medium text-sm">Quick Actions</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {/* Quick Actions Dropdown Menu */}
+                {showQuickActions && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 animate-fade-in overflow-hidden z-50">
+                    <div className="p-4 border-b border-gray-200 bg-gray-50">
+                      <h3 className="font-semibold text-gray-900">Quick Actions</h3>
+                      <p className="text-xs text-gray-600 mt-0.5">Create new records</p>
+                    </div>
+                    
+                    <div className="py-2">
+                      <button
+                        onClick={() => {
+                          navigate('/kids/new');
+                          setShowQuickActions(false);
+                        }}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-gray-900 hover:bg-blue-100 w-full transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <UserPlus className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">Add New Kid</p>
+                          <p className="text-xs text-gray-600">Register athlete</p>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          navigate('/sessions/new');
+                          setShowQuickActions(false);
+                        }}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-gray-900 hover:bg-green-100 w-full transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Activity className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">New Session</p>
+                          <p className="text-xs text-gray-600">Schedule training</p>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          navigate('/parents/new');
+                          setShowQuickActions(false);
+                        }}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-gray-900 hover:bg-purple-100 w-full transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Users className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">Add Parent</p>
+                          <p className="text-xs text-gray-600">Register guardian</p>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          navigate('/coaches/new');
+                          setShowQuickActions(false);
+                        }}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-gray-900 hover:bg-red-100 w-full transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Shield className="w-5 h-5 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">Add Coach</p>
+                          <p className="text-xs text-gray-600">Register staff</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigate('/events/new');
+                          setShowQuickActions(false);
+                        }}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-gray-900 hover:bg-yellow-100 w-full transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Calendar className="w-5 h-5 text-yellow-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">Add Event</p>
+                          <p className="text-xs text-gray-600">Create event</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="border-t border-gray-200 py-2">
+                      <button
+                        onClick={() => {
+                          navigate('/reports');
+                          setShowQuickActions(false);
+                        }}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-gray-900 hover:bg-orange-100 w-full transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <BarChart3 className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">Generate Report</p>
+                          <p className="text-xs text-gray-600">Export data</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Notifications */}
               <div className="relative" ref={notificationRef}>
@@ -277,31 +411,31 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
               {/* User Menu - WITH SECRET ELEVATION CLICK */}
               <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={handleUserAvatarClick}
-                  className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <span className="text-primary-600 font-medium text-sm">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.name || 'User'}
-                    </p>
-                    <p className="text-xs text-gray-500 capitalize">
-                      {user?.role?.replace('_', ' ') || 'Role'}
-                    </p>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
-                </button>
+                onClick={handleUserAvatarClick}
+                className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 transition-colors h-10"
+              >
+                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-primary-600 font-medium text-sm">
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="hidden sm:block flex flex-col justify-center h-full">
+                  <p className="text-sm font-medium text-gray-900 leading-none mb-0.5">
+                    {user?.name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize leading-none">
+                    {user?.role?.replace('_', ' ') || 'Role'}
+                  </p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
+              </button>
 
                 {/* User Dropdown */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 animate-fade-in">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 animate-fade-in z-50">
                     <div className="p-3 border-b border-gray-200">
-                      <p className="font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
+                      <p className="font-medium text-gray-900 truncate">{user?.name}</p>
+                      <p className="text-sm text-gray-500 truncate">{user?.email}</p>
                       <p className="text-xs text-primary-600 mt-1 capitalize flex items-center gap-1">
                         {user?.role === 'super_admin' && <Crown className="w-3 h-3" />}
                         {user?.role === 'admin' && <Shield className="w-3 h-3" />}
@@ -349,13 +483,12 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
         <div className="md:hidden px-4 pb-3">
           <form onSubmit={handleSearch}>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </form>

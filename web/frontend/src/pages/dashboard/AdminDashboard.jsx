@@ -1043,13 +1043,13 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                 Welcome back, Coach {user?.name?.split(' ')[0]}! 👋
               </h1>
               <p className="text-gray-600">
@@ -1060,12 +1060,12 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             </p>
             </div>
             
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
               <div className="relative">
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none pr-10 bg-white"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none pr-10 bg-white text-gray-900"
                 >
                   <option value="24hours">Last 24 Hours</option>
                   <option value="7days">Last 7 Days</option>
@@ -1080,9 +1080,9 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-gray-900"
               >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-gray-900 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               
@@ -1109,7 +1109,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                         const alertIcon = getAlertIcon(alert.type);
                         const AlertIcon = alertIcon.icon;
                         return (
-                          <div key={alert.id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div key={alert.id} className="p-4 hover:bg-blue-100 transition-colors cursor-pointer">
                             <div className="flex gap-3">
                               <AlertIcon className={`w-5 h-5 ${alertIcon.color} flex-shrink-0 mt-0.5`} />
                               <div className="flex-1 min-w-0">
@@ -1163,7 +1163,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Total Athletes Card - Blue */}
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
             <div className="flex justify-between items-start mb-4">
@@ -1278,7 +1278,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Secondary Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
               <Users className="w-4 h-4 text-yellow-600" />
@@ -1438,7 +1438,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         )}
 
         {/* Payment Methods & Program Enrollment */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Payment Methods Breakdown */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
@@ -1654,7 +1654,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Attendance Overview Chart */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
@@ -2004,7 +2004,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Main Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
           {/* Revenue & Orders Chart */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
@@ -2330,10 +2330,10 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                   <span className="text-gray-600">{source.inquiries} inquiries</span>
                   <span className="text-green-600 font-medium">{source.conversion}% conv.</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-3">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-3 overflow-hidden">
                   <div
                     className="h-1.5 rounded-full bg-orange-600 transition-all duration-500"
-                    style={{ width: `${source.conversion * 20}%` }}
+                    style={{ width: `${Math.min(source.conversion, 100)}%` }}
                   ></div>
                 </div>
               </div>
