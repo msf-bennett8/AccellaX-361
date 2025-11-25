@@ -1,0 +1,539 @@
+//src/components/common/Header.js
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { COLORS, APP_NAME } from '../../utils/constants';
+import { getCurrentUser } from '../../utils/auth';
+import { generateInitials, getAvatarColor, getBase64DataUri } from '../../utils/imageUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
+
+const Header = ({
+  title = APP_NAME,
+  subtitle,
+  leftIcon,
+  rightIcon,
+  onLeftPress,
+  onRightPress,
+  style,
+  backgroundColor = COLORS.primary,
+  titleColor = COLORS.white,
+  subtitleColor = COLORS.primaryLight,
+  iconColor = COLORS.white,
+  showStatusBar = true,
+  statusBarStyle = 'light-content',
+  centerTitle = true,
+  leftText,
+  rightText,
+  textStyle,
+  variant = 'default',
+  showAvatar = true,
+  onAvatarSecretTap, // NEW: Pass secret tap handler from ProfileScreen
+  showAdminElevation = false, // NEW: Only enable on ProfileScreen
+}) => {
+  const navigation = useNavigation();
+  const [userProfile, setUserProfile] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    loadUserProfile();
+
+    // Add focus listener to reload profile when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('🔄 Screen focused - reloading user profile');
+      loadUserProfile();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  const [clickCount, setClickCount] = useState(0);
+  const [clickTimer, setClickTimer] = useState(null);
+
+  const loadUserProfile = async () => {
+    const profile = await getCurrentUser();
+    setUserProfile(profile);
+    
+    // Check if user is admin
+    const adminStatus = profile?.role === 'super_admin';
+    setIsAdmin(adminStatus);
+    console.log('👤 Header: User loaded, isAdmin:', adminStatus, 'Role:', profile?.role);
+  };
+
+  const handleAvatarPress = () => {
+    console.log('👆 Avatar pressed! Admin:', isAdmin, 'ShowElevation:', showAdminElevation);
+    
+    // If on ProfileScreen and admin elevation enabled, handle secret taps
+    if (showAdminElevation && onAvatarSecretTap) {
+      console.log('🔓 Triggering admin elevation tap');
+      onAvatarSecretTap();
+    } else if (isAdmin) {
+      // Admin: Toggle dropdown menu
+      console.log('📋 Toggling admin dropdown');
+      setShowDropdown(!showDropdown);
+    } else {
+      // Regular user: Navigate to profile
+      console.log('👤 Navigating to profile');
+      navigation.navigate('HomeStack', {
+        screen: 'Profile'
+      });
+    }
+  };
+
+  const handleDropdownClose = () => {
+    setShowDropdown(false);
+  };
+
+  const handleNavigateToProfile = () => {
+    setShowDropdown(false);
+    navigation.navigate('HomeStack', {
+      screen: 'Profile'
+    });
+  };
+
+  const handleNavigateToAdminDashboard = () => {
+    setShowDropdown(false);
+    Alert.alert('Admin Dashboard', 'Admin dashboard coming soon!');
+    // TODO: navigation.navigate('AdminDashboard');
+  };
+
+  const renderAvatar = () => {
+    if (!userProfile) return null;
+
+    const initials = generateInitials(userProfile.fullName);
+    const avatarColor = getAvatarColor(userProfile.fullName);
+
+    if (userProfile.avatarBase64) {
+      // Show actual avatar image
+      return (
+        <Image
+          source={{ uri: getBase64DataUri(userProfile.avatarBase64) }}
+          style={styles.avatarImage}
+        />
+      );
+    } else {
+      // Show initials placeholder
+      return (
+        <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
+          <Text style={styles.avatarInitials}>{initials}</Text>
+        </View>
+      );
+    }
+  };
+
+  const renderAdminDropdown = () => {
+    if (!showDropdown || !isAdmin) return null;
+
+    return (
+      <>
+        {/* Backdrop */}
+        <TouchableOpacity
+          style={styles.dropdownBackdrop}
+          activeOpacity={1}
+          onPress={handleDropdownClose}
+        />
+        
+        {/* Dropdown Menu */}
+        <View style={styles.dropdown}>
+          <View style={styles.dropdownHeader}>
+            <Text style={styles.dropdownTitle}>Admin Menu</Text>
+            <View style={styles.adminBadge}>
+              <Text style={styles.adminBadgeText}>👑 ADMIN</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.dropdownItem}
+            onPress={handleNavigateToProfile}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.dropdownIcon}>👤</Text>
+            <Text style={styles.dropdownItemText}>My Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dropdownItem}
+            onPress={handleNavigateToAdminDashboard}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.dropdownIcon}>📊</Text>
+            <Text style={styles.dropdownItemText}>Admin Dashboard</Text>
+          </TouchableOpacity>
+
+          <View style={styles.dropdownDivider} />
+
+          <View style={styles.dropdownFooter}>
+            <Text style={styles.dropdownFooterText}>
+              Signed in as {userProfile.fullName}
+            </Text>
+          </View>
+        </View>
+      </>
+    );
+  };
+
+  // Determine header height based on variant
+  const getHeaderStyle = () => {
+    switch (variant) {
+      case 'large':
+        return styles.headerLarge;
+      case 'compact':
+        return styles.headerCompact;
+      case 'transparent':
+        return styles.headerTransparent;
+      default:
+        return styles.header;
+    }
+  };
+
+  return (
+    <>
+      {showStatusBar && (
+        <StatusBar
+          barStyle={statusBarStyle}
+          backgroundColor={variant === 'transparent' ? 'transparent' : backgroundColor}
+          translucent={variant === 'transparent'}
+        />
+      )}
+      <View style={[getHeaderStyle(), { backgroundColor }, style]}>
+        {/* Left Section */}
+        <View style={styles.leftSection}>
+          {leftIcon && (
+            <TouchableOpacity
+              onPress={onLeftPress}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {leftIcon === '☰' ? (
+                <View style={styles.hamburgerMenu}>
+                  <View style={[styles.hamburgerLine, { backgroundColor: iconColor }]} />
+                  <View style={[styles.hamburgerLine, { backgroundColor: iconColor }]} />
+                  <View style={[styles.hamburgerLine, { backgroundColor: iconColor }]} />
+                </View>
+              ) : (
+                <Text style={[styles.iconText, { color: iconColor }]}>
+                  {leftIcon}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+          {leftText && (
+            <TouchableOpacity
+              onPress={onLeftPress}
+              style={styles.textButton}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.buttonText, { color: iconColor }, textStyle]}>
+                {leftText}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Center Section */}
+        <View style={[styles.centerSection, !centerTitle && styles.centerSectionLeft]}>
+          <Text
+            style={[
+              variant === 'large' ? styles.titleLarge : styles.title,
+              { color: titleColor },
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </Text>
+          {subtitle && (
+            <Text
+              style={[styles.subtitle, { color: subtitleColor }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {subtitle}
+            </Text>
+          )}
+        </View>
+
+        {/* Right Section */}
+        <View style={styles.rightSection}>
+          {rightText && (
+            <TouchableOpacity
+              onPress={onRightPress}
+              style={styles.textButton}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.buttonText, { color: iconColor }, textStyle]}>
+                {rightText}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {rightIcon && (
+            <TouchableOpacity
+              onPress={onRightPress}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={[styles.iconText, { color: iconColor }]}>
+                {rightIcon}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {showAvatar && userProfile && (
+            <TouchableOpacity
+              onPress={handleAvatarPress}
+              style={styles.avatarButton}
+              activeOpacity={0.8}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {renderAvatar()}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Admin Dropdown Menu */}
+      {renderAdminDropdown()}
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 50,
+    paddingBottom: 16,
+    elevation: 4,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    minHeight: Platform.OS === 'ios' ? 88 : 88,
+  },
+  headerLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 50,
+    paddingBottom: 24,
+    elevation: 4,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    minHeight: Platform.OS === 'ios' ? 100 : 100,
+  },
+  headerCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 44 : 44,
+    paddingBottom: 12,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    minHeight: Platform.OS === 'ios' ? 70 : 70,
+  },
+  headerTransparent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 50,
+    paddingBottom: 16,
+    backgroundColor: 'transparent',
+    elevation: 0,
+    shadowOpacity: 0,
+    minHeight: Platform.OS === 'ios' ? 88 : 88,
+  },
+  leftSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  centerSection: {
+    flex: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  centerSectionLeft: {
+    alignItems: 'flex-start',
+  },
+  rightSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  titleLarge: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  iconButton: {
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  iconText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  hamburgerMenu: {
+    width: 24,
+    height: 18,
+    justifyContent: 'space-between',
+  },
+  hamburgerLine: {
+    width: '100%',
+    height: 3,
+    borderRadius: 2,
+  },
+  textButton: {
+    padding: 8,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+    buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  avatarButton: {
+    marginLeft: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  avatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  avatarInitials: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
+  // Admin Dropdown Styles
+  dropdownBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 998,
+  },
+  dropdown: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 95 : 95,
+    right: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    minWidth: 250,
+    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 999,
+    overflow: 'hidden',
+  },
+  dropdownHeader: {
+    padding: 16,
+    backgroundColor: COLORS.primary,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  dropdownTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginBottom: 8,
+  },
+  adminBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  adminBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  dropdownIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dropdownFooter: {
+    padding: 12,
+    backgroundColor: COLORS.background,
+  },
+  dropdownFooterText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+});
+
+export default Header;
