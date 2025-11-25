@@ -16,6 +16,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const { user } = useAuth();
   const { notifications } = useNotifications();
 
@@ -26,18 +27,23 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <Header onMenuToggle={toggleSidebar} showMenuButton={true} />
+      <Header 
+        onMenuToggle={toggleSidebar} 
+        showMenuButton={true}
+        onHeaderVisibilityChange={setIsHeaderVisible}
+      />
 
-      <div className="flex">
+      <div className="flex pt-16">
         {/* Sidebar */}
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)}
+          isHeaderVisible={isHeaderVisible}
+        />
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-0">
+        <main className="flex-1 lg:ml-64">
           <div className="p-4 sm:p-6 lg:p-8">
-            {/* Breadcrumb or Page Header could go here */}
-            
-            {/* Page Content */}
             <Outlet />
           </div>
         </main>

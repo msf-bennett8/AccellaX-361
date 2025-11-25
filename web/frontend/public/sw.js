@@ -10,7 +10,7 @@
  * - Network-first strategy for API calls
  */
 
-const CACHE_VERSION = 'accellax-v2.0.0';
+const CACHE_VERSION = 'accellax-v2.0.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -18,7 +18,6 @@ const API_CACHE = `${CACHE_VERSION}-api`;
 // Assets to cache immediately on install
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.ico',
 ];
@@ -104,6 +103,12 @@ self.addEventListener('fetch', (event) => {
   
   // Skip Chrome extension requests
   if (url.protocol === 'chrome-extension:') {
+    return;
+  }
+  
+  // ⚠️ CRITICAL: Never cache HTML files - always fetch from network
+  if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
+    event.respondWith(fetch(request));
     return;
   }
   

@@ -986,7 +986,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
   };
 
   const StatCard = ({ icon: Icon, label, value, change, trend, color, suffix = '', subtitle = '' }) => (
-    <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-100">
+  <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-100 w-full min-w-0">
       <div className="flex items-start justify-between mb-4">
         <div className={`p-3 rounded-lg ${color}`}>
           <Icon className="w-6 h-6 text-white" />
@@ -1043,29 +1043,29 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+  <div className="min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden w-full">
+    <div className="w-full max-w-full px-2 sm:px-4 md:max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 w-full">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 w-full">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 break-words">
                 Welcome back, Coach {user?.name?.split(' ')[0]}! 👋
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm md:text-base text-gray-600 break-words">
                 Here's what's happening at NextGen Academy today.
               </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </p>
             </div>
             
-            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-              <div className="relative">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="relative w-full sm:w-auto">
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none pr-10 bg-white text-gray-900"
+                  className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none pr-10 bg-white text-gray-900 text-sm"
                 >
                   <option value="24hours">Last 24 Hours</option>
                   <option value="7days">Last 7 Days</option>
@@ -1080,10 +1080,10 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-gray-900"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-gray-900"
               >
                 <RefreshCw className={`w-4 h-4 text-gray-900 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
               </button>
               
               <div className="relative">
@@ -1100,7 +1100,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                 </button>
                 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                  <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-md bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
                     <div className="p-4 border-b border-gray-200">
                       <h3 className="font-semibold text-gray-900">Notifications</h3>
                     </div>
@@ -1130,16 +1130,17 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                 )}
               </div>
               
-              <button className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+              <button className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm whitespace-nowrap">
                 <Download className="w-4 h-4" />
-                Export Report
+                <span className="hidden sm:inline">Export Report</span>
+                <span className="sm:hidden">Export</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Attendance Rate Progress */}
-        <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-lg shadow-lg p-6 mb-6 text-white">
+        <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-lg shadow-lg p-4 sm:p-6 mb-6 text-white w-full">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-semibold mb-1">Monthly Attendance Target</h3>
@@ -1163,7 +1164,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 md:mb-8 w-full">
           {/* Total Athletes Card - Blue */}
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
             <div className="flex justify-between items-start mb-4">
@@ -1278,7 +1279,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Secondary Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6 w-full overflow-x-auto">
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
               <Users className="w-4 h-4 text-yellow-600" />
@@ -1339,7 +1340,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         {/* Secondary Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Avg Attendance Rate */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-orange-100 rounded-lg">
                 <CheckCircle size={20} className="text-orange-600" />
@@ -1361,7 +1362,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {/* Active Programs */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-green-100 rounded-lg">
                 <Activity size={20} className="text-green-600" />
@@ -1377,7 +1378,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {/* Active Coaches */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Users size={20} className="text-purple-600" />
@@ -1397,7 +1398,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
 
         {/* Alerts Banner */}
         {alerts.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border-l-4 border-orange-600">
+  <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-6 border-l-4 border-orange-600 w-full overflow-hidden">
             <div className="flex items-start gap-3">
               <Bell className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
@@ -1440,7 +1441,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         {/* Payment Methods & Program Enrollment */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Payment Methods Breakdown */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Payment Methods</h2>
@@ -1455,7 +1456,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                   const color = colors[index % colors.length];
                   
                   return (
-                    <div key={index}>
+                    <div key={`payment-${method.method}-${index}`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <div 
@@ -1481,7 +1482,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {/* Program Enrollment Breakdown */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Program Enrollment</h2>
@@ -1496,7 +1497,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                   const color = colors[index % colors.length];
                   
                   return (
-                    <div key={index}>
+                    <div key={`program-${channel.program}-${index}`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <div 
@@ -1532,7 +1533,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Top Athletes */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-8">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Top Performing Athletes</h2>
@@ -1541,8 +1542,9 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {topAthletes.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <div className="overflow-x-auto -mx-2 sm:-mx-6 w-full">
+          <div className="inline-block min-w-full align-middle px-2 sm:px-6">
+            <table className="w-full min-w-[400px]">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">#</th>
@@ -1579,6 +1581,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-gray-500 text-center py-8">No athlete data available</p>
@@ -1586,7 +1589,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Recent Sessions */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-8">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Recent Training Sessions</h2>
@@ -1598,55 +1601,57 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {recentSessions.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Session ID</th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Coach</th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Program</th>
-                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Age Group</th>
-                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Attendance</th>
-                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {recentSessions.map((session) => (
-                    <tr key={session.id} className="hover:bg-gray-50 bg-white">
-                      <td className="py-4 px-4">
-                        <p className="text-sm font-medium text-gray-900">{session.session_reference || session.transaction_reference}</p>
-                        <p className="text-xs text-gray-500">{new Date(session.session_date || session.payment_collected_at).toLocaleString()}</p>
-                      </td>
-                      <td className="py-4">
-                        <p className="text-sm text-gray-900">{session.coach?.name || session.seller?.shop_name || 'N/A'}</p>
-                      </td>
-                      <td className="py-4">
-                        <p className="text-sm text-gray-900">{session.program || 'N/A'}</p>
-                      </td>
-                      <td className="py-4 text-center">
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                          {session.age_group || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="py-4 text-center">
-                        <p className="text-sm font-semibold text-gray-900">{session.attendance_count || 0}/{session.total_enrolled || 0}</p>
-                        <p className="text-xs text-gray-500">{session.attendance_rate || 0}%</p>
-                      </td>
-                      <td className="py-4">
-                        <div className="flex justify-center">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            session.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                            session.status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {session.status}
-                          </span>
-                        </div>
-                      </td>
+          <div className="overflow-x-auto -mx-2 sm:-mx-6 w-full">
+            <div className="inline-block min-w-full align-middle px-2 sm:px-6">
+              <table className="w-full min-w-[550px]">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Session ID</th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Coach</th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Program</th>
+                      <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Age Group</th>
+                      <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Attendance</th>
+                      <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {recentSessions.map((session) => (
+                      <tr key={session.id} className="hover:bg-gray-50 bg-white">
+                        <td className="py-4 px-4">
+                          <p className="text-sm font-medium text-gray-900">{session.session_reference || session.transaction_reference}</p>
+                          <p className="text-xs text-gray-500">{new Date(session.session_date || session.payment_collected_at).toLocaleString()}</p>
+                        </td>
+                        <td className="py-4">
+                          <p className="text-sm text-gray-900">{session.coach?.name || session.seller?.shop_name || 'N/A'}</p>
+                        </td>
+                        <td className="py-4">
+                          <p className="text-sm text-gray-900">{session.program || 'N/A'}</p>
+                        </td>
+                        <td className="py-4 text-center">
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                            {session.age_group || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="py-4 text-center">
+                          <p className="text-sm font-semibold text-gray-900">{session.attendance_count || 0}/{session.total_enrolled || 0}</p>
+                          <p className="text-xs text-gray-500">{session.attendance_rate || 0}%</p>
+                        </td>
+                        <td className="py-4">
+                          <div className="flex justify-center">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              session.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                              session.status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {session.status}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-gray-500 text-center py-8">No recent sessions</p>
@@ -1655,8 +1660,8 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-          {/* Attendance Overview Chart */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
+         {/* Attendance Overview Chart */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow p-6 overflow-hidden">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Attendance Overview</h2>
@@ -1668,16 +1673,16 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             </div>
             
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={attendanceData}>
-                <defs>
-                  <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-                <YAxis stroke="#9CA3AF" fontSize={12} />
+            <AreaChart data={attendanceData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+              <defs>
+                <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="date" stroke="#9CA3AF" fontSize={10} tick={{ fontSize: 10 }} />
+              <YAxis stroke="#9CA3AF" fontSize={10} tick={{ fontSize: 10 }} width={35} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                   formatter={(value, name) => {
@@ -1699,7 +1704,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {/* Attendance Status Distribution */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Attendance Status</h2>
@@ -1718,7 +1723,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             {orderStatusData && orderStatusData.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
+                  <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <Pie
                       data={orderStatusData}
                       cx="50%"
@@ -1730,11 +1735,11 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                       nameKey="status"
                     >
                       {orderStatusData.map((entry, index) => {
-                        const color = entry.color || STATUS_COLORS[entry.status] || STATUS_COLORS[entry.status.toLowerCase()] || '#6B7280';
+                        const color = entry.color || STATUS_COLORS[entry.status] || STATUS_COLORS[entry.status?.toLowerCase()] || '#6B7280';
                         console.log(`🎨 Rendering Cell ${index}:`, entry.status, 'Using Color:', color);
                         return (
                           <Cell 
-                            key={`cell-${index}`} 
+                            key={`attendance-status-${entry.status}-${index}`} 
                             fill={color}
                             stroke={color}
                             style={{ fill: color, stroke: color }}
@@ -1758,7 +1763,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
 
                 <div className="space-y-2 mt-4">
                   {orderStatusData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
+                    <div key={`status-${item.status}-${index}`} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div 
                           className="w-3 h-3 rounded-full" 
@@ -1782,7 +1787,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         {/* Program Performance & Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Program Performance */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 overflow-hidden">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Program Performance</h2>
@@ -1794,10 +1799,10 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             </div>
 
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={programPerformance}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} angle={-45} textAnchor="end" height={80} />
-                <YAxis stroke="#9CA3AF" fontSize={12} />
+            <BarChart data={programPerformance} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="name" stroke="#9CA3AF" fontSize={10} tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+              <YAxis stroke="#9CA3AF" fontSize={10} tick={{ fontSize: 10 }} width={35} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                   formatter={(value, name) => {
@@ -1808,7 +1813,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                 />
                 <Bar dataKey="enrolled" radius={[8, 8, 0, 0]}>
                   {programPerformance.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`program-bar-${entry.name}-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
@@ -1816,7 +1821,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
@@ -1897,7 +1902,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         {/* Enrollment Sources & Attendance Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Enrollment Sources */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Enrollment Sources</h2>
@@ -1910,7 +1915,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
 
             <div className="space-y-4">
               {enrollmentSources.map((source, index) => (
-                <div key={index}>
+                <div key={`enrollment-${source.source}-${index}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div 
@@ -1950,7 +1955,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {/* Attendance Alerts */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Attendance Alerts</h2>
@@ -2006,7 +2011,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         {/* Main Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
           {/* Revenue & Orders Chart */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6 border border-gray-100 overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Performance Overview</h3>
@@ -2046,7 +2051,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
               </div>
             </div>
             <ResponsiveContainer width="100%" height={320}>
-              <AreaChart data={attendanceData}>
+              <AreaChart data={attendanceData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
@@ -2062,8 +2067,8 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" stroke="#999" fontSize={12} />
-                <YAxis stroke="#999" fontSize={12} />
+                <XAxis dataKey="date" stroke="#999" fontSize={10} tick={{ fontSize: 10 }} />
+                <YAxis stroke="#999" fontSize={10} tick={{ fontSize: 10 }} width={35} />
                 <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#fff', 
@@ -2134,7 +2139,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Program Performance</h3>
             <ResponsiveContainer width="100%" height={220}>
-              <RechartsPie>
+              <RechartsPie margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                 <Pie
                   data={programPerformance}
                   cx="50%"
@@ -2145,7 +2150,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                   dataKey="percentage"
                 >
                   {programPerformance.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`program-pie-${entry.name}-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -2160,7 +2165,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             </ResponsiveContainer>
             <div className="space-y-3 mt-4">
               {programPerformance.map((prog, idx) => (
-                <div key={idx} className="flex items-center justify-between text-sm">
+                <div key={`program-legend-${prog.name}-${idx}`} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 flex-1">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: prog.color }}></div>
                     <span className="text-gray-700 font-medium">{prog.name}</span>
@@ -2178,14 +2183,14 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         {/* Session Time Performance & Performance Radar */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Session Time Performance */}
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 overflow-hidden">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Session Time Performance</h3>
             <p className="text-sm text-gray-600 mb-6">Attendance by time of day</p>
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={sessionTimeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="time" stroke="#999" fontSize={12} />
-                <YAxis stroke="#999" fontSize={12} />
+            <BarChart data={sessionTimeData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="time" stroke="#999" fontSize={10} tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
+              <YAxis stroke="#999" fontSize={10} tick={{ fontSize: 10 }} width={35} />
                 <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#fff', 
@@ -2205,14 +2210,14 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
           </div>
 
           {/* Performance Radar */}
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 overflow-hidden">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Academy Performance Metrics</h3>
             <p className="text-sm text-gray-600 mb-6">Overall rating across key areas</p>
             <ResponsiveContainer width="100%" height={240}>
-              <RadarChart data={performanceMetrics}>
-                <PolarGrid stroke="#e5e7eb" />
-                <PolarAngleAxis dataKey="metric" stroke="#999" fontSize={11} />
-                <PolarRadiusAxis angle={90} domain={[0, 100]} stroke="#999" fontSize={11} />
+            <RadarChart data={performanceMetrics} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+              <PolarGrid stroke="#e5e7eb" />
+              <PolarAngleAxis dataKey="metric" stroke="#999" tick={{ fontSize: 9 }} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} stroke="#999" tick={{ fontSize: 9 }} />
                 <Radar
                   name="Score"
                   dataKey="score"
@@ -2240,7 +2245,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             <h3 className="text-lg font-bold text-gray-900 mb-4">Revenue by Payment Method</h3>
             <div className="space-y-4">
               {revenueByPayment.map((method, idx) => (
-                <div key={idx}>
+                <div key={`revenue-method-${method.name}-${idx}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-gray-600" />
@@ -2274,7 +2279,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             <h3 className="text-lg font-bold text-gray-900 mb-4">Athlete Segments</h3>
             <div className="space-y-4">
               {athleteSegments.map((segment, idx) => (
-                <div key={idx} className="p-4 bg-gray-50 rounded-lg">
+                <div key={`athlete-segment-${segment.segment}-${idx}`} className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div 
@@ -2320,7 +2325,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             </div>
             <div className="grid md:grid-cols-4 gap-4">
               {enrollmentSources.map((source, idx) => (
-              <div key={idx} className="p-4 border border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
+              <div key={`enrollment-source-${source.source}-${idx}`} className="p-4 border border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-medium text-gray-900">{source.source}</h4>
                   <span className="text-xs font-medium text-gray-600">{source.percentage}%</span>
@@ -2467,7 +2472,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
             </button>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {upcomingTasks.map(task => {
+            {upcomingTasks.map((task, taskIndex) => {
               const priorityColors = {
                 high: 'border-red-300 bg-red-50',
                 medium: 'border-yellow-300 bg-yellow-50',
@@ -2479,7 +2484,7 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
                 low: 'bg-blue-100 text-blue-700'
               };
               return (
-                <div key={task.id} className={`p-4 border-l-4 rounded-lg ${priorityColors[task.priority]}`}>
+                <div key={`task-${task.id}-${taskIndex}`} className={`p-4 border-l-4 rounded-lg ${priorityColors[task.priority]}`}>
                   <div className="flex items-start justify-between mb-2">
                     <p className="font-medium text-gray-900 text-sm">{task.task}</p>
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${priorityBadge[task.priority]}`}>
@@ -2502,14 +2507,14 @@ const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6 mb-10">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-10">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4">
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                 <UserPlus size={24} className="text-blue-600" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Add Athlete</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Add Athlete</span>
             </button>
 
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">

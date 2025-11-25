@@ -123,19 +123,9 @@ const initializeFirebaseWithRetry = async (attempt = 1) => {
     console.log('✅ Firebase Auth initialized with local persistence');
     
     // Initialize Firestore with custom settings
-    try {
-      // Try to get existing Firestore instance first
-      db = getFirestore(firebaseApp);
-      console.log('✅ Using existing Firestore instance');
-    } catch (error) {
-      // If it doesn't exist, initialize it with custom settings
-      db = initializeFirestore(firebaseApp, {
-        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-        experimentalForceLongPolling: false,
-        experimentalAutoDetectLongPolling: true,
-      });
-      console.log('✅ Firestore initialized with custom settings');
-    }
+    db = getFirestore(firebaseApp);
+    console.log('✅ Firestore initialized');
+    
     // Enable offline persistence with multi-tab support
     try {
       await enableMultiTabIndexedDbPersistence(db);

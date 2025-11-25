@@ -28,7 +28,7 @@ import {
   X,
 } from 'lucide-react';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, isHeaderVisible = true }) => {
   const location = useLocation();
   const { user, hasRole } = useAuth();
 
@@ -170,13 +170,14 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-50
+          fixed bottom-0 left-0 z-40
           w-64 bg-white border-r border-gray-200
-          transform transition-transform duration-300 ease-in-out
+          transform transition-all duration-300 ease-in-out
+          ${isHeaderVisible ? 'top-16 h-[calc(100vh-4rem)]' : 'top-0 h-screen'}
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col overflow-hidden">
           {/* Mobile Close Button */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 lg:hidden">
             <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
@@ -189,7 +190,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-4">
+          <nav className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <ul className="space-y-1">
               {navigationItems.map((item) => {
                 const Icon = item.icon;

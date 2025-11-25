@@ -30,7 +30,7 @@ import {
   BarChart3
 } from 'lucide-react';
 
-const Header = ({ onMenuToggle, showMenuButton = true }) => {
+const Header = ({ onMenuToggle, showMenuButton = true, onHeaderVisibilityChange }) => {
   const navigate = useNavigate();
   const { user, logout, elevateRole, refreshUser } = useAuth();
   const { unreadCount } = useNotifications();
@@ -40,6 +40,10 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Header visibility state
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   
   // Elevation State
   const [clickCount, setClickCount] = useState(0);
@@ -73,6 +77,13 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Notify parent of header visibility changes
+  useEffect(() => {
+    if (typeof onHeaderVisibilityChange === 'function') {
+      onHeaderVisibilityChange(isHeaderVisible);
+    }
+  }, [isHeaderVisible, onHeaderVisibilityChange]);
+
   // Clear elevation message after 3 seconds
   useEffect(() => {
     if (elevationMessage) {
@@ -80,6 +91,42 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
       return () => clearTimeout(timer);
     }
   }, [elevationMessage]);
+
+  // Auto-hide header on scroll down, show on scroll up
+  useEffect(() => {
+    let ticking = false;
+    let lastScroll = window.scrollY;
+
+    const handleScroll = () => {
+      if (ticking) return;
+
+      ticking = true;
+      requestAnimationFrame(() => {
+        const currentScroll = window.scrollY;
+
+        // Always show at top
+        if (currentScroll < 10) {
+          setIsHeaderVisible(true);
+        }
+        // Hide when scrolling down
+        else if (currentScroll > lastScroll && currentScroll > 50) {
+          if (!showUserMenu && !showNotifications && !showQuickActions) {
+            setIsHeaderVisible(false);
+          }
+        }
+        // Show when scrolling up (with 5px threshold to avoid jitter)
+        else if (currentScroll < lastScroll - 5) {
+          setIsHeaderVisible(true);
+        }
+
+        lastScroll = currentScroll;
+        ticking = false;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showUserMenu, showNotifications, showQuickActions]);
 
   const handleLogout = async () => {
     try {
@@ -194,7 +241,11 @@ const Header = ({ onMenuToggle, showMenuButton = true }) => {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <header className={`
+          bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 shadow-sm
+          transition-transform duration-300 ease-in-out
+          ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
+        `}>
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 py-3">
             {/* Left: Logo + Menu Toggle */}

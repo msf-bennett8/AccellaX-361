@@ -1,9 +1,307 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import dashboardService from '../../services/dashboardService';
-import auditService from '../../services/auditService';
-//import '../../SuperAdminDashboard.css';
+
+// TEMPORARY MOCK - Replace later with real implementation
+const useAuth = () => ({ 
+  user: { 
+    name: 'Bennett Oraro',
+    role: 'head_coach',
+    email: 'bennett@accellax.com',
+    academy: 'NextGen Multisport Academy'
+  } 
+});
+
+// TEMPORARY MOCK SERVICES - Replace later with real API calls
+const dashboardService = {
+  getAcademyOverview: async (period) => ({ 
+    data: {
+      total_athletes: { count: 87, change_percentage: 12.5 },
+      attendance_rate: { percentage: 85.3, change_percentage: 3.2 },
+      active_programs: { count: 4, change_percentage: 0 },
+      total_sessions: { count: 45, change_percentage: 8.1 },
+      total_revenue: { amount: 1245000, change_percentage: 15.3 }
+    }
+  }),
+  getRecentSessions: async (params) => ({ 
+    data: [
+      {
+        id: 1,
+        session_reference: 'SES-2025-001',
+        session_date: new Date().toISOString(),
+        age_group: '10-13 years',
+        coach: { name: 'Coach Bennett Oraro' },
+        program: 'Elite Training',
+        attendance_count: 18,
+        total_enrolled: 22,
+        attendance_rate: 81.8,
+        status: 'completed',
+        session_time: '4:00 PM - 6:00 PM',
+        location: 'Main Field',
+        notes: 'Great energy today, worked on passing drills',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        session_reference: 'SES-2025-002',
+        session_date: new Date(Date.now() - 86400000).toISOString(),
+        age_group: '7-9 years',
+        coach: { name: 'Coach Mary Njeri' },
+        program: 'Weekend Warrior',
+        attendance_count: 15,
+        total_enrolled: 18,
+        attendance_rate: 83.3,
+        status: 'completed',
+        session_time: '9:00 AM - 11:00 AM',
+        location: 'Training Ground A',
+        notes: 'Focused on basic ball control',
+        created_at: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: 3,
+        session_reference: 'SES-2025-003',
+        session_date: new Date(Date.now() - 172800000).toISOString(),
+        age_group: '13+ years',
+        coach: { name: 'Coach John Kamau' },
+        program: 'Team Support',
+        attendance_count: 20,
+        total_enrolled: 25,
+        attendance_rate: 80.0,
+        status: 'completed',
+        session_time: '4:00 PM - 6:00 PM',
+        location: 'Main Field',
+        notes: 'Tactical training, reviewed 4-4-2 formation',
+        created_at: new Date(Date.now() - 172800000).toISOString()
+      },
+      {
+        id: 4,
+        session_reference: 'SES-2025-004',
+        session_date: new Date(Date.now() - 259200000).toISOString(),
+        age_group: '4-6 years',
+        coach: { name: 'Coach Sarah Akinyi' },
+        program: 'Holiday Programme',
+        attendance_count: 12,
+        total_enrolled: 15,
+        attendance_rate: 80.0,
+        status: 'completed',
+        session_time: '2:00 PM - 4:00 PM',
+        location: 'Training Ground B',
+        notes: 'Fun games and basic coordination exercises',
+        created_at: new Date(Date.now() - 259200000).toISOString()
+      },
+      {
+        id: 5,
+        session_reference: 'SES-2025-005',
+        session_date: new Date().toISOString(),
+        age_group: '10-13 years',
+        coach: { name: 'Coach Peter Ochieng' },
+        program: 'Elite Training',
+        attendance_count: 0,
+        total_enrolled: 20,
+        attendance_rate: 0,
+        status: 'scheduled',
+        session_time: '6:00 PM - 8:00 PM',
+        location: 'Main Field',
+        notes: 'Upcoming evening session',
+        created_at: new Date().toISOString()
+      }
+    ]
+  }),
+  getPaymentMethodsBreakdown: async (period) => ({ 
+    data: [
+      { method: 'M-Pesa', total_amount: 850000, transaction_count: 68, percentage: 68 },
+      { method: 'Cash', total_amount: 295000, transaction_count: 19, percentage: 24 },
+      { method: 'Bank Transfer', total_amount: 100000, transaction_count: 8, percentage: 8 }
+    ]
+  }),
+  getProgramEnrollmentBreakdown: async (period) => ({ 
+    data: [
+      { program: 'Elite Training', enrolled: 35, percentage: 40, revenue: 525000 },
+      { program: 'Weekend Warrior', enrolled: 28, percentage: 32, revenue: 420000 },
+      { program: 'Holiday Programme', enrolled: 15, percentage: 17, revenue: 180000 },
+      { program: 'Team Support', enrolled: 9, percentage: 11, revenue: 120000 }
+    ]
+  }),
+  getTopPerformingAthletes: async (limit, period) => ({ 
+    data: [
+      { athlete_id: 1, athlete_name: 'Ahmed Hassan', age_group: '10-13', attendance_rate: 98.5, sessions_attended: 42, program: 'Elite Training' },
+      { athlete_id: 2, athlete_name: 'Fatima Ali', age_group: '7-9', attendance_rate: 96.2, sessions_attended: 38, program: 'Weekend Warrior' },
+      { athlete_id: 3, athlete_name: 'John Kipchoge', age_group: '13+', attendance_rate: 94.8, sessions_attended: 40, program: 'Team Support' },
+      { athlete_id: 4, athlete_name: 'Mary Wanjiku', age_group: '10-13', attendance_rate: 93.5, sessions_attended: 39, program: 'Elite Training' },
+      { athlete_id: 5, athlete_name: 'David Omondi', age_group: '7-9', attendance_rate: 91.7, sessions_attended: 35, program: 'Weekend Warrior' }
+    ]
+  }),
+  getRecentEnrollments: async (limit) => ({ 
+    data: [
+      {
+        id: 1,
+        enrollment_number: 'ENR-2025-001',
+        athlete_name: 'Grace Njeri',
+        age: 11,
+        age_group: '10-13',
+        program: 'Elite Training',
+        payment_status: 'paid',
+        payment_method: 'M-Pesa',
+        amount: 15000,
+        parent_name: 'Jane Njeri',
+        parent_phone: '+254712345678',
+        location: 'Nairobi',
+        enrolled_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        enrollment_number: 'ENR-2025-002',
+        athlete_name: 'Kevin Otieno',
+        age: 8,
+        age_group: '7-9',
+        program: 'Weekend Warrior',
+        payment_status: 'pending',
+        payment_method: 'Cash',
+        amount: 10000,
+        parent_name: 'Peter Otieno',
+        parent_phone: '+254723456789',
+        location: 'Kisumu',
+        enrolled_at: new Date(Date.now() - 3600000).toISOString()
+      },
+      {
+        id: 3,
+        enrollment_number: 'ENR-2025-003',
+        athlete_name: 'Sarah Mwangi',
+        age: 14,
+        age_group: '13+',
+        program: 'Team Support',
+        payment_status: 'paid',
+        payment_method: 'Bank Transfer',
+        amount: 12000,
+        parent_name: 'Daniel Mwangi',
+        parent_phone: '+254734567890',
+        location: 'Nakuru',
+        enrolled_at: new Date(Date.now() - 7200000).toISOString()
+      }
+    ]
+  }),
+  getAttendanceDistribution: async (period) => ({ 
+    data: [
+      { status: 'Present', count: 398, color: '#10B981' },
+      { status: 'Absent', count: 68, color: '#EF4444' },
+      { status: 'Excused', count: 23, color: '#F59E0B' },
+      { status: 'Late', count: 15, color: '#3B82F6' }
+    ]
+  })
+};
+
+const auditService = {
+  getAuditLogs: async (params) => ({ 
+    data: {
+      data: [
+        {
+          id: 1,
+          event_category: 'security',
+          description: 'New coach account created: Coach John Kamau',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 300000).toISOString()
+        },
+        {
+          id: 2,
+          event_category: 'enrollment',
+          description: 'New athlete enrolled: Ahmed Hassan (Elite Training)',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 600000).toISOString()
+        },
+        {
+          id: 3,
+          event_category: 'payment',
+          description: 'Payment received: KES 15,000 via M-Pesa for Elite Training',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 900000).toISOString()
+        },
+        {
+          id: 4,
+          event_category: 'security',
+          description: 'Failed login attempt from unknown IP',
+          severity: 'medium',
+          is_suspicious: true,
+          occurred_at: new Date(Date.now() - 1200000).toISOString()
+        },
+        {
+          id: 5,
+          event_category: 'session',
+          description: 'Training session updated: Elite Training schedule changed to 6:00 PM',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 1800000).toISOString()
+        },
+        {
+          id: 6,
+          event_category: 'user',
+          description: 'Parent profile updated: Emergency contact information changed',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 2400000).toISOString()
+        },
+        {
+          id: 7,
+          event_category: 'security',
+          description: 'Admin role elevated for user: Coach Kamau',
+          severity: 'high',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 3000000).toISOString()
+        },
+        {
+          id: 8,
+          event_category: 'enrollment',
+          description: 'Enrollment cancelled: Kevin Otieno withdrawn from Weekend Warrior',
+          severity: 'medium',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+          id: 9,
+          event_category: 'payment',
+          description: 'Payment refund processed: KES 10,000 for cancelled enrollment',
+          severity: 'medium',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 4200000).toISOString()
+        },
+        {
+          id: 10,
+          event_category: 'security',
+          description: 'Multiple failed login attempts detected',
+          severity: 'high',
+          is_suspicious: true,
+          occurred_at: new Date(Date.now() - 4800000).toISOString()
+        },
+        {
+          id: 11,
+          event_category: 'user',
+          description: 'New parent account registered: Jane Njeri',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 5400000).toISOString()
+        },
+        {
+          id: 12,
+          event_category: 'session',
+          description: 'New program added: Summer Holiday Camp 2025',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 6000000).toISOString()
+        },
+        {
+          id: 13,
+          event_category: 'payment',
+          description: 'Bulk payment import completed: 25 M-Pesa transactions',
+          severity: 'low',
+          is_suspicious: false,
+          occurred_at: new Date(Date.now() - 6600000).toISOString()
+        }
+      ]
+    }
+  })
+};
+
 import {
   TrendingUp, Shield, TrendingDown, DollarSign, ShoppingCart, Package, Users,
   Eye, Star, AlertCircle, Clock, CheckCircle, XCircle, Truck, Heart,
@@ -33,7 +331,7 @@ const STATUS_COLORS = {
   'delivered': '#10B981'
 };
 
-const SuperAdminDashboardPage = () => {
+const AdminDashboardPage = () => {
   const [timeRange, setTimeRange] = useState('7days');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,28 +344,35 @@ const SuperAdminDashboardPage = () => {
   const [saleChannels, setSaleChannels] = useState([]);
   const [topSellers, setTopSellers] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [programEnrollments, setProgramEnrollments] = useState([]);
+  const [topAthletes, setTopAthletes] = useState([]);
+  const [recentSessions, setRecentSessions] = useState([]);
 
   // Real data from API
   const [dashboardData, setDashboardData] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [commissionBreakdown, setCommissionBreakdown] = useState(null);
-  const [payouts, setPayouts] = useState([]);
+  const [paymentBreakdown, setPaymentBreakdown] = useState(null);
+  const [pendingPayments, setPendingPayments] = useState([
+    { id: 1, athlete: 'Kevin Otieno', amount: 15000, due_date: '2024-11-15', status: 'overdue', parent: 'Peter Otieno' },
+    { id: 2, athlete: 'Grace Njeri', amount: 15000, due_date: '2024-11-20', status: 'pending', parent: 'Jane Njeri' },
+    { id: 3, athlete: 'Sarah Mwangi', amount: 12000, due_date: '2024-11-25', status: 'pending', parent: 'Daniel Mwangi' }
+  ]);
   const [error, setError] = useState(null);
   const [orderStatusData, setOrderStatusData] = useState([]);
 
-  const [trafficData, setTrafficData] = useState([
-  { source: 'Direct', visitors: 4532, percentage: 35, color: '#3B82F6' },
-  { source: 'Google Search', visitors: 3894, percentage: 30, color: '#10B981' },
-  { source: 'Social Media', visitors: 2596, percentage: 20, color: '#F59E0B' },
-  { source: 'Referral', visitors: 1298, percentage: 10, color: '#EF4444' },
-  { source: 'Email', visitors: 649, percentage: 5, color: '#8B5CF6' }
+  // Replaced by enrollmentSources - keeping for backward compatibility
+const [trafficData, setTrafficData] = useState([
+  { source: 'Walk-in', visitors: 45, percentage: 38, orders: 18, conversion: 40.0, color: '#3B82F6' },
+  { source: 'Social Media', visitors: 33, percentage: 28, orders: 12, conversion: 36.4, color: '#10B981' },
+  { source: 'Referral', visitors: 28, percentage: 24, orders: 15, conversion: 53.6, color: '#F59E0B' },
+  { source: 'Website', visitors: 12, percentage: 10, orders: 6, conversion: 50.0, color: '#EF4444' }
 ]);
 
-const [lowStockProducts, setLowStockProducts] = useState([
-  { id: 1, name: 'Road Racer Elite', stock: 8, threshold: 10, category: 'Bicycles' },
-  { id: 2, name: 'Mountain Bike Tires', stock: 5, threshold: 15, category: 'Spare Parts' },
-  { id: 3, name: 'Bike Lock Pro', stock: 3, threshold: 20, category: 'Accessories' },
-  { id: 4, name: 'Cycling Gloves M', stock: 6, threshold: 12, category: 'Accessories' }
+const [lowAttendanceAlerts, setLowAttendanceAlerts] = useState([
+  { id: 1, name: 'Ahmed Hassan', attendance_rate: 45, threshold: 50, category: 'Chronic Absentee', age_group: '10-13' },
+  { id: 2, name: 'Sarah Mwangi', attendance_rate: 48, threshold: 50, category: 'Chronic Absentee', age_group: '13+' },
+  { id: 3, name: 'Kevin Otieno', attendance_rate: 62, threshold: 75, category: 'Inconsistent', age_group: '7-9' },
+  { id: 4, name: 'Grace Njeri', attendance_rate: 68, threshold: 75, category: 'Inconsistent', age_group: '10-13' }
 ]);
 
   const [recentActivities, setRecentActivities] = useState([]);
@@ -75,256 +380,389 @@ const [lowStockProducts, setLowStockProducts] = useState([
   // Mock data - Replace with API calls
   const [stats, setStats] = useState({
     revenue: {
-      total: 2450000,
+      total: 1245000,
+      change: 15.3,
+      trend: 'up',
+      target: 1500000,
+      targetProgress: 83.0
+    },
+    athletes: {
+      total: 87,
       change: 12.5,
       trend: 'up',
-      target: 3000000,
-      targetProgress: 81.67
+      active: 82,
+      suspended: 3,
+      inactive: 2,
+      new_this_month: 8
     },
-    orders: {
-      total: 487,
-      change: 8.3,
+    sessions: {
+      total: 45,
+      change: 8.1,
       trend: 'up',
-      pending: 23,
-      processing: 45,
-      shipped: 21,
-      completed: 398,
-      cancelled: 21,
-      avgOrderValue: 5031
+      completed: 38,
+      scheduled: 7,
+      cancelled: 2,
+      avgAttendanceRate: 85.3
     },
-    products: {
-      total: 145,
-      active: 132,
-      outOfStock: 8,
-      lowStock: 15,
-      draft: 5
+    programs: {
+      total: 4,
+      elite: 35,
+      weekend: 28,
+      holiday: 15,
+      team: 9
     },
-    customers: {
-      total: 1234,
-      new: 87,
-      returning: 1147,
-      change: 15.2,
-      repeatRate: 62.5
+    attendance: {
+      total_attendances: 1834,
+      change: 10.8,
+      present: 1587,
+      absent: 198,
+      excused: 34,
+      late: 15,
+      rate: 86.5
     },
-    views: {
-      total: 45678,
-      change: 23.4,
-      unique: 32456,
-      avgDuration: '3:45',
-      bounceRate: 42.3
+    coaches: {
+      total: 6,
+      active: 6,
+      avgSessionsPerCoach: 7.5
     },
-    conversion: {
-      rate: 3.2,
-      change: 0.5,
-      cartAbandonment: 68.5
+    payments: {
+      rate: 92.5,
+      change: 3.5,
+      pending: 7,
+      overdue: 4
     },
-    rating: {
-      average: 4.6,
-      total: 1289,
-      breakdown: { 5: 856, 4: 312, 3: 89, 2: 21, 1: 11 }
+    satisfaction: {
+      average: 4.7,
+      total: 156,
+      breakdown: { 5: 98, 4: 42, 3: 12, 2: 3, 1: 1 }
     }
   });
 
-  const salesData = [
-    { date: '01 Oct', revenue: 285000, orders: 42, profit: 95000, customers: 38 },
-    { date: '02 Oct', revenue: 320000, orders: 48, profit: 105000, customers: 45 },
-    { date: '03 Oct', revenue: 298000, orders: 45, profit: 98000, customers: 41 },
-    { date: '04 Oct', revenue: 410000, orders: 62, profit: 145000, customers: 58 },
-    { date: '05 Oct', revenue: 380000, orders: 58, profit: 132000, customers: 52 },
-    { date: '06 Oct', revenue: 445000, orders: 68, profit: 155000, customers: 63 },
-    { date: '07 Oct', revenue: 520000, orders: 79, profit: 182000, customers: 71 },
-    { date: '08 Oct', revenue: 395000, orders: 61, profit: 138000, customers: 56 },
-    { date: '09 Oct', revenue: 467000, orders: 71, profit: 165000, customers: 65 }
+  const attendanceData = [
+    { date: '18 Nov', sessions: 5, attendance: 78, attendance_rate: 87.6, enrollments: 2 },
+    { date: '19 Nov', sessions: 6, attendance: 92, attendance_rate: 89.3, enrollments: 3 },
+    { date: '20 Nov', sessions: 4, attendance: 65, attendance_rate: 84.4, enrollments: 1 },
+    { date: '21 Nov', sessions: 7, attendance: 105, attendance_rate: 88.2, enrollments: 4 },
+    { date: '22 Nov', sessions: 5, attendance: 82, attendance_rate: 86.8, enrollments: 2 },
+    { date: '23 Nov', sessions: 6, attendance: 95, attendance_rate: 90.5, enrollments: 5 },
+    { date: '24 Nov', sessions: 8, attendance: 118, attendance_rate: 85.5, enrollments: 3 },
+    { date: '25 Nov', sessions: 5, attendance: 88, attendance_rate: 91.7, enrollments: 2 },
+    { date: '26 Nov', sessions: 6, attendance: 98, attendance_rate: 87.5, enrollments: 4 }
   ];
 
-  const hourlyData = [
-    { hour: '00:00', orders: 2, revenue: 8500 },
-    { hour: '03:00', orders: 1, revenue: 3200 },
-    { hour: '06:00', orders: 5, revenue: 21000 },
-    { hour: '09:00', orders: 12, revenue: 54000 },
-    { hour: '12:00', orders: 18, revenue: 89000 },
-    { hour: '15:00', orders: 15, revenue: 72000 },
-    { hour: '18:00', orders: 22, revenue: 105000 },
-    { hour: '21:00', orders: 14, revenue: 68000 }
+  const sessionTimeData = [
+    { time: '6:00 AM', sessions: 0, attendance: 0 },
+    { time: '9:00 AM', sessions: 2, attendance: 28 },
+    { time: '12:00 PM', sessions: 1, attendance: 15 },
+    { time: '2:00 PM', sessions: 3, attendance: 45 },
+    { time: '4:00 PM', sessions: 5, attendance: 85 },
+    { time: '6:00 PM', sessions: 3, attendance: 52 },
+    { time: '8:00 PM', sessions: 1, attendance: 18 }
   ];
 
-  const categoryPerformance = [
-    { name: 'Bicycles', sales: 1250000, orders: 145, percentage: 51, color: '#ea580c', profit: 425000, roi: 34 },
-    { name: 'Accessories', sales: 680000, orders: 234, percentage: 28, color: '#f97316', profit: 238000, roi: 35 },
-    { name: 'Parts', sales: 420000, orders: 89, percentage: 17, color: '#fb923c', profit: 147000, roi: 35 },
-    { name: 'Clothing', sales: 100000, orders: 19, percentage: 4, color: '#fdba74', profit: 35000, roi: 35 }
+  const programPerformance = [
+    { name: 'Elite Training', enrolled: 35, sessions: 18, percentage: 40, color: '#ea580c', revenue: 525000, attendance_rate: 89.2 },
+    { name: 'Weekend Warrior', enrolled: 28, sessions: 14, percentage: 32, color: '#f97316', revenue: 420000, attendance_rate: 85.7 },
+    { name: 'Holiday Programme', enrolled: 15, sessions: 8, percentage: 17, color: '#fb923c', revenue: 180000, attendance_rate: 87.5 },
+    { name: 'Team Support', enrolled: 9, sessions: 5, percentage: 11, color: '#fdba74', revenue: 120000, attendance_rate: 83.3 }
   ];
 
-  const topProducts = [
+  const initialTopAthletes = [
     { 
       id: 1, 
-      name: 'Mountain Bike Pro X500', 
-      sku: 'MTB-500',
-      sales: 45, 
-      revenue: 2025000, 
-      views: 1234, 
-      stock: 15,
-      rating: 4.8,
-      reviews: 156,
+      name: 'Ahmed Hassan', 
+      athlete_id: 'ATH-001',
+      age: 11,
+      age_group: '10-13',
+      sessions_attended: 42, 
+      attendance_rate: 98.5, 
+      program: 'Elite Training',
+      skill_level: 'Advanced',
+      parent: 'Mohamed Hassan',
+      phone: '+254712345678',
       trend: 'up',
-      trendValue: 12,
-      wishlist: 89
+      trendValue: 5,
+      fitness_score: 92
     },
     { 
       id: 2, 
-      name: 'Road Racing Bike Elite', 
-      sku: 'RRB-ELT',
-      sales: 32, 
-      revenue: 2080000, 
-      views: 987, 
-      stock: 8,
-      rating: 4.9,
-      reviews: 98,
+      name: 'Fatima Ali', 
+      athlete_id: 'ATH-002',
+      age: 8,
+      age_group: '7-9',
+      sessions_attended: 38, 
+      attendance_rate: 96.2, 
+      program: 'Weekend Warrior',
+      skill_level: 'Intermediate',
+      parent: 'Ali Ibrahim',
+      phone: '+254723456789',
       trend: 'up',
-      trendValue: 18,
-      wishlist: 124
+      trendValue: 8,
+      fitness_score: 88
     },
     { 
       id: 3, 
-      name: 'Kids Bicycle 16" Rainbow', 
-      sku: 'KDS-16R',
-      sales: 78, 
-      revenue: 975000, 
-      views: 2341, 
-      stock: 25,
-      rating: 4.7,
-      reviews: 234,
+      name: 'John Kipchoge', 
+      athlete_id: 'ATH-003',
+      age: 14,
+      age_group: '13+',
+      sessions_attended: 40, 
+      attendance_rate: 94.8, 
+      program: 'Team Support',
+      skill_level: 'Advanced',
+      parent: 'Peter Kipchoge',
+      phone: '+254734567890',
       trend: 'up',
-      trendValue: 8,
-      wishlist: 67
+      trendValue: 3,
+      fitness_score: 90
     },
     { 
       id: 4, 
-      name: 'Professional Bike Helmet', 
-      sku: 'HLM-PRO',
-      sales: 156, 
-      revenue: 546000, 
-      views: 3456, 
-      stock: 50,
-      rating: 4.6,
-      reviews: 445,
+      name: 'Mary Wanjiku', 
+      athlete_id: 'ATH-004',
+      age: 12,
+      age_group: '10-13',
+      sessions_attended: 39, 
+      attendance_rate: 93.5, 
+      program: 'Elite Training',
+      skill_level: 'Intermediate',
+      parent: 'Jane Wanjiku',
+      phone: '+254745678901',
       trend: 'down',
-      trendValue: 5,
-      wishlist: 45
+      trendValue: 2,
+      fitness_score: 86
     },
     { 
       id: 5, 
-      name: 'Electric Mountain Bike E-Pro', 
-      sku: 'EMB-EPR',
-      sales: 12, 
-      revenue: 1500000, 
-      views: 876, 
-      stock: 5,
-      rating: 4.9,
-      reviews: 67,
+      name: 'David Omondi', 
+      athlete_id: 'ATH-005',
+      age: 9,
+      age_group: '7-9',
+      sessions_attended: 35, 
+      attendance_rate: 91.7, 
+      program: 'Weekend Warrior',
+      skill_level: 'Beginner',
+      parent: 'Rose Omondi',
+      phone: '+254756789012',
       trend: 'up',
-      trendValue: 25,
-      wishlist: 234
+      trendValue: 12,
+      fitness_score: 82
     }
   ];
 
-  const recentOrders = [
+  const initialRecentSessions = [
     { 
-      id: 'ORD-2024-1234', 
-      customer: 'John Kamau', 
-      product: 'Mountain Bike Pro X500', 
-      amount: 45000, 
-      status: 'pending', 
-      time: '5 mins ago',
-      payment: 'M-Pesa',
-      location: 'Nairobi'
-    },
-    { 
-      id: 'ORD-2024-1235', 
-      customer: 'Jane Wanjiku', 
-      product: 'Road Racing Bike Elite', 
-      amount: 65000, 
-      status: 'processing', 
-      time: '12 mins ago',
-      payment: 'Card',
-      location: 'Mombasa'
-    },
-    { 
-      id: 'ORD-2024-1236', 
-      customer: 'Peter Ochieng', 
-      product: 'Kids Bicycle 16"', 
-      amount: 12500, 
-      status: 'shipped', 
-      time: '1 hour ago',
-      payment: 'M-Pesa',
-      location: 'Kisumu'
-    },
-    { 
-      id: 'ORD-2024-1237', 
-      customer: 'Mary Njeri', 
-      product: 'Professional Bike Helmet', 
-      amount: 3500, 
+      id: 'SES-2024-1234', 
+      coach: 'Coach Bennett Oraro', 
+      program: 'Elite Training', 
+      age_group: '10-13 years',
+      attendance: '18/22',
+      attendance_rate: 81.8,
       status: 'completed', 
       time: '2 hours ago',
-      payment: 'COD',
-      location: 'Nakuru'
+      location: 'Main Field',
+      duration: '2 hours'
     },
     { 
-      id: 'ORD-2024-1238', 
-      customer: 'David Mwangi', 
-      product: 'Hydraulic Disc Brakes', 
-      amount: 8500, 
-      status: 'cancelled', 
-      time: '3 hours ago',
-      payment: 'M-Pesa',
-      location: 'Nairobi'
+      id: 'SES-2024-1235', 
+      coach: 'Coach Mary Njeri', 
+      program: 'Weekend Warrior', 
+      age_group: '7-9 years',
+      attendance: '15/18',
+      attendance_rate: 83.3,
+      status: 'completed', 
+      time: '1 day ago',
+      location: 'Training Ground A',
+      duration: '2 hours'
+    },
+    { 
+      id: 'SES-2024-1236', 
+      coach: 'Coach John Kamau', 
+      program: 'Team Support', 
+      age_group: '13+ years',
+      attendance: '20/25',
+      attendance_rate: 80.0,
+      status: 'completed', 
+      time: '2 days ago',
+      location: 'Main Field',
+      duration: '2 hours'
+    },
+    { 
+      id: 'SES-2024-1237', 
+      coach: 'Coach Sarah Akinyi', 
+      program: 'Holiday Programme', 
+      age_group: '4-6 years',
+      attendance: '12/15',
+      attendance_rate: 80.0,
+      status: 'completed', 
+      time: '3 days ago',
+      location: 'Training Ground B',
+      duration: '2.5 hours'
+    },
+    { 
+      id: 'SES-2024-1238', 
+      coach: 'Coach Peter Ochieng', 
+      program: 'Elite Training', 
+      age_group: '10-13 years',
+      attendance: '0/20',
+      attendance_rate: 0,
+      status: 'scheduled', 
+      time: 'Today at 6:00 PM',
+      location: 'Main Field',
+      duration: '2 hours'
     }
   ];
 
   const alerts = [
-    { id: 1, type: 'warning', message: 'LED Bike Light Set is running low on stock (3 units left)', time: '10 mins ago', action: 'Restock' },
-    { id: 2, type: 'error', message: 'Hydraulic Disc Brakes Set is out of stock', time: '1 hour ago', action: 'Restock Now' },
-    { id: 3, type: 'info', message: 'You have 23 pending orders to process', time: '2 hours ago', action: 'View Orders' },
-    { id: 4, type: 'success', message: 'Mountain Bike Pro X500 has received 5 new reviews (4.8★)', time: '5 hours ago', action: 'View Reviews' },
-    { id: 5, type: 'warning', message: 'Electric Mountain Bike E-Pro stock is critically low (5 units)', time: '6 hours ago', action: 'Restock' },
-    { id: 6, type: 'info', message: 'Your store received 234 new visitors today', time: '8 hours ago', action: 'View Analytics' }
+    { id: 1, type: 'warning', message: '3 athletes have chronic absenteeism (below 50% attendance)', time: '10 mins ago', action: 'View Athletes' },
+    { id: 2, type: 'error', message: '4 payment reminders overdue for this month', time: '1 hour ago', action: 'Send Reminders' },
+    { id: 3, type: 'info', message: 'You have 7 scheduled sessions for today', time: '2 hours ago', action: 'View Schedule' },
+    { id: 4, type: 'success', message: 'Elite Training program received 5 new parent reviews (4.8★)', time: '5 hours ago', action: 'View Reviews' },
+    { id: 5, type: 'warning', message: '2 athletes have missed 3 consecutive sessions', time: '6 hours ago', action: 'Contact Parents' },
+    { id: 6, type: 'info', message: '8 new enrollment inquiries received this week', time: '8 hours ago', action: 'View Inquiries' }
   ];
 
   const revenueByPayment = [
-    { name: 'M-Pesa', value: 1470000, percentage: 60, color: '#22c55e', transactions: 312 },
-    { name: 'Card Payment', value: 735000, percentage: 30, color: '#3b82f6', transactions: 98 },
-    { name: 'Cash on Delivery', value: 245000, percentage: 10, color: '#f59e0b', transactions: 77 }
+    { name: 'M-Pesa', value: 850000, percentage: 68, color: '#22c55e', transactions: 68 },
+    { name: 'Cash', value: 295000, percentage: 24, color: '#3b82f6', transactions: 19 },
+    { name: 'Bank Transfer', value: 100000, percentage: 8, color: '#f59e0b', transactions: 8 }
   ];
 
-  const customerSegments = [
-    { segment: 'New Customers', count: 87, revenue: 325000, avgOrder: 3736, color: '#3b82f6' },
-    { segment: 'Returning Customers', count: 245, revenue: 1456000, avgOrder: 5943, color: '#22c55e' },
-    { segment: 'VIP Customers', count: 23, revenue: 669000, avgOrder: 29087, color: '#a855f7' }
+  const athleteSegments = [
+    { segment: 'New Athletes', count: 8, revenue: 120000, avgPayment: 15000, color: '#3b82f6' },
+    { segment: 'Regular Athletes', count: 65, revenue: 975000, avgPayment: 15000, color: '#22c55e' },
+    { segment: 'Elite Athletes', count: 14, revenue: 210000, avgPayment: 15000, color: '#a855f7' }
   ];
 
-  const trafficSources = [
-    { source: 'Direct', visitors: 12345, percentage: 38, orders: 156, conversion: 1.26 },
-    { source: 'Social Media', visitors: 8976, percentage: 28, orders: 234, conversion: 2.61 },
-    { source: 'Search Engine', visitors: 7654, percentage: 24, orders: 187, conversion: 2.44 },
-    { source: 'Email Marketing', visitors: 3209, percentage: 10, orders: 98, conversion: 3.05 }
+  const enrollmentSources = [
+    { source: 'Walk-in', inquiries: 45, percentage: 38, enrollments: 18, conversion: 40.0 },
+    { source: 'Social Media', inquiries: 33, percentage: 28, enrollments: 12, conversion: 36.4 },
+    { source: 'Referral', inquiries: 28, percentage: 24, enrollments: 15, conversion: 53.6 },
+    { source: 'Website', inquiries: 12, percentage: 10, enrollments: 6, conversion: 50.0 }
   ];
 
   const performanceMetrics = [
-    { metric: 'Product Quality', score: 92, max: 100 },
-    { metric: 'Delivery Speed', score: 85, max: 100 },
-    { metric: 'Customer Service', score: 88, max: 100 },
-    { metric: 'Pricing', score: 78, max: 100 },
-    { metric: 'Packaging', score: 90, max: 100 },
-    { metric: 'Communication', score: 86, max: 100 }
+    { metric: 'Training Quality', score: 92, max: 100 },
+    { metric: 'Coach Effectiveness', score: 88, max: 100 },
+    { metric: 'Parent Satisfaction', score: 90, max: 100 },
+    { metric: 'Facility Condition', score: 85, max: 100 },
+    { metric: 'Safety Standards', score: 95, max: 100 },
+    { metric: 'Communication', score: 87, max: 100 }
   ];
 
   const upcomingTasks = [
-    { id: 1, task: 'Process 23 pending orders', priority: 'high', deadline: 'Today' },
-    { id: 2, task: 'Restock 8 out-of-stock items', priority: 'high', deadline: 'Today' },
-    { id: 3, task: 'Respond to 12 customer messages', priority: 'medium', deadline: 'Tomorrow' },
-    { id: 4, task: 'Review and approve 5 product returns', priority: 'medium', deadline: 'Tomorrow' },
-    { id: 5, task: 'Update pricing for 15 products', priority: 'low', deadline: 'This Week' }
+    { id: 1, task: 'Contact parents of 3 chronically absent athletes', priority: 'high', deadline: 'Today' },
+    { id: 2, task: 'Send payment reminders to 4 overdue accounts', priority: 'high', deadline: 'Today' },
+    { id: 3, task: 'Review 8 new enrollment applications', priority: 'medium', deadline: 'Tomorrow' },
+    { id: 4, task: 'Complete fitness assessments for 12 athletes', priority: 'medium', deadline: 'This Week' },
+    { id: 5, task: 'Update training schedules for holiday programme', priority: 'low', deadline: 'This Week' }
   ];
+
+  // Top products converted to top athletes (additional mock data for charts)
+  const topProducts = [
+    { 
+      id: 1, 
+      name: 'Ahmed Hassan', 
+      sku: 'ATH-001',
+      sales: 42, 
+      revenue: 15000, 
+      views: 42, 
+      stock: 98.5,
+      rating: 4.9,
+      reviews: 8,
+      trend: 'up',
+      trendValue: 5,
+      wishlist: 12
+    },
+    { 
+      id: 2, 
+      name: 'Fatima Ali', 
+      sku: 'ATH-002',
+      sales: 38, 
+      revenue: 15000, 
+      views: 38, 
+      stock: 96.2,
+      rating: 4.8,
+      reviews: 7,
+      trend: 'up',
+      trendValue: 8,
+      wishlist: 10
+    },
+    { 
+      id: 3, 
+      name: 'John Kipchoge', 
+      sku: 'ATH-003',
+      sales: 40, 
+      revenue: 12000, 
+      views: 40, 
+      stock: 94.8,
+      rating: 4.9,
+      reviews: 9,
+      trend: 'up',
+      trendValue: 3,
+      wishlist: 11
+    },
+    { 
+      id: 4, 
+      name: 'Mary Wanjiku', 
+      sku: 'ATH-004',
+      sales: 39, 
+      revenue: 15000, 
+      views: 39, 
+      stock: 93.5,
+      rating: 4.7,
+      reviews: 6,
+      trend: 'down',
+      trendValue: 2,
+      wishlist: 8
+    },
+    { 
+      id: 5, 
+      name: 'David Omondi', 
+      sku: 'ATH-005',
+      sales: 35, 
+      revenue: 10000, 
+      views: 35, 
+      stock: 91.7,
+      rating: 4.6,
+      reviews: 5,
+      trend: 'up',
+      trendValue: 12,
+      wishlist: 7
+    }
+  ];
+
+  // Program performance data (used in charts)
+  const programPerformanceData = programPerformance;
+
+  // Athlete segments data (used in charts)
+  const athleteSegmentsData = athleteSegments;
+
+  // Enrollment sources data (used in charts)
+  const enrollmentSourcesData = enrollmentSources;
+
+  // Revenue data for the performance overview chart
+  const revenueData = [
+    { date: '18 Nov', revenue: 145000, enrollments: 5, fees_collected: 95000, athletes: 78 },
+    { date: '19 Nov', revenue: 168000, enrollments: 6, fees_collected: 105000, athletes: 92 },
+    { date: '20 Nov', revenue: 128000, enrollments: 4, fees_collected: 85000, athletes: 65 },
+    { date: '21 Nov', revenue: 189000, enrollments: 7, fees_collected: 125000, athletes: 105 },
+    { date: '22 Nov', revenue: 156000, enrollments: 5, fees_collected: 102000, athletes: 82 },
+    { date: '23 Nov', revenue: 175000, enrollments: 6, fees_collected: 115000, athletes: 95 },
+    { date: '24 Nov', revenue: 208000, enrollments: 8, fees_collected: 138000, athletes: 118 },
+    { date: '25 Nov', revenue: 162000, enrollments: 5, fees_collected: 108000, athletes: 88 },
+    { date: '26 Nov', revenue: 182000, enrollments: 6, fees_collected: 120000, athletes: 98 }
+  ];
+
+  // Initialize with mock data
+  useEffect(() => {
+    if (topAthletes.length === 0) {
+      setTopAthletes(initialTopAthletes);
+    }
+    if (recentSessions.length === 0) {
+      setRecentSessions(initialRecentSessions);
+    }
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
@@ -336,52 +774,55 @@ const [lowStockProducts, setLowStockProducts] = useState([
   try {
     const period = timeRange === '24hours' ? 'today' : timeRange === '7days' ? 'week' : 'month';
     
-    // Fetch all dashboard data in parallel using OWNER endpoints
+    // Simulate network delay for realism
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Fetch all dashboard data in parallel using MOCK endpoints
     const [
       overviewData, 
-      transactionsData, 
+      sessionsData, 
       paymentMethodsData,
-      saleChannelsData,
-      topSellersData,
-      recentOrdersData,
-      orderStatusData,
+      programEnrollmentData,
+      topAthletesData,
+      recentEnrollmentsData,
+      attendanceStatusData,
       auditLogsData
     ] = await Promise.all([
-      dashboardService.getOwnerOverview(period),
-      dashboardService.getTransactions({ page: 1, per_page: 10 }),
+      dashboardService.getAcademyOverview(period),
+      dashboardService.getRecentSessions({ page: 1, per_page: 10 }),
       dashboardService.getPaymentMethodsBreakdown(period),
-      dashboardService.getSaleChannelsBreakdown(period),
-      dashboardService.getTopSellers(5, period),
-      dashboardService.getRecentOrders(10),
-      dashboardService.getOrderStatusDistribution(period),
+      dashboardService.getProgramEnrollmentBreakdown(period),
+      dashboardService.getTopPerformingAthletes(5, period),
+      dashboardService.getRecentEnrollments(10),
+      dashboardService.getAttendanceDistribution(period),
       auditService.getAuditLogs({ per_page: 13, sort_by: 'occurred_at', sort_order: 'desc' })
     ]);
 
-    console.log('✅ Dashboard data loaded:', { 
+    console.log('✅ Dashboard data loaded (MOCK DATA):', { 
       overviewData, 
-      transactionsData,
+      sessionsData,
       paymentMethodsData,
-      saleChannelsData,
-      topSellersData,
-      recentOrdersData,
-      orderStatusData,
+      programEnrollmentData,
+      topAthletesData,
+      recentEnrollmentsData,
+      attendanceStatusData,
       auditLogsData
     });
     
-    // Update state with real data
+    // Update state with mock data
     setDashboardData(overviewData.data);
-    setTransactions(transactionsData.data || []);
+    setTransactions(sessionsData.data || []);
     setPaymentMethods(paymentMethodsData.data || []);
-    setSaleChannels(saleChannelsData.data || []);
-    setTopSellers(topSellersData.data || []);
-    setRecentTransactions(transactionsData.data?.slice(0, 5) || []);
+    setProgramEnrollments(programEnrollmentData.data || []);
+    setTopAthletes(topAthletesData.data || []);
+    setRecentSessions(sessionsData.data?.slice(0, 5) || []);
 
-    // Update order status distribution from API
-    if (orderStatusData.data) {
-      console.log('📊 Order Status Data from API:', orderStatusData.data);
-      console.log('📊 First item color:', orderStatusData.data[0]?.color);
-      console.log('📊 Full first item:', JSON.stringify(orderStatusData.data[0], null, 2));
-      setOrderStatusData(orderStatusData.data);
+    // Update attendance status distribution from mock API
+    if (attendanceStatusData.data) {
+      console.log('📊 Attendance Status Data from MOCK API:', attendanceStatusData.data);
+      console.log('📊 First item color:', attendanceStatusData.data[0]?.color);
+      console.log('📊 Full first item:', JSON.stringify(attendanceStatusData.data[0], null, 2));
+      setOrderStatusData(attendanceStatusData.data);
     }
 
     // Map audit logs to recent activities with severity badges
@@ -394,16 +835,16 @@ const [lowStockProducts, setLowStockProducts] = useState([
             icon = Shield;
             color = log.severity === 'high' ? 'red' : log.severity === 'medium' ? 'orange' : 'purple';
             break;
-          case 'order':
-            icon = ShoppingCart;
+          case 'enrollment':
+            icon = UserPlus;
             color = 'blue';
             break;
           case 'payment':
             icon = DollarSign;
             color = 'green';
             break;
-          case 'product':
-            icon = Package;
+          case 'session':
+            icon = Activity;
             color = 'orange';
             break;
           case 'user':
@@ -431,25 +872,47 @@ const [lowStockProducts, setLowStockProducts] = useState([
       });
 
       setRecentActivities(activities);
-      console.log('✅ Mapped audit logs to activities:', activities);
+      console.log('✅ Mapped audit logs to activities (MOCK):', activities);
     }
 
-    // Map API data to stats structure for the owner/super admin
+    // Map mock API data to stats structure for the academy
     if (overviewData.data) {
       const apiData = overviewData.data;
       setStats(prev => ({
         ...prev,
+        athletes: {
+          total: parseInt(apiData.total_athletes?.count || 0),
+          change: apiData.total_athletes?.change_percentage || 0,
+          trend: (apiData.total_athletes?.change_percentage || 0) > 0 ? 'up' : 
+                 (apiData.total_athletes?.change_percentage || 0) < 0 ? 'down' : 'flat',
+          active: prev.athletes.active,
+          suspended: prev.athletes.suspended,
+          inactive: prev.athletes.inactive,
+          new_this_month: prev.athletes.new_this_month
+        },
+        attendance: {
+          ...prev.attendance,
+          rate: parseFloat(apiData.attendance_rate?.percentage || 0),
+          change: apiData.attendance_rate?.change_percentage || 0
+        },
+        sessions: {
+          total: parseInt(apiData.total_sessions?.count || 0),
+          change: apiData.total_sessions?.change_percentage || 0,
+          trend: (apiData.total_sessions?.change_percentage || 0) > 0 ? 'up' : 
+                 (apiData.total_sessions?.change_percentage || 0) < 0 ? 'down' : 'flat',
+          completed: prev.sessions.completed,
+          scheduled: prev.sessions.scheduled,
+          cancelled: prev.sessions.cancelled,
+          avgAttendanceRate: prev.sessions.avgAttendanceRate
+        },
         revenue: {
           total: parseFloat(apiData.total_revenue?.amount || 0),
           change: apiData.total_revenue?.change_percentage || 0,
           trend: (apiData.total_revenue?.change_percentage || 0) > 0 ? 'up' : 
                  (apiData.total_revenue?.change_percentage || 0) < 0 ? 'down' : 'flat',
-          target: 3000000,
-          targetProgress: ((parseFloat(apiData.total_revenue?.amount || 0)) / 3000000) * 100
-        },
-        // Keep existing order/customer stats as fallback
-        orders: prev.orders,
-        customers: prev.customers
+          target: 1500000,
+          targetProgress: ((parseFloat(apiData.total_revenue?.amount || 0)) / 1500000) * 100
+        }
       }));
     }
 
@@ -580,29 +1043,29 @@ const [lowStockProducts, setLowStockProducts] = useState([
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome back, {user?.name?.split(' ')[0]}! 👋
-            </h1>
-            <p className="text-gray-600">
-              Here's what's happening with your Oshocks dashboard today.
-            </p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                Welcome back, Coach {user?.name?.split(' ')[0]}! 👋
+              </h1>
+              <p className="text-gray-600">
+                Here's what's happening at NextGen Academy today.
+              </p>
             <p className="text-sm text-gray-500 mt-1">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </p>
             </div>
             
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
               <div className="relative">
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none pr-10 bg-white"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none pr-10 bg-white text-gray-900"
                 >
                   <option value="24hours">Last 24 Hours</option>
                   <option value="7days">Last 7 Days</option>
@@ -617,9 +1080,9 @@ const [lowStockProducts, setLowStockProducts] = useState([
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-gray-900"
               >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-gray-900 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               
@@ -646,7 +1109,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
                         const alertIcon = getAlertIcon(alert.type);
                         const AlertIcon = alertIcon.icon;
                         return (
-                          <div key={alert.id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div key={alert.id} className="p-4 hover:bg-blue-100 transition-colors cursor-pointer">
                             <div className="flex gap-3">
                               <AlertIcon className={`w-5 h-5 ${alertIcon.color} flex-shrink-0 mt-0.5`} />
                               <div className="flex-1 min-w-0">
@@ -675,34 +1138,88 @@ const [lowStockProducts, setLowStockProducts] = useState([
           </div>
         </div>
 
-        {/* Revenue Target Progress */}
+        {/* Attendance Rate Progress */}
         <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-lg shadow-lg p-6 mb-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold mb-1">Monthly Revenue Target</h3>
-              <p className="text-orange-100 text-sm">October 2024</p>
+              <h3 className="text-lg font-semibold mb-1">Monthly Attendance Target</h3>
+              <p className="text-orange-100 text-sm">November 2024</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold">KSh {(stats.revenue.total / 1000).toFixed(0)}K</p>
-              <p className="text-orange-100 text-sm">of KSh {(stats.revenue.target / 1000).toFixed(0)}K goal</p>
+              <p className="text-3xl font-bold">{stats.attendance.rate.toFixed(1)}%</p>
+              <p className="text-orange-100 text-sm">Target: 90% attendance rate</p>
             </div>
           </div>
           <div className="w-full bg-orange-400 rounded-full h-3 mb-2">
             <div
               className="bg-white h-3 rounded-full transition-all duration-500"
-              style={{ width: `${stats.revenue.targetProgress}%` }}
+              style={{ width: `${(stats.attendance.rate / 90) * 100}%` }}
             ></div>
           </div>
           <div className="flex justify-between text-sm text-orange-100">
-            <span>{stats.revenue.targetProgress.toFixed(1)}% completed</span>
-            <span>KSh {((stats.revenue.target - stats.revenue.total) / 1000).toFixed(0)}K remaining</span>
+            <span>{((stats.attendance.rate / 90) * 100).toFixed(1)}% of target</span>
+            <span>{(90 - stats.attendance.rate).toFixed(1)}% to reach goal</span>
           </div>
         </div>
 
         {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Revenue Card - Blue */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+          {/* Total Athletes Card - Blue */}
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+                <Users size={24} />
+              </div>
+              <span className={`flex items-center gap-1 text-sm ${
+                stats.athletes.trend === 'up' ? 'text-green-200' : stats.athletes.trend === 'down' ? 'text-red-200' : 'text-gray-200'
+              }`}>
+                {stats.athletes.trend === 'up' ? <TrendingUp size={16} /> : stats.athletes.trend === 'down' ? <TrendingDown size={16} /> : <Minus size={16} />}
+                {Math.abs(stats.athletes.change)}%
+              </span>
+            </div>
+            <h3 className="text-sm font-medium opacity-90 mb-1">Total Athletes</h3>
+            <p className="text-3xl font-bold mb-1">{stats.athletes.total}</p>
+            <p className="text-xs opacity-75">{stats.athletes.new_this_month} new this month</p>
+          </div>
+
+          {/* Attendance Rate Card - Green */}
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+                <CheckCircle size={24} />
+              </div>
+              <span className={`flex items-center gap-1 text-sm ${
+                stats.attendance.change > 0 ? 'text-green-200' : 'text-red-200'
+              }`}>
+                {stats.attendance.change > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                {Math.abs(stats.attendance.change)}%
+              </span>
+            </div>
+            <h3 className="text-sm font-medium opacity-90 mb-1">Attendance Rate</h3>
+            <p className="text-3xl font-bold mb-1">{stats.attendance.rate.toFixed(1)}%</p>
+            <p className="text-xs opacity-75">Target: 90% attendance</p>
+          </div>
+
+          {/* Total Sessions Card - Orange */}
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+                <Activity size={24} />
+              </div>
+              <span className={`flex items-center gap-1 text-sm ${
+                stats.sessions.trend === 'up' ? 'text-green-200' : stats.sessions.trend === 'down' ? 'text-red-200' : 'text-gray-200'
+              }`}>
+                {stats.sessions.trend === 'up' ? <TrendingUp size={16} /> : stats.sessions.trend === 'down' ? <TrendingDown size={16} /> : <Minus size={16} />}
+                {Math.abs(stats.sessions.change)}%
+              </span>
+            </div>
+            <h3 className="text-sm font-medium opacity-90 mb-1">Total Sessions</h3>
+            <p className="text-3xl font-bold mb-1">{stats.sessions.total}</p>
+            <p className="text-xs opacity-75">{stats.sessions.scheduled} scheduled today</p>
+          </div>
+
+          {/* Total Revenue Card - Purple */}
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-white bg-opacity-20 rounded-lg">
                 <DollarSign size={24} />
@@ -715,65 +1232,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
               </span>
             </div>
             <h3 className="text-sm font-medium opacity-90 mb-1">Total Revenue</h3>
-            <p className="text-3xl font-bold mb-1">KES {stats.revenue.total.toLocaleString()}</p>
-            <p className="text-xs opacity-75">vs last period</p>
-          </div>
-
-          {/* Platform Commission Card - Green */}
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                <Percent size={24} />
-              </div>
-              <span className="text-sm text-green-200">
-                {dashboardData?.platform_commission ? `${(parseFloat(dashboardData.platform_commission.rate) || 0).toFixed(1)}%` : '0%'}
-              </span>
-            </div>
-            <h3 className="text-sm font-medium opacity-90 mb-1">Platform Commission</h3>
-            <p className="text-3xl font-bold mb-1">
-              KES {dashboardData?.platform_commission ? parseFloat(dashboardData.platform_commission.amount).toLocaleString() : '0'}
-            </p>
-            <p className="text-xs opacity-75">Average commission rate</p>
-          </div>
-
-          {/* Pending Payouts Card - Orange */}
-          <div 
-              onClick={() => navigate('/super-admin/payouts')}
-              className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white cursor-pointer hover:from-orange-600 hover:to-orange-700 transition-all transform hover:scale-105"
-            >
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                <Wallet size={24} />
-              </div>
-              <span className="text-sm text-orange-200">
-                {payouts.filter(p => p.status === 'pending').length} pending
-              </span>
-            </div>
-            <h3 className="text-sm font-medium opacity-90 mb-1">Pending Payouts</h3>
-            <p className="text-3xl font-bold mb-1">
-              KES {payouts.filter(p => p.status === 'pending').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0).toLocaleString()}
-            </p>
-            <p className="text-xs opacity-75 flex items-center gap-1">
-              Awaiting transfer
-              <ChevronRight size={14} className="opacity-75" />
-            </p>
-          </div>
-
-          {/* Total Orders Card - Purple */}
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-white bg-opacity-20 rounded-lg">
-                <ShoppingCart size={24} />
-              </div>
-              <span className={`flex items-center gap-1 text-sm ${
-                stats.orders.trend === 'up' ? 'text-green-200' : stats.orders.trend === 'down' ? 'text-red-200' : 'text-gray-200'
-              }`}>
-                {stats.orders.trend === 'up' ? <TrendingUp size={16} /> : stats.orders.trend === 'down' ? <TrendingDown size={16} /> : <Minus size={16} />}
-                {Math.abs(stats.orders.change)}%
-              </span>
-            </div>
-            <h3 className="text-sm font-medium opacity-90 mb-1">Total Orders</h3>
-            <p className="text-3xl font-bold mb-1">{stats.orders.total.toLocaleString()}</p>
+            <p className="text-3xl font-bold mb-1">KES {(stats.revenue.total / 1000).toFixed(0)}K</p>
             <p className="text-xs opacity-75">vs last period</p>
           </div>
         </div>
@@ -781,161 +1240,157 @@ const [lowStockProducts, setLowStockProducts] = useState([
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <StatCard
+            icon={Users}
+            label="Active Athletes"
+            value={stats.athletes.active}
+            change={stats.athletes.change}
+            trend={stats.athletes.trend}
+            color="bg-green-600"
+            subtitle={`${stats.athletes.suspended} suspended, ${stats.athletes.inactive} inactive`}
+          />
+          <StatCard
+            icon={Activity}
+            label="Total Sessions"
+            value={stats.sessions.total}
+            change={stats.sessions.change}
+            trend={stats.sessions.trend}
+            color="bg-blue-600"
+            subtitle={`${stats.sessions.completed} completed this month`}
+          />
+          <StatCard
+            icon={CheckCircle}
+            label="Attendance Rate"
+            value={`${stats.attendance.rate.toFixed(1)}%`}
+            change={stats.attendance.change}
+            trend={stats.attendance.change > 0 ? 'up' : 'down'}
+            color="bg-purple-600"
+            subtitle={`${stats.attendance.present} total attendances`}
+          />
+          <StatCard
             icon={DollarSign}
-            label="Total Revenue"
-            value={`KSh ${stats.revenue.total.toLocaleString()}`}
+            label="Monthly Revenue"
+            value={`KSh ${(stats.revenue.total / 1000).toFixed(0)}K`}
             change={stats.revenue.change}
             trend={stats.revenue.trend}
-            color="bg-green-600"
-            subtitle={dashboardData?.platform_commission ? `Commission: KSh ${parseFloat(dashboardData.platform_commission.amount).toLocaleString()}` : 'Loading...'}
-            //If i will like to use non decimal commision uncomment below
-            //subtitle={dashboardData?.platform_commission ? `Commission: KSh ${Math.round(parseFloat(dashboardData.platform_commission.amount)).toLocaleString()}` : 'Loading...'}
-          />
-          <StatCard
-            icon={ShoppingCart}
-            label="Total Orders"
-            value={stats.orders.total}
-            change={stats.orders.change}
-            trend={stats.orders.trend}
-            color="bg-blue-600"
-            subtitle={`${stats.orders.completed} completed orders`}
-          />
-          <StatCard
-            icon={Users}
-            label="Total Customers"
-            value={stats.customers.total}
-            change={stats.customers.change}
-            trend="up"
-            color="bg-purple-600"
-            subtitle={`${stats.customers.repeatRate}% repeat rate`}
-          />
-          <StatCard
-            icon={Eye}
-            label="Product Views"
-            value={`${(stats.views.total / 1000).toFixed(1)}K`}
-            change={stats.views.change}
-            trend="up"
             color="bg-orange-600"
-            subtitle={`${stats.views.avgDuration} avg duration`}
+            subtitle={`Payment rate: ${stats.payments.rate}%`}
           />
         </div>
 
         {/* Secondary Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm text-gray-600">Pending</span>
+              <Users className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm text-gray-600">Elite Program</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.orders.pending}</p>
-            <p className="text-xs text-gray-500 mt-1">Need action</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.programs.elite}</p>
+            <p className="text-xs text-gray-500 mt-1">Athletes enrolled</p>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
-              <Package className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-gray-600">Processing</span>
+              <Activity className="w-4 h-4 text-blue-600" />
+              <span className="text-sm text-gray-600">Weekend</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.orders.processing}</p>
-            <p className="text-xs text-gray-500 mt-1">Being prepared</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.programs.weekend}</p>
+            <p className="text-xs text-gray-500 mt-1">Athletes enrolled</p>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
-              <Truck className="w-4 h-4 text-purple-600" />
-              <span className="text-sm text-gray-600">Shipped</span>
+              <Calendar className="w-4 h-4 text-purple-600" />
+              <span className="text-sm text-gray-600">Holiday</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.orders.shipped}</p>
-            <p className="text-xs text-gray-500 mt-1">In transit</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.programs.holiday}</p>
+            <p className="text-xs text-gray-500 mt-1">Athletes enrolled</p>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-4 h-4 text-red-600" />
-              <span className="text-sm text-gray-600">Low Stock</span>
+              <Shield className="w-4 h-4 text-red-600" />
+              <span className="text-sm text-gray-600">Team Support</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.products.lowStock}</p>
-            <p className="text-xs text-gray-500 mt-1">Items need restock</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.programs.team}</p>
+            <p className="text-xs text-gray-500 mt-1">Athletes enrolled</p>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
               <Star className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm text-gray-600">Avg Rating</span>
+              <span className="text-sm text-gray-600">Satisfaction</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.rating.average}</p>
-            <p className="text-xs text-gray-500 mt-1">{stats.rating.total} reviews</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.satisfaction.average}</p>
+            <p className="text-xs text-gray-500 mt-1">{stats.satisfaction.total} reviews</p>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-2">
-              <Percent className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-gray-600">Conversion</span>
+              <DollarSign className="w-4 h-4 text-green-600" />
+              <span className="text-sm text-gray-600">Payment Rate</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.conversion.rate}%</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.payments.rate}%</p>
             <p className="text-xs text-gray-500 mt-1">
-              {stats.conversion.change > 0 ? '+' : ''}{stats.conversion.change}% change
+              {stats.payments.pending} pending
             </p>
           </div>
         </div>
 
         {/* Secondary Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Conversion Rate */}
+          {/* Avg Attendance Rate */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-orange-100 rounded-lg">
-                <Percent size={20} className="text-orange-600" />
+                <CheckCircle size={20} className="text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Conversion Rate</p>
-                <p className="text-2xl font-bold">{stats.conversion.rate}%</p>
+                <p className="text-sm text-gray-600">Avg Attendance</p>
+                <p className="text-2xl font-bold">{stats.sessions.avgAttendanceRate.toFixed(1)}%</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className={`flex items-center gap-1 ${
-                stats.conversion.change > 0 ? 'text-green-600' : stats.conversion.change < 0 ? 'text-red-600' : 'text-gray-600'
+                stats.attendance.change > 0 ? 'text-green-600' : stats.attendance.change < 0 ? 'text-red-600' : 'text-gray-600'
               }`}>
-                {stats.conversion.change > 0 ? <ArrowUp size={16} /> : stats.conversion.change < 0 ? <ArrowDown size={16} /> : <Minus size={16} />}
-                {Math.abs(stats.conversion.change)}%
+                {stats.attendance.change > 0 ? <ArrowUp size={16} /> : stats.attendance.change < 0 ? <ArrowDown size={16} /> : <Minus size={16} />}
+                {Math.abs(stats.attendance.change)}%
               </span>
               <span className="text-gray-500">vs last period</span>
             </div>
           </div>
 
-          {/* Active Products */}
+          {/* Active Programs */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-green-100 rounded-lg">
-                <Package size={20} className="text-green-600" />
+                <Activity size={20} className="text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Active Products</p>
-                <p className="text-2xl font-bold">{stats.products.active.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Active Programs</p>
+                <p className="text-2xl font-bold">{stats.programs.total}</p>
               </div>
             </div>
             <div className="text-sm text-gray-600">
-              {stats.products.outOfStock} out of stock
+              {stats.athletes.total} total athletes enrolled
             </div>
           </div>
 
-          {/* Site Visitors */}
+          {/* Active Coaches */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-purple-100 rounded-lg">
-                <Activity size={20} className="text-purple-600" />
+                <Users size={20} className="text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Site Visitors</p>
-                <p className="text-2xl font-bold">{stats.views.total.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Active Coaches</p>
+                <p className="text-2xl font-bold">{stats.coaches.total}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="flex items-center gap-1 text-green-600">
-                <ArrowUp size={16} />
-                {stats.views.change}%
+              <span className="text-gray-600">
+                Avg {stats.coaches.avgSessionsPerCoach} sessions/coach
               </span>
-              <span className="text-gray-500">vs last period</span>
             </div>
           </div>
         </div>
@@ -982,14 +1437,14 @@ const [lowStockProducts, setLowStockProducts] = useState([
           </div>
         )}
 
-        {/* Payment Methods & Sale Channels */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Payment Methods & Program Enrollment */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Payment Methods Breakdown */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Payment Methods</h2>
-                <p className="text-sm text-gray-600">Transaction breakdown</p>
+                <p className="text-sm text-gray-600">Fee payment breakdown</p>
               </div>
             </div>
 
@@ -1013,7 +1468,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
                           <span className="text-sm font-semibold text-gray-900">
                             KES {parseFloat(method.total_amount || 0).toLocaleString()}
                           </span>
-                          <span className="text-xs text-gray-500 ml-2">({method.transaction_count} txns)</span>
+                          <span className="text-xs text-gray-500 ml-2">({method.transaction_count} payments)</span>
                         </div>
                       </div>
                     </div>
@@ -1025,19 +1480,19 @@ const [lowStockProducts, setLowStockProducts] = useState([
             )}
           </div>
 
-          {/* Sale Channels Breakdown */}
+          {/* Program Enrollment Breakdown */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Sale Channels</h2>
-                <p className="text-sm text-gray-600">Revenue distribution</p>
+                <h2 className="text-lg font-semibold text-gray-900">Program Enrollment</h2>
+                <p className="text-sm text-gray-600">Athletes by program</p>
               </div>
             </div>
 
-            {saleChannels.length > 0 ? (
+            {programEnrollments.length > 0 ? (
               <div className="space-y-4">
-                {saleChannels.map((channel, index) => {
-                  const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#8B5CF6'];
+                {programEnrollments.map((channel, index) => {
+                  const colors = ['#ea580c', '#f97316', '#fb923c', '#fdba74'];
                   const color = colors[index % colors.length];
                   
                   return (
@@ -1048,11 +1503,11 @@ const [lowStockProducts, setLowStockProducts] = useState([
                             className="w-3 h-3 rounded-full" 
                             style={{ backgroundColor: color }}
                           />
-                          <span className="text-sm font-medium text-gray-900">{channel.channel}</span>
+                          <span className="text-sm font-medium text-gray-900">{channel.program || channel.channel}</span>
                         </div>
                         <div className="text-right">
                           <span className="text-sm font-semibold text-gray-900">
-                            KES {parseFloat(channel.total_amount || 0).toLocaleString()}
+                            {channel.enrolled || 0} athletes
                           </span>
                           <span className="text-xs text-gray-500 ml-2">({channel.percentage}%)</span>
                         </div>
@@ -1071,43 +1526,54 @@ const [lowStockProducts, setLowStockProducts] = useState([
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 text-center py-8">No channel data available</p>
+              <p className="text-sm text-gray-500 text-center py-8">No enrollment data available</p>
             )}
           </div>
         </div>
 
-        {/* Top Sellers */}
+        {/* Top Athletes */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Top Performing Sellers</h2>
-              <p className="text-sm text-gray-600">Highest revenue generators</p>
+              <h2 className="text-lg font-semibold text-gray-900">Top Performing Athletes</h2>
+              <p className="text-sm text-gray-600">Highest attendance rates</p>
             </div>
           </div>
 
-          {topSellers.length > 0 ? (
+          {topAthletes.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">#</th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Seller</th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Total Sales</th>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">#</th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Athlete</th>
+                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Age Group</th>
+                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Program</th>
+                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Attendance Rate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {topSellers.map((seller, index) => (
-                    <tr key={seller.seller_id} className="hover:bg-gray-50">
-                      <td className="py-4">
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {topAthletes.map((athlete, index) => (
+                    <tr key={athlete.athlete_id || athlete.id} className="hover:bg-gray-50 bg-white">
+                      <td className="py-4 px-4">
                         <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-full text-sm font-semibold text-orange-600">
                           {index + 1}
                         </div>
                       </td>
                       <td className="py-4">
-                        <p className="text-sm font-medium text-gray-900">{seller.seller_name}</p>
+                        <p className="text-sm font-medium text-gray-900">{athlete.athlete_name || athlete.name}</p>
+                      </td>
+                      <td className="py-4 text-center">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                          {athlete.age_group || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="py-4 text-center">
+                        <span className="text-xs text-gray-600">{athlete.program || 'N/A'}</span>
                       </td>
                       <td className="py-4 text-right">
-                        <p className="text-sm font-semibold text-gray-900">KES {seller.total_sales.toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-gray-900">{athlete.attendance_rate || 0}%</p>
+                        <p className="text-xs text-gray-500">{athlete.sessions_attended || 0} sessions</p>
                       </td>
                     </tr>
                   ))}
@@ -1115,64 +1581,65 @@ const [lowStockProducts, setLowStockProducts] = useState([
               </table>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-8">No seller data available</p>
+            <p className="text-sm text-gray-500 text-center py-8">No athlete data available</p>
           )}
         </div>
 
-        {/* Recent Transactions */}
+        {/* Recent Sessions */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-              <p className="text-sm text-gray-600">Latest payment records</p>
+              <h2 className="text-lg font-semibold text-gray-900">Recent Training Sessions</h2>
+              <p className="text-sm text-gray-600">Latest session records</p>
             </div>
             <button className="text-orange-600 text-sm font-medium hover:underline flex items-center gap-1">
               View All <ChevronRight size={16} />
             </button>
           </div>
 
-          {recentTransactions.length > 0 ? (
+          {recentSessions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Transaction ID</th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Seller</th>
-                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Method</th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Amount</th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Commission</th>
-                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">Status</th>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Session ID</th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Coach</th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Program</th>
+                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Age Group</th>
+                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Attendance</th>
+                    <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider pb-3 px-4">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {recentTransactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="py-4">
-                        <p className="text-sm font-medium text-gray-900">{transaction.transaction_reference}</p>
-                        <p className="text-xs text-gray-500">{new Date(transaction.payment_collected_at).toLocaleString()}</p>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {recentSessions.map((session) => (
+                    <tr key={session.id} className="hover:bg-gray-50 bg-white">
+                      <td className="py-4 px-4">
+                        <p className="text-sm font-medium text-gray-900">{session.session_reference || session.transaction_reference}</p>
+                        <p className="text-xs text-gray-500">{new Date(session.session_date || session.payment_collected_at).toLocaleString()}</p>
                       </td>
                       <td className="py-4">
-                        <p className="text-sm text-gray-900">{transaction.seller?.shop_name || 'N/A'}</p>
+                        <p className="text-sm text-gray-900">{session.coach?.name || session.seller?.shop_name || 'N/A'}</p>
+                      </td>
+                      <td className="py-4">
+                        <p className="text-sm text-gray-900">{session.program || 'N/A'}</p>
                       </td>
                       <td className="py-4 text-center">
-                        <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
-                          {transaction.payment_method}
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                          {session.age_group || 'N/A'}
                         </span>
                       </td>
-                      <td className="py-4 text-right">
-                        <p className="text-sm font-semibold text-gray-900">KES {parseFloat(transaction.amount).toLocaleString()}</p>
-                      </td>
-                      <td className="py-4 text-right">
-                        <p className="text-sm text-gray-600">KES {parseFloat(transaction.platform_commission_amount).toLocaleString()}</p>
+                      <td className="py-4 text-center">
+                        <p className="text-sm font-semibold text-gray-900">{session.attendance_count || 0}/{session.total_enrolled || 0}</p>
+                        <p className="text-xs text-gray-500">{session.attendance_rate || 0}%</p>
                       </td>
                       <td className="py-4">
                         <div className="flex justify-center">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            transaction.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                            transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                            session.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                            session.status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 
                             'bg-gray-100 text-gray-800'
                           }`}>
-                            {transaction.status}
+                            {session.status}
                           </span>
                         </div>
                       </td>
@@ -1182,18 +1649,18 @@ const [lowStockProducts, setLowStockProducts] = useState([
               </table>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-8">No recent transactions</p>
+            <p className="text-sm text-gray-500 text-center py-8">No recent sessions</p>
           )}
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Sales Trend Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+          {/* Attendance Overview Chart */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Sales Overview</h2>
-                <p className="text-sm text-gray-600">Revenue and orders trend</p>
+                <h2 className="text-lg font-semibold text-gray-900">Attendance Overview</h2>
+                <p className="text-sm text-gray-600">Daily attendance and session trends</p>
               </div>
               <button className="p-2 hover:bg-gray-100 rounded-lg">
                 <MoreVertical size={20} className="text-gray-500" />
@@ -1201,9 +1668,9 @@ const [lowStockProducts, setLowStockProducts] = useState([
             </div>
             
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={salesData}>
+              <AreaChart data={attendanceData}>
                 <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
                   </linearGradient>
@@ -1213,25 +1680,29 @@ const [lowStockProducts, setLowStockProducts] = useState([
                 <YAxis stroke="#9CA3AF" fontSize={12} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => `KES ${value.toLocaleString()}`}
+                  formatter={(value, name) => {
+                    if (name === 'attendance') return [value, 'Attendees'];
+                    if (name === 'attendance_rate') return [value + '%', 'Rate'];
+                    return [value, name];
+                  }}
                 />
                 <Area 
                   type="monotone" 
-                  dataKey="revenue" 
+                  dataKey="attendance" 
                   stroke="#ea580c" 
                   fillOpacity={1} 
-                  fill="url(#colorSales)" 
+                  fill="url(#colorAttendance)" 
                   strokeWidth={2}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Order Status Distribution */}
+          {/* Attendance Status Distribution */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Order Status</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Attendance Status</h2>
                 <p className="text-sm text-gray-600">Current distribution</p>
               </div>
             </div>
@@ -1308,14 +1779,14 @@ const [lowStockProducts, setLowStockProducts] = useState([
           </div>
         </div>
 
-        {/* Category Performance & Recent Activity */}
+        {/* Program Performance & Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Category Performance */}
+          {/* Program Performance */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Category Performance</h2>
-                <p className="text-sm text-gray-600">Sales by product category</p>
+                <h2 className="text-lg font-semibold text-gray-900">Program Performance</h2>
+                <p className="text-sm text-gray-600">Enrollment by program type</p>
               </div>
               <button className="text-orange-600 text-sm font-medium hover:underline">
                 View All
@@ -1323,16 +1794,20 @@ const [lowStockProducts, setLowStockProducts] = useState([
             </div>
 
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={categoryPerformance}>
+              <BarChart data={programPerformance}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} angle={-45} textAnchor="end" height={80} />
                 <YAxis stroke="#9CA3AF" fontSize={12} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => `KES ${value.toLocaleString()}`}
+                  formatter={(value, name) => {
+                    if (name === 'enrolled') return [value, 'Athletes'];
+                    if (name === 'attendance_rate') return [value + '%', 'Attendance'];
+                    return [value, name];
+                  }}
                 />
-                <Bar dataKey="sales" radius={[8, 8, 0, 0]}>
-                  {categoryPerformance.map((entry, index) => (
+                <Bar dataKey="enrolled" radius={[8, 8, 0, 0]}>
+                  {programPerformance.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
@@ -1403,7 +1878,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
                 </div>
 
                 <button 
-                  onClick={() => navigate('/audit-logs')}
+                  onClick={() => console.log('TODO: Navigate to /audit-logs page')}
                   className="w-full mt-4 py-2 text-sm text-orange-600 font-medium hover:bg-orange-50 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   View All Audit Logs
@@ -1419,14 +1894,14 @@ const [lowStockProducts, setLowStockProducts] = useState([
           </div>
         </div>
 
-        {/* Traffic Sources & Low Stock Alerts */}
+        {/* Enrollment Sources & Attendance Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Traffic Sources */}
+          {/* Enrollment Sources */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Traffic Sources</h2>
-                <p className="text-sm text-gray-600">Where visitors come from</p>
+                <h2 className="text-lg font-semibold text-gray-900">Enrollment Sources</h2>
+                <p className="text-sm text-gray-600">How athletes find us</p>
               </div>
               <button className="text-orange-600 text-sm font-medium hover:underline">
                 Analytics
@@ -1434,21 +1909,21 @@ const [lowStockProducts, setLowStockProducts] = useState([
             </div>
 
             <div className="space-y-4">
-              {trafficData.map((source, index) => (
+              {enrollmentSources.map((source, index) => (
                 <div key={index}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div 
                         className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: source.color }}
+                        style={{ backgroundColor: ['#3B82F6', '#22c55e', '#F59E0B', '#EF4444'][index] }}
                       />
                       <span className="text-sm font-medium text-gray-900">{source.source}</span>
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-semibold text-gray-900">
-                        {source.visitors.toLocaleString()}
+                        {source.enrollments}
                       </span>
-                      <span className="text-xs text-gray-500 ml-2">{source.percentage}%</span>
+                      <span className="text-xs text-gray-500 ml-2">({source.conversion}%)</span>
                     </div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -1456,7 +1931,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
                       className="h-2 rounded-full transition-all duration-500" 
                       style={{ 
                         width: `${source.percentage}%`,
-                        backgroundColor: source.color 
+                        backgroundColor: ['#3B82F6', '#22c55e', '#F59E0B', '#EF4444'][index]
                       }}
                     />
                   </div>
@@ -1466,46 +1941,54 @@ const [lowStockProducts, setLowStockProducts] = useState([
 
             <div className="mt-6 pt-6 border-t">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">Total Visitors</span>
+                <span className="text-sm font-medium text-gray-700">Total Inquiries</span>
                 <span className="text-lg font-bold text-gray-900">
-                  {trafficData.reduce((sum, item) => sum + item.visitors, 0).toLocaleString()}
+                  {enrollmentSources.reduce((sum, item) => sum + item.inquiries, 0)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Low Stock Alerts */}
+          {/* Attendance Alerts */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Low Stock Alerts</h2>
-                <p className="text-sm text-gray-600">Products need restocking</p>
+                <h2 className="text-lg font-semibold text-gray-900">Attendance Alerts</h2>
+                <p className="text-sm text-gray-600">Athletes needing attention</p>
               </div>
               <span className="flex items-center justify-center w-6 h-6 bg-red-100 text-red-600 rounded-full text-xs font-bold">
-                {lowStockProducts.length}
+                {alerts.filter(a => a.type === 'warning' || a.type === 'error').length}
               </span>
             </div>
 
-            {lowStockProducts.length > 0 ? (
+            {alerts.length > 0 ? (
               <div className="space-y-4">
-                {lowStockProducts.map((product) => (
-                  <div key={product.id} className="flex items-center gap-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-                    <div className="flex-shrink-0 w-10 h-10 bg-red-200 rounded-full flex items-center justify-center">
-                      <AlertCircle size={20} className="text-red-600" />
+                {alerts.slice(0, 4).map((alert) => {
+                  const alertColors = {
+                    warning: { bg: 'bg-yellow-50', border: 'border-yellow-100', iconBg: 'bg-yellow-200', iconColor: 'text-yellow-600' },
+                    error: { bg: 'bg-red-50', border: 'border-red-100', iconBg: 'bg-red-200', iconColor: 'text-red-600' },
+                    info: { bg: 'bg-blue-50', border: 'border-blue-100', iconBg: 'bg-blue-200', iconColor: 'text-blue-600' },
+                  };
+                  const colors = alertColors[alert.type] || alertColors.info;
+                  
+                  return (
+                    <div key={alert.id} className={`flex items-center gap-4 p-3 ${colors.bg} border ${colors.border} rounded-lg`}>
+                      <div className={`flex-shrink-0 w-10 h-10 ${colors.iconBg} rounded-full flex items-center justify-center`}>
+                        <AlertTriangle size={20} className={colors.iconColor} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                        <p className="text-xs text-gray-600">{alert.time}</p>
+                      </div>
+                      <button className="text-xs text-orange-600 font-medium hover:underline">
+                        {alert.action}
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                      <p className="text-xs text-gray-600">{product.category}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-red-600">{product.stock} left</p>
-                      <p className="text-xs text-gray-500">Min: {product.threshold}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
 
-                <button className="w-full py-2 text-sm text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors border border-red-200">
-                  Restock All Products
+                <button className="w-full py-2 text-sm text-orange-600 font-medium hover:bg-orange-50 rounded-lg transition-colors border border-orange-200">
+                  View All Alerts
                 </button>
               </div>
             ) : (
@@ -1513,15 +1996,15 @@ const [lowStockProducts, setLowStockProducts] = useState([
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <CheckCircle size={32} className="text-green-600" />
                 </div>
-                <p className="text-sm font-medium text-gray-900">All Products In Stock</p>
-                <p className="text-xs text-gray-600 mt-1">No low stock alerts at the moment</p>
+                <p className="text-sm font-medium text-gray-900">All Clear!</p>
+                <p className="text-xs text-gray-600 mt-1">No attendance alerts at the moment</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Main Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
           {/* Revenue & Orders Chart */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
@@ -1563,7 +2046,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
               </div>
             </div>
             <ResponsiveContainer width="100%" height={320}>
-              <AreaChart data={salesData}>
+              <AreaChart data={attendanceData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
@@ -1627,33 +2110,33 @@ const [lowStockProducts, setLowStockProducts] = useState([
             {/* Summary Stats */}
             <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+                <p className="text-sm text-gray-600 mb-1">Total Sessions</p>
                 <p className="text-xl font-bold text-gray-900">
-                  KSh {salesData.reduce((sum, d) => sum + d.revenue, 0).toLocaleString()}
+                  {attendanceData.reduce((sum, d) => sum + d.sessions, 0)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Orders</p>
+                <p className="text-sm text-gray-600 mb-1">Total Attendance</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {salesData.reduce((sum, d) => sum + d.orders, 0)}
+                  {attendanceData.reduce((sum, d) => sum + d.attendance, 0)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Profit</p>
+                <p className="text-sm text-gray-600 mb-1">Avg Attendance Rate</p>
                 <p className="text-xl font-bold text-gray-900">
-                  KSh {salesData.reduce((sum, d) => sum + d.profit, 0).toLocaleString()}
+                  {(attendanceData.reduce((sum, d) => sum + d.attendance_rate, 0) / attendanceData.length).toFixed(1)}%
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Category Performance */}
+          {/* Program Performance */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Category Performance</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Program Performance</h3>
             <ResponsiveContainer width="100%" height={220}>
               <RechartsPie>
                 <Pie
-                  data={categoryPerformance}
+                  data={programPerformance}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -1661,7 +2144,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
                   paddingAngle={5}
                   dataKey="percentage"
                 >
-                  {categoryPerformance.map((entry, index) => (
+                  {programPerformance.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -1676,15 +2159,15 @@ const [lowStockProducts, setLowStockProducts] = useState([
               </RechartsPie>
             </ResponsiveContainer>
             <div className="space-y-3 mt-4">
-              {categoryPerformance.map((cat, idx) => (
+              {programPerformance.map((prog, idx) => (
                 <div key={idx} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 flex-1">
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }}></div>
-                    <span className="text-gray-700 font-medium">{cat.name}</span>
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: prog.color }}></div>
+                    <span className="text-gray-700 font-medium">{prog.name}</span>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">KSh {(cat.sales / 1000).toFixed(0)}K</p>
-                    <p className="text-xs text-gray-500">{cat.orders} orders • {cat.roi}% ROI</p>
+                    <p className="font-semibold text-gray-900">{prog.enrolled} athletes</p>
+                    <p className="text-xs text-gray-500">{prog.attendance_rate}% attendance</p>
                   </div>
                 </div>
               ))}
@@ -1692,16 +2175,16 @@ const [lowStockProducts, setLowStockProducts] = useState([
           </div>
         </div>
 
-        {/* Hourly Performance & Performance Radar */}
+        {/* Session Time Performance & Performance Radar */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Hourly Performance */}
+          {/* Session Time Performance */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Hourly Performance</h3>
-            <p className="text-sm text-gray-600 mb-6">Peak sales times today</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Session Time Performance</h3>
+            <p className="text-sm text-gray-600 mb-6">Attendance by time of day</p>
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={hourlyData}>
+              <BarChart data={sessionTimeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="hour" stroke="#999" fontSize={12} />
+                <XAxis dataKey="time" stroke="#999" fontSize={12} />
                 <YAxis stroke="#999" fontSize={12} />
                 <Tooltip
                   contentStyle={{ 
@@ -1710,20 +2193,20 @@ const [lowStockProducts, setLowStockProducts] = useState([
                     borderRadius: '8px' 
                   }}
                   formatter={(value, name) => {
-                    if (name === 'orders') return [value, 'Orders'];
-                    return [`KSh ${value.toLocaleString()}`, 'Revenue'];
+                    if (name === 'sessions') return [value, 'Sessions'];
+                    return [value, 'Attendees'];
                   }}
                 />
                 <Legend />
-                <Bar dataKey="orders" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="revenue" fill="#ea580c" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="sessions" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="attendance" fill="#ea580c" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           {/* Performance Radar */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Store Performance Metrics</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Academy Performance Metrics</h3>
             <p className="text-sm text-gray-600 mb-6">Overall rating across key areas</p>
             <ResponsiveContainer width="100%" height={240}>
               <RadarChart data={performanceMetrics}>
@@ -1786,11 +2269,11 @@ const [lowStockProducts, setLowStockProducts] = useState([
             </div>
           </div>
 
-          {/* Customer Segments */}
+          {/* Athlete Segments */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Customer Segments</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Athlete Segments</h3>
             <div className="space-y-4">
-              {customerSegments.map((segment, idx) => (
+              {athleteSegments.map((segment, idx) => (
                 <div key={idx} className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -1802,7 +2285,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{segment.segment}</p>
-                        <p className="text-xs text-gray-500">Avg: KSh {segment.avgOrder.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">Avg: KSh {segment.avgPayment.toLocaleString()}</p>
                       </div>
                     </div>
                     <p className="text-lg font-bold text-gray-900">
@@ -1813,7 +2296,7 @@ const [lowStockProducts, setLowStockProducts] = useState([
                     <div
                       className="h-1.5 rounded-full transition-all duration-500"
                       style={{ 
-                        width: `${(segment.revenue / customerSegments.reduce((sum, s) => sum + s.revenue, 0)) * 100}%`,
+                        width: `${(segment.revenue / athleteSegments.reduce((sum, s) => sum + s.revenue, 0)) * 100}%`,
                         backgroundColor: segment.color 
                       }}
                     ></div>
@@ -1824,33 +2307,33 @@ const [lowStockProducts, setLowStockProducts] = useState([
           </div>
         </div>
 
-        {/* Traffic Sources */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">Traffic Sources</h3>
-              <p className="text-sm text-gray-600">Where your customers are coming from</p>
+        {/* Enrollment Sources */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Enrollment Sources</h3>
+                <p className="text-sm text-gray-600">How athletes find us</p>
+              </div>
+              <button className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center gap-1">
+                View Details <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-            <button className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center gap-1">
-              View Details <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="grid md:grid-cols-4 gap-4">
-            {trafficSources.map((source, idx) => (
+            <div className="grid md:grid-cols-4 gap-4">
+              {enrollmentSources.map((source, idx) => (
               <div key={idx} className="p-4 border border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-medium text-gray-900">{source.source}</h4>
                   <span className="text-xs font-medium text-gray-600">{source.percentage}%</span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 mb-2">{source.visitors.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">{source.enrollments} enrollments</p>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{source.orders} orders</span>
+                  <span className="text-gray-600">{source.inquiries} inquiries</span>
                   <span className="text-green-600 font-medium">{source.conversion}% conv.</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-3">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-3 overflow-hidden">
                   <div
                     className="h-1.5 rounded-full bg-orange-600 transition-all duration-500"
-                    style={{ width: `${source.conversion * 20}%` }}
+                    style={{ width: `${Math.min(source.conversion, 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -1860,46 +2343,42 @@ const [lowStockProducts, setLowStockProducts] = useState([
 
         {/* Top Products & Recent Orders */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Top Products */}
+          {/* Top Athletes */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Top Performing Products</h3>
+              <h3 className="text-lg font-bold text-gray-900">Top Performing Athletes</h3>
               <button className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center gap-1">
                 View All <ChevronRight className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-3">
-              {topProducts.map((product, idx) => (
-                <div key={product.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
+              {topAthletes.map((athlete, idx) => (
+                <div key={athlete.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
                   <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-orange-600 to-orange-500 text-white rounded-lg font-bold text-sm shadow-sm">
                     #{idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                    <p className="font-medium text-gray-900 truncate">{athlete.name}</p>
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      <span className="text-xs text-gray-600">{product.sales} sales</span>
-                      <span className="text-xs text-gray-600">{product.views} views</span>
-                      <span className="text-xs text-gray-600">Stock: {product.stock}</span>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        <span className="text-xs text-gray-900 font-medium">{product.rating}</span>
-                        <span className="text-xs text-gray-500">({product.reviews})</span>
-                      </div>
+                      <span className="text-xs text-gray-600">{athlete.age} years</span>
+                      <span className="text-xs text-gray-600">{athlete.age_group}</span>
+                      <span className="text-xs text-gray-600">{athlete.program}</span>
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">{athlete.skill_level}</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-gray-900">
-                      {(product.revenue / 1000).toFixed(0)}K
+                      {athlete.attendance_rate}%
                     </p>
                     <div className={`flex items-center gap-1 text-xs ${
-                      product.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                      athlete.trend === 'up' ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {product.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {product.trend === 'up' ? '+' : '-'}{product.trendValue}%
+                      {athlete.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {athlete.trend === 'up' ? '+' : '-'}{athlete.trendValue}%
                     </div>
                     <div className="flex items-center gap-1 mt-1">
-                      <Heart className="w-3 h-3 text-red-500" />
-                      <span className="text-xs text-gray-600">{product.wishlist}</span>
+                      <Activity className="w-3 h-3 text-orange-500" />
+                      <span className="text-xs text-gray-600">{athlete.sessions_attended} sessions</span>
                     </div>
                   </div>
                 </div>
@@ -2028,37 +2507,37 @@ const [lowStockProducts, setLowStockProducts] = useState([
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <Plus size={24} className="text-blue-600" />
+                <UserPlus size={24} className="text-blue-600" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Add Product</span>
+              <span className="text-sm font-medium text-gray-700">Add Athlete</span>
             </button>
 
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                <ShoppingBag size={24} className="text-green-600" />
+                <Activity size={24} className="text-green-600" />
               </div>
-              <span className="text-sm font-medium text-gray-700">New Order</span>
+              <span className="text-sm font-medium text-gray-700">New Session</span>
             </button>
 
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
                 <Users size={24} className="text-purple-600" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Add Customer</span>
+              <span className="text-sm font-medium text-gray-700">Add Parent</span>
             </button>
 
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                <Tag size={24} className="text-orange-600" />
+                <Calendar size={24} className="text-orange-600" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Add Category</span>
+              <span className="text-sm font-medium text-gray-700">Add Event</span>
             </button>
 
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                <Percent size={24} className="text-red-600" />
+                <UserCheck size={24} className="text-red-600" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Add Discount</span>
+              <span className="text-sm font-medium text-gray-700">Add Coach</span>
             </button>
 
             <button className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
@@ -2069,13 +2548,13 @@ const [lowStockProducts, setLowStockProducts] = useState([
             </button>
 
             <button 
-            onClick={() => navigate('/super-admin/payouts')}
+            onClick={() => console.log('TODO: Navigate to /payments page')}
             className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-gray-50 transition-colors group"
           >
             <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
               <DollarSign size={24} className="text-yellow-600" />
             </div>
-            <span className="text-sm font-medium text-gray-700">Manage Payouts</span>
+            <span className="text-sm font-medium text-gray-700">Manage Payments</span>
           </button>
           </div>
         </div>
@@ -2083,15 +2562,15 @@ const [lowStockProducts, setLowStockProducts] = useState([
         {/* Additional Quick Actions Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <button className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all text-left border border-gray-100 hover:border-orange-300 group">
-            <Plus className="w-8 h-8 text-orange-600 mb-3 group-hover:scale-110 transition-transform" />
-            <h4 className="font-semibold text-gray-900 mb-1">Add Product</h4>
-            <p className="text-sm text-gray-600">List new item for sale</p>
+            <UserPlus className="w-8 h-8 text-orange-600 mb-3 group-hover:scale-110 transition-transform" />
+            <h4 className="font-semibold text-gray-900 mb-1">Add Athlete</h4>
+            <p className="text-sm text-gray-600">Register new athlete</p>
           </button>
           
           <button className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all text-left border border-gray-100 hover:border-blue-300 group">
-            <ShoppingCart className="w-8 h-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
-            <h4 className="font-semibold text-gray-900 mb-1">Manage Orders</h4>
-            <p className="text-sm text-gray-600">{stats.orders.pending} pending orders</p>
+            <Activity className="w-8 h-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
+            <h4 className="font-semibold text-gray-900 mb-1">Manage Sessions</h4>
+            <p className="text-sm text-gray-600">{stats.sessions.scheduled} scheduled today</p>
           </button>
           
           <button className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all text-left border border-gray-100 hover:border-purple-300 group">
@@ -2102,8 +2581,8 @@ const [lowStockProducts, setLowStockProducts] = useState([
           
           <button className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all text-left border border-gray-100 hover:border-gray-300 group">
             <Settings className="w-8 h-8 text-gray-600 mb-3 group-hover:scale-110 transition-transform" />
-            <h4 className="font-semibold text-gray-900 mb-1">Store Settings</h4>
-            <p className="text-sm text-gray-600">Manage your store</p>
+            <h4 className="font-semibold text-gray-900 mb-1">Academy Settings</h4>
+            <p className="text-sm text-gray-600">Manage your academy</p>
           </button>
         </div>
       </div>
@@ -2114,18 +2593,18 @@ const [lowStockProducts, setLowStockProducts] = useState([
             <div className="flex items-center gap-3">
               <Eye size={20} className="text-gray-600" />
               <div>
-                <p className="text-xs text-gray-600">Page Views</p>
-                <p className="text-lg font-bold text-gray-900">45,234</p>
+                <p className="text-xs text-gray-600">Session Views</p>
+                <p className="text-lg font-bold text-gray-900">{stats.sessions.total}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-3">
-              <ShoppingCart size={20} className="text-gray-600" />
+              <Activity size={20} className="text-gray-600" />
               <div>
-                <p className="text-xs text-gray-600">Cart Abandonment</p>
-                <p className="text-lg font-bold text-gray-900">18.5%</p>
+                <p className="text-xs text-gray-600">Session Cancel Rate</p>
+                <p className="text-lg font-bold text-gray-900">{((stats.sessions.cancelled / stats.sessions.total) * 100).toFixed(1)}%</p>
               </div>
             </div>
           </div>
@@ -2134,8 +2613,8 @@ const [lowStockProducts, setLowStockProducts] = useState([
             <div className="flex items-center gap-3">
               <Clock size={20} className="text-gray-600" />
               <div>
-                <p className="text-xs text-gray-600">Avg. Session</p>
-                <p className="text-lg font-bold text-gray-900">4m 32s</p>
+                <p className="text-xs text-gray-600">Avg. Session Duration</p>
+                <p className="text-lg font-bold text-gray-900">2h 00m</p>
               </div>
             </div>
           </div>
@@ -2155,4 +2634,4 @@ const [lowStockProducts, setLowStockProducts] = useState([
   );
 };
 
-export default SuperAdminDashboardPage;
+export default AdminDashboardPage;
