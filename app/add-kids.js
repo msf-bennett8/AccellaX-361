@@ -38,38 +38,60 @@ const kids = [
 ];
 
 const academyId = 'academy_accellax361_main';
-const userId = '2LmAHqdDAOZpUTrCTT0IFEKOV663';
+const userId = '2TyrP8TQABXOpXn3695qKwMswMU2';
 
 async function addKids() {
   console.log('🚀 Starting to add 27 kids to Firebase...\n');
+  console.log('👤 User ID:', userId);
+  console.log('🏫 Academy ID:', academyId);
+  console.log('');
   
-  for (const kid of kids) {
+  let successCount = 0;
+  let errorCount = 0;
+  
+  for (let i = 0; i < kids.length; i++) {
+    const kid = kids[i];
     const id = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
     
-    await db.collection('academies').doc(academyId).collection('kids').doc(id).set({
-      ...kid,
-      id,
-      created_by: userId,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      synced_at: admin.firestore.FieldValue.serverTimestamp(),
-      firebase_synced: 1,
-      status: 'active',
-      programTypeOther: null,
-      trialNotes: null
-    });
-    
-    console.log('✅ Added:', kid.name);
-    
-    // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      await db.collection('academies').doc(academyId).collection('kids').doc(id).set({
+        ...kid,
+        id,
+        created_by: userId,
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        synced_at: admin.firestore.FieldValue.serverTimestamp(),
+        firebase_synced: 1,
+        status: 'active',
+        programTypeOther: null,
+        trialNotes: null
+      });
+      
+      successCount++;
+      console.log(`✅ [${i + 1}/27] Added: ${kid.name} (Age ${kid.age}, ${kid.age_group})`);
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      errorCount++;
+      console.error(`❌ [${i + 1}/27] Failed: ${kid.name} - ${error.message}`);
+    }
   }
   
-  console.log('\n🎉 All 27 kids added successfully to Firebase!');
-  process.exit(0);
+  console.log('\n' + '='.repeat(50));
+  console.log('📊 Summary:');
+  console.log(`   ✅ Successfully added: ${successCount} kids`);
+  console.log(`   ❌ Failed: ${errorCount} kids`);
+  console.log('='.repeat(50));
+  
+  if (errorCount === 0) {
+    console.log('\n🎉 All 27 kids added successfully to Firebase!');
+  }
+  
+  process.exit(errorCount > 0 ? 1 : 0);
 }
 
 addKids().catch(error => {
-  console.error('❌ Error:', error);
+  console.error('\n❌ Fatal Error:', error);
   process.exit(1);
 });
