@@ -1,33 +1,66 @@
 // Location: /apps/assessment/src/navigation/AppNavigator.js
+// Main app navigator with authentication routing
 
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from '../screens/Home/HomeScreen';
+
+// Auth Screens
+import AuthChoiceScreen from '../screens/Auth/AuthChoiceScreen';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import RegistrationScreen from '../screens/Auth/RegistrationScreen';
+
+// Main App Navigation
+import DrawerNavigator from './DrawerNavigator';
 
 const Stack = createStackNavigator();
 
-export default function AppNavigator() {
+export default function AppNavigator({ isAuthenticated, onAuthComplete, onLogout }) {
   return (
     <Stack.Navigator
-      initialRouteName="Home"
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#1a73e8',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
+        headerShown: false,
+        gestureEnabled: false,
       }}
     >
-      <Stack.Screen 
-        name="Home" 
-        component={HomeScreen}
-        options={{ 
-          title: 'AccellaX 361° - Assessment',
-          headerShown: true
-        }}
-      />
+      {!isAuthenticated ? (
+        // Auth Stack
+        <>
+          <Stack.Screen 
+            name="AuthChoice" 
+            component={AuthChoiceScreen}
+          />
+          <Stack.Screen 
+            name="Login"
+          >
+            {(props) => (
+              <LoginScreen 
+                {...props} 
+                onAuthComplete={onAuthComplete}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen 
+            name="Register"
+          >
+            {(props) => (
+              <RegistrationScreen 
+                {...props} 
+                onAuthComplete={onAuthComplete}
+              />
+            )}
+          </Stack.Screen>
+        </>
+      ) : (
+        // Main App Stack
+        <Stack.Screen name="Main">
+          {(props) => (
+            <DrawerNavigator 
+              {...props} 
+              onLogout={onLogout}
+            />
+          )}
+        </Stack.Screen>
+      )}
     </Stack.Navigator>
   );
 }

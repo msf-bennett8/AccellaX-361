@@ -1,121 +1,182 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS } from '../utils/constants';
+// Location: /apps/assessment/src/navigation/CustomDrawerContent.js
+// Custom drawer content with user info and logout
 
-const CustomDrawerContent = ({ navigation, state }) => {
-  const routes = [
-    { name: 'HomeStack', label: 'Home', icon: '🏠', screen: 'Home' },
-    { name: 'MyKidsStack', label: 'My Kids', icon: '👶', screen: 'MyKids' },
-    { name: 'NotesStack', label: 'Notes', icon: '📝', screen: 'Notes' }, // ✅ ADD THIS
-    { name: 'HistoryStack', label: 'History', icon: '📅', screen: 'History' },
-    { name: 'Settings', label: 'Settings', icon: '⚙️' },
-  ];
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import {
+  DrawerContentScrollView,
+  DrawerItemList,
+} from '@react-navigation/drawer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { COLORS, APP_NAME } from '../utils/constants';
 
-  const activeRoute = state.routes[state.index].name;
+export default function CustomDrawerContent(props) {
+  const [userProfile, setUserProfile] = useState(null);
 
-  const handleNavigation = (route) => {
-    // For stack navigators, navigate to the initial screen within that stack
-    if (route.screen) {
-      navigation.navigate(route.name, { screen: route.screen });
-    } else {
-      navigation.navigate(route.name);
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const profileJson = await AsyncStorage.getItem('userProfile');
+      if (profileJson) {
+        const profile = JSON.parse(profileJson);
+        setUserProfile(profile);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            props.onLogout();
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <View style={styles.container}>
+    <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
+      {/* Header with User Info */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AccellaX 361°</Text>
-        <Text style={styles.headerSubtitle}>Kids Attendance</Text>
+        <View style={styles.avatarContainer}>
+          <Text style={styles.avatarText}>
+            {userProfile?.fullName?.charAt(0)?.toUpperCase() || '?'}
+          </Text>
+        </View>
+        <Text style={styles.userName}>{userProfile?.fullName || 'User'}</Text>
+        <Text style={styles.userEmail}>{userProfile?.email || ''}</Text>
+        <Text style={styles.userRole}>
+          {userProfile?.role?.toUpperCase() || 'COACH'}
+        </Text>
       </View>
 
-      <ScrollView style={styles.menuContainer}>
-        {routes.map((route) => {
-          const isActive = activeRoute === route.name;
-          
-          return (
-            <TouchableOpacity
-              key={route.name}
-              style={[styles.menuItem, isActive && styles.menuItemActive]}
-              onPress={() => handleNavigation(route)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.menuIcon}>{route.icon}</Text>
-              <Text style={[styles.menuLabel, isActive && styles.menuLabelActive]}>
-                {route.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {/* Drawer Items */}
+      <View style={styles.drawerItems}>
+        <DrawerItemList {...props} />
+      </View>
 
+      {/* Footer with Logout */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Version 1.0.4</Text>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.logoutIcon}>🚪</Text>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
+        <View style={styles.appInfo}>
+          <Text style={styles.appName}>{APP_NAME}</Text>
+          <Text style={styles.version}>Version 1.0.0</Text>
+        </View>
       </View>
-    </View>
+    </DrawerContentScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
   header: {
     backgroundColor: COLORS.primary,
-    paddingTop: 60,
-    paddingBottom: 24,
+    paddingVertical: 30,
     paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.primaryDark,
   },
-  headerTitle: {
-    fontSize: 24,
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  userName: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.white,
     marginBottom: 4,
   },
-  headerSubtitle: {
-    fontSize: 14,
+  userEmail: {
+    fontSize: 13,
     color: COLORS.primaryLight,
+    marginBottom: 8,
   },
-  menuContainer: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginHorizontal: 12,
-    marginVertical: 4,
+  userRole: {
+    fontSize: 11,
+    color: COLORS.primaryLight,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 12,
   },
-  menuItemActive: {
-    backgroundColor: COLORS.primaryLight,
-  },
-  menuIcon: {
-    fontSize: 24,
-    marginRight: 16,
-  },
-  menuLabel: {
-    fontSize: 16,
-    color: COLORS.text,
-    fontWeight: '500',
-  },
-  menuLabelActive: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
+  drawerItems: {
+    flex: 1,
+    paddingTop: 10,
   },
   footer: {
-    padding: 20,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundDark,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  logoutIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.error,
+  },
+  appInfo: {
     alignItems: 'center',
   },
-  footerText: {
+  appName: {
     fontSize: 12,
+    fontWeight: '600',
     color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  version: {
+    fontSize: 10,
+    color: COLORS.textLight,
   },
 });
-
-export default CustomDrawerContent;

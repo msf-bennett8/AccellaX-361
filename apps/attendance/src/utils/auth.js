@@ -280,6 +280,9 @@ const isFirebaseAvailable = () => {
  */
 const saveUserProfileToFirebase = async (userId, userProfile) => {
   try {
+    // Get academyId from AsyncStorage
+    const academyId = await AsyncStorage.getItem('academyId') || 'academy_accellax361_main';
+    
     const userRef = doc(db, 'users', userId);
     
     await setDoc(userRef, {
@@ -289,11 +292,15 @@ const saveUserProfileToFirebase = async (userId, userProfile) => {
       username: userProfile.username || '',
       phone: userProfile.phone || '',
       auth_method: userProfile.authMethod || 'accellax',
+      role: userProfile.role || 'coach',
+      academyId: academyId,
       avatar_base64: userProfile.avatarBase64 || null,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
       last_login_at: Timestamp.now(),
     });
+    
+    console.log('✅ User profile saved to Firebase with academyId:', academyId);
     
     console.log('✅ User profile saved to Firebase');
     return { success: true };
@@ -555,6 +562,7 @@ export const loginUser = async (email, password) => {
             phone: firebaseProfile.phone || '',
             authMethod: firebaseProfile.auth_method || 'accellax',
             role: firebaseProfile.role || 'coach',
+            academyId: firebaseProfile.academyId || 'academy_accellax361_main',
             avatarBase64: firebaseProfile.avatar_base64 || null,
             createdAt: firebaseProfile.created_at?.toDate().toISOString() || new Date().toISOString(),
             updatedAt: new Date().toISOString(),

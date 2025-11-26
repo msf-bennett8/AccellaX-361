@@ -435,7 +435,8 @@ export const SWIPE_DISAPPEAR_DELAY = 3000; // 3 seconds
 
 // ========== APP INFO ==========
 
-export const APP_NAME = 'AccellaX 361° Assessment';
+export const APP_NAME = 'AccellaX 361°';
+export const APP_FULL_NAME = 'AccellaX 361° | Sports Academy Assessment';
 export const APP_VERSION = '1.0.0';
 export const ACADEMY_ID = 'academy_accellax361_main';
 

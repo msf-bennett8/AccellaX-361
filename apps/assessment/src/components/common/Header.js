@@ -1,12 +1,27 @@
 //src/components/common/Header.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, Image, Alert, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, APP_NAME } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
 import { generateInitials, getAvatarColor, getBase64DataUri } from '../../utils/imageUtils';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+
+// Screen breakpoints for responsive title
+const SCREEN_SIZES = {
+  SMALL: 600,
+  MEDIUM: 900,
+};
+
+// Helper function to get responsive title
+const getResponsiveTitle = (fullTitle, screenWidth) => {
+  if (screenWidth < SCREEN_SIZES.SMALL) {
+    return 'AccellaX 361°';
+  } else if (screenWidth < SCREEN_SIZES.MEDIUM) {
+    return 'AccellaX 361° | Assessment';
+  } else {
+    return fullTitle;
+  }
+};
 
 const Header = ({
   title = APP_NAME,
@@ -35,9 +50,21 @@ const Header = ({
   const [userProfile, setUserProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
 
   useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+
     loadUserProfile();
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
 
     // Add focus listener to reload profile when screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
@@ -75,9 +102,7 @@ const Header = ({
     } else {
       // Regular user: Navigate to profile
       console.log('👤 Navigating to profile');
-      navigation.navigate('HomeStack', {
-        screen: 'Profile'
-      });
+      navigation.navigate('Profile');
     }
   };
 
@@ -242,7 +267,7 @@ const Header = ({
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {title}
+            {getResponsiveTitle(title, screenWidth)}
           </Text>
           {subtitle && (
             <Text

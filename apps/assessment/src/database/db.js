@@ -16,7 +16,7 @@ const webDB = {
   sessions: [],
   attendance: [],
   notes: [],
-  // ✅ NEW: Assessment-specific tables
+  // ✅ Assessment-specific tables
   sports: [],
   metrics: [],
   assessments: [],
@@ -25,31 +25,38 @@ const webDB = {
   goals: [],
 };
 
+// Initialize webDB from AsyncStorage if exists
+const initializeWebDB = async () => {
+  try {
+    const stored = await AsyncStorage.getItem('assessmentWebDB');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      webDB.users = parsed.users || [];
+      webDB.kids = parsed.kids || [];
+      webDB.sessions = parsed.sessions || [];
+      webDB.attendance = parsed.attendance || [];
+      webDB.notes = parsed.notes || [];
+      webDB.sports = parsed.sports || [];
+      webDB.metrics = parsed.metrics || [];
+      webDB.assessments = parsed.assessments || [];
+      webDB.assessment_results = parsed.assessment_results || [];
+      webDB.benchmarks = parsed.benchmarks || [];
+      webDB.goals = parsed.goals || [];
+      console.log('✅ Web DB initialized from storage');
+    } else {
+      console.log('📦 Web DB initialized empty');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing web DB:', error);
+  }
+};
+
 // ========== INITIALIZATION ==========
 
 export const initDatabase = async () => {
   if (isWeb) {
     console.log('Using AsyncStorage for web (Assessment App mock database)');
-    // Load mock data from AsyncStorage if exists
-    try {
-      const stored = await AsyncStorage.getItem('assessmentWebDB');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        webDB.users = parsed.users || [];
-        webDB.kids = parsed.kids || [];
-        webDB.sessions = parsed.sessions || [];
-        webDB.attendance = parsed.attendance || [];
-        webDB.notes = parsed.notes || [];
-        webDB.sports = parsed.sports || [];
-        webDB.metrics = parsed.metrics || [];
-        webDB.assessments = parsed.assessments || [];
-        webDB.assessment_results = parsed.assessment_results || [];
-        webDB.benchmarks = parsed.benchmarks || [];
-        webDB.goals = parsed.goals || [];
-      }
-    } catch (error) {
-      console.error('Error loading assessment web DB:', error);
-    }
+    await initializeWebDB();
     return;
   }
 
@@ -280,54 +287,75 @@ const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9
 // ========== USERS CRUD (REUSED FROM ATTENDANCE) ==========
 
 export const createUser = async (userData) => {
-  if (isWeb) {
-    const user = {
+  try {
+    if (isWeb) {
+      // Check if user already exists
+      const existingUser = webDB.users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
+      if (existingUser) {
+        throw new Error('User with this email already exists');
+      }
+
+      const user = {
+        id: userData.id,
+        full_name: userData.fullName,
+        email: userData.email,
+        username: userData.username || '',
+        phone: userData.phone || '',
+        password_hash: userData.passwordHash || '',
+        auth_method: userData.authMethod || 'accellax',
+        role: userData.role || 'coach',
+        avatar_base64: userData.avatarBase64 || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_login_at: new Date().toISOString(),
+        firebase_synced: 0,
+        is_offline_account: userData.isOfflineAccount ? 1 : 0,
+      };
+      
+      webDB.users.push(user);
+      await saveWebDB();
+      console.log('✅ User created in web DB:', user.id);
+      return user;
+    }
+
+    // Check if user already exists (mobile)
+    const existingUser = await db.getFirstAsync('SELECT id FROM users WHERE email = ?', [userData.email]);
+    if (existingUser) {
+      throw new Error('User with this email already exists');
+    }
+
+    await db.runAsync(
+      `INSERT INTO users (id, full_name, email, username, phone, password_hash, auth_method, role, avatar_base64, is_offline_account) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userData.id,
+        userData.fullName,
+        userData.email,
+        userData.username || '',
+        userData.phone || '',
+        userData.passwordHash || '',
+        userData.authMethod || 'accellax',
+        userData.role || 'coach',
+        userData.avatarBase64 || null,
+        userData.isOfflineAccount ? 1 : 0,
+      ]
+    );
+
+    console.log('✅ User created in SQLite:', userData.id);
+
+    return {
       id: userData.id,
       full_name: userData.fullName,
       email: userData.email,
-      username: userData.username || '',
-      phone: userData.phone || '',
-      password_hash: userData.passwordHash || '',
-      auth_method: userData.authMethod || 'accellax',
+      username: userData.username,
+      phone: userData.phone,
       role: userData.role || 'coach',
-      avatar_base64: userData.avatarBase64 || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_login_at: new Date().toISOString(),
-      firebase_synced: 0,
-      is_offline_account: userData.isOfflineAccount ? 1 : 0,
     };
-    webDB.users.push(user);
-    await saveWebDB();
-    return user;
+  } catch (error) {
+    console.error('❌ Error creating user in database:', error);
+    throw error; // Re-throw to let caller handle
   }
-
-  const result = await db.runAsync(
-    `INSERT INTO users (id, full_name, email, username, phone, password_hash, auth_method, role, avatar_base64, is_offline_account) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      userData.id,
-      userData.fullName,
-      userData.email,
-      userData.username || '',
-      userData.phone || '',
-      userData.passwordHash || '',
-      userData.authMethod || 'accellax',
-      userData.role || 'coach',
-      userData.avatarBase64 || null,
-      userData.isOfflineAccount ? 1 : 0,
-    ]
-  );
-
-  return {
-    id: userData.id,
-    full_name: userData.fullName,
-    email: userData.email,
-    username: userData.username,
-    phone: userData.phone,
-    role: userData.role || 'coach',
-    created_at: new Date().toISOString(),
-  };
 };
 
 export const getUserById = async (userId) => {
@@ -1695,6 +1723,95 @@ export const clearAllData = async () => {
 
 // Export webDB for debugging (web only)
 export const getWebDB = () => (isWeb ? webDB : null);
+
+// ========== ACADEMY INITIALIZATION ==========
+
+/**
+ * Initialize academy in Firebase (creates academy document if doesn't exist)
+ */
+export const initializeAcademyInFirebase = async (userId) => {
+  try {
+    const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+    const { db: firebaseDb } = await import('../config/firebase.js');
+    const { doc, getDoc, setDoc, Timestamp } = await import('firebase/firestore');
+
+    const academyRef = doc(firebaseDb, 'academies', FIXED_ACADEMY_ID);
+    const academySnap = await getDoc(academyRef);
+
+    if (!academySnap.exists()) {
+      console.log('🏫 Creating academy in Firebase...');
+      
+      await setDoc(academyRef, {
+        id: FIXED_ACADEMY_ID,
+        name: 'AccellaX 361° Academy',
+        description: 'Main Academy',
+        owner_id: userId,
+        created_by: userId,
+        created_at: Timestamp.now(),
+        updated_at: Timestamp.now(),
+        settings: {
+          age_groups: ['4-6', '7-9', '10-13', '13+'],
+          assessment_terms: ['Q1', 'Q2', 'Q3', 'Q4'],
+        },
+      });
+
+      console.log('✅ Academy created in Firebase');
+      return { success: true, created: true };
+    } else {
+      console.log('✅ Academy already exists in Firebase');
+      return { success: true, created: false };
+    }
+  } catch (error) {
+    console.error('❌ Error initializing academy:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Sync user to local database from Firebase
+ */
+export const syncUserToLocalDB = async (userId, firebaseUserData) => {
+  try {
+    console.log('🔄 Syncing user to local DB:', userId);
+
+    // Check if user exists
+    const existingUser = await getUserById(userId);
+
+    if (existingUser) {
+      // Update existing user
+      await updateUser(userId, {
+        full_name: firebaseUserData.full_name,
+        email: firebaseUserData.email,
+        username: firebaseUserData.username || '',
+        phone: firebaseUserData.phone || '',
+        role: firebaseUserData.role || 'coach',
+        avatar_base64: firebaseUserData.avatar_base64 || null,
+        updated_at: new Date().toISOString(),
+        firebase_synced: 1,
+      });
+      console.log('✅ User updated in local DB');
+    } else {
+      // Create new user
+      await createUser({
+        id: userId,
+        fullName: firebaseUserData.full_name,
+        email: firebaseUserData.email,
+        username: firebaseUserData.username || '',
+        phone: firebaseUserData.phone || '',
+        authMethod: firebaseUserData.auth_method || 'accellax',
+        role: firebaseUserData.role || 'coach',
+        avatarBase64: firebaseUserData.avatar_base64 || null,
+        isOfflineAccount: false,
+      });
+      console.log('✅ User created in local DB from Firebase');
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error syncing user to local DB:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 console.log(`✅ Assessment Database running in ${isWeb ? 'WEB' : 'NATIVE (Android/iOS)'} mode`);
 

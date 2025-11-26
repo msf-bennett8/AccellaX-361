@@ -1,4 +1,3 @@
-//src/screens/Auth/AuthChoiceScreen.js 
 // src/screens/Auth/AuthChoiceScreen.js
 // Authentication choice screen - Login or Register
 
@@ -16,7 +15,7 @@ import { COLORS, APP_NAME } from '../../utils/constants';
 
 const AuthChoiceScreen = ({ navigation }) => {
   const handleCreateAccount = () => {
-    navigation.navigate('Onboarding');
+    navigation.navigate('Register');
   };
 
   const handleSignIn = () => {
@@ -41,7 +40,7 @@ const AuthChoiceScreen = ({ navigation }) => {
         
         <Text style={styles.appName}>{APP_NAME}</Text>
         <Text style={styles.tagline}>
-          Professional Football Academy Management
+          Track Performance • Measure Progress • Build Champions
         </Text>
       </View>
 
@@ -50,7 +49,7 @@ const AuthChoiceScreen = ({ navigation }) => {
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>Welcome!</Text>
           <Text style={styles.welcomeSubtitle}>
-            Let's get started with your football academy management journey
+            Professional sports assessment and athlete development platform
           </Text>
         </View>
 
@@ -64,7 +63,7 @@ const AuthChoiceScreen = ({ navigation }) => {
           >
             <Text style={styles.primaryButtonText}>Create Account</Text>
             <Text style={styles.primaryButtonSubtext}>
-              Start managing your academy
+              Start assessing athletes today
             </Text>
           </TouchableOpacity>
 
@@ -86,23 +85,28 @@ const AuthChoiceScreen = ({ navigation }) => {
           <Text style={styles.featuresTitle}>What you can do:</Text>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>✓</Text>
-            <Text style={styles.featureText}>Track attendance for multiple age groups</Text>
+            <Text style={styles.featureIcon}>📊</Text>
+            <Text style={styles.featureText}>Track fitness assessments across multiple sports</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>✓</Text>
-            <Text style={styles.featureText}>Manage kids and their profiles</Text>
+            <Text style={styles.featureIcon}>⚽</Text>
+            <Text style={styles.featureText}>Measure sport-specific skills and performance</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>✓</Text>
-            <Text style={styles.featureText}>View session history and statistics</Text>
+            <Text style={styles.featureIcon}>📈</Text>
+            <Text style={styles.featureText}>View progress charts and athlete comparisons</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>✓</Text>
-            <Text style={styles.featureText}>Sync data across devices</Text>
+            <Text style={styles.featureIcon}>🎯</Text>
+            <Text style={styles.featureText}>Set goals and track achievement over time</Text>
+          </View>
+          
+          <View style={styles.featureItem}>
+            <Text style={styles.featureIcon}>☁️</Text>
+            <Text style={styles.featureText}>Cloud sync across all your devices</Text>
           </View>
         </View>
       </View>
@@ -110,7 +114,7 @@ const AuthChoiceScreen = ({ navigation }) => {
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Works offline • Syncs automatically
+          Works offline • Syncs automatically • Secure & Private
         </Text>
       </View>
     </View>
@@ -140,9 +144,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -153,21 +157,22 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   logoImage: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
   },
   appName: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: COLORS.white,
     marginBottom: 8,
     textAlign: 'center',
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.primaryLight,
     textAlign: 'center',
-    opacity: 0.9,
+    opacity: 0.95,
+    paddingHorizontal: 20,
   },
   content: {
     flex: 1,
@@ -254,18 +259,18 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   featureIcon: {
-    fontSize: 18,
-    color: COLORS.success,
+    fontSize: 20,
     marginRight: 12,
-    fontWeight: 'bold',
+    width: 28,
   },
   featureText: {
     fontSize: 14,
     color: COLORS.textSecondary,
     flex: 1,
+    lineHeight: 20,
   },
   footer: {
     paddingVertical: 20,

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AccellaX 361° - Icon Concepts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .icon-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .icon-card h3 {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .canvas-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .download-btn:active {
+            transform: translateY(0);
+        }
+        
+        .footer {
+            text-align: center;
+            color: #999;
+            margin-top: 40px;
+            font-size: 14px;
+        }
+        
+        .instructions {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .instructions h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .instructions p {
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AccellaX 361° - Icon Concepts</h1>
+        
+        <div class="instructions">
+            <h2>📥 Download Instructions</h2>
+            <p>Click the download button below each icon to save it as a PNG file. Each icon is rendered at 512x512px with a transparent background, perfect for your app assets folder.</p>
+        </div>
+        
+        <div class="grid">
+            <div class="icon-card">
+                <h3>Concept 1: Orbital X</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas1" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas1', 'accellax-orbital-x.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 2: Speed X</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas2" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas2', 'accellax-speed-x.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 3: 361° Gauge</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas3" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas3', 'accellax-gauge.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 4: Modern Geo</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas4" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas4', 'accellax-modern-geo.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 5: Athletic</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas5" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas5', 'accellax-athletic.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 6: Minimal</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas6" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas6', 'accellax-minimal.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 7: Target</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas7" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas7', 'accellax-target.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 8: Forward</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas8" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas8', 'accellax-forward.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 9: Neon Tech</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas9" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas9', 'accellax-neon-tech.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 10: 3D Cube</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas10" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas10', 'accellax-3d-cube.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 11: Energy Spiral</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas11" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas11', 'accellax-energy-spiral.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 12: Shield</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas12" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas12', 'accellax-shield.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 13: Thunder X</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas13" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas13', 'accellax-thunder-x.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 14: Infinity</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas14" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas14', 'accellax-infinity.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 15: Atomic</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas15" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas15', 'accellax-atomic.png')">Download PNG</button>
+            </div>
+            
+            <div class="icon-card">
+                <h3>Concept 16: Prism</h3>
+                <div class="canvas-container">
+                    <canvas id="canvas16" width="512" height="512"></canvas>
+                </div>
+                <button class="download-btn" onclick="downloadIcon('canvas16', 'accellax-prism.png')">Download PNG</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Click any download button to save the icon as a PNG file for your project!
+        </div>
+    </div>
+
+    <script>
+        function drawIcon1(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            // Circular orbits
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 8;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 186, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#764ba2';
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 146, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#f093fb';
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 106, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Central X
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 21;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 66, centerY - 66);
+            ctx.lineTo(centerX + 66, centerY + 66);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 66, centerY - 66);
+            ctx.lineTo(centerX - 66, centerY + 66);
+            ctx.stroke();
+            
+            // 361° marker
+            ctx.fillStyle = '#f093fb';
+            ctx.beginPath();
+            ctx.arc(centerX + 186, centerY, 21, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawIcon2(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            // Background gradient circle
+            const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 200, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Dynamic X
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 26;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 80, centerY - 80);
+            ctx.lineTo(centerX + 80, centerY + 80);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 80, centerY - 80);
+            ctx.lineTo(centerX - 80, centerY + 80);
+            ctx.stroke();
+            
+            // Speed lines
+            ctx.globalAlpha = 0.6;
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(96, 203);
+            ctx.lineTo(70, 203);
+            ctx.stroke();
+            
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(96, 256);
+            ctx.lineTo(56, 256);
+            ctx.stroke();
+            
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(96, 309);
+            ctx.lineTo(70, 309);
+            ctx.stroke();
+            
+            ctx.globalAlpha = 1;
+        }
+
+        function drawIcon3(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            // Background circle
+            ctx.fillStyle = '#1a1a2e';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 200, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Gauge arc
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 32;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 173, -Math.PI / 2, Math.PI * 1.5);
+            ctx.stroke();
+            
+            // Extra degree marker
+            ctx.strokeStyle = '#f093fb';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 173, -Math.PI / 2, -Math.PI / 2 + 0.1);
+            ctx.stroke();
+            
+            // Center text X
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 85px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('X', centerX, centerY - 26);
+            
+            // 361° text
+            ctx.fillStyle = '#667eea';
+            ctx.font = '42px Arial';
+            ctx.fillText('361°', centerX, centerY + 53);
+        }
+
+        function drawIcon4(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(Math.PI / 4);
+            
+            // Gradient square
+            const gradient = ctx.createLinearGradient(-160, -160, 160, 160);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(0.5, '#764ba2');
+            gradient.addColorStop(1, '#f093fb');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(-160, -160, 320, 320);
+            
+            ctx.restore();
+            
+            // X
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 26;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 93, centerY - 93);
+            ctx.lineTo(centerX + 93, centerY + 93);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 93, centerY - 93);
+            ctx.lineTo(centerX - 93, centerY + 93);
+            ctx.stroke();
+        }
+
+        function drawIcon5(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            // Outer circle with stripes
+            ctx.fillStyle = '#667eea';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 200, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 173, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#764ba2';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 146, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // X
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 32;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 80, centerY - 80);
+            ctx.lineTo(centerX + 80, centerY + 80);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 80, centerY - 80);
+            ctx.lineTo(centerX - 80, centerY + 80);
+            ctx.stroke();
+            
+            // Degree markers
+            ctx.fillStyle = '#f093fb';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 160, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX + 160, centerY, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + 160, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX - 160, centerY, 10, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawIcon6(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 200, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Bold X
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 37;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 106, centerY - 106);
+            ctx.lineTo(centerX + 106, centerY + 106);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 106, centerY - 106);
+            ctx.lineTo(centerX - 106, centerY + 106);
+            ctx.stroke();
+            
+            // Subtle arc
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 160, -Math.PI / 6, Math.PI / 6);
+            ctx.stroke();
+        }
+
+        function drawIcon7(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            // Concentric circles
+            ctx.fillStyle = '#667eea';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 200, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 160, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#764ba2';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 120, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#f093fb';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // X overlay
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 21;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 133, centerY - 133);
+            ctx.lineTo(centerX + 133, centerY + 133);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 133, centerY - 133);
+            ctx.lineTo(centerX - 133, centerY + 133);
+            ctx.stroke();
+        }
+
+        function drawIcon8(ctx) {
+            const centerX = 256;
+            const centerY = 256;
+            
+            // Background
+            ctx.fillStyle = '#1a1a2e';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 200, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Arrow-like X
+            ctx.fillStyle = '#667eea';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 106, centerY - 80);
+            ctx.lineTo(centerX + 106, centerY);
+            ctx.lineTo(centerX - 106, centerY + 80);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = '#764ba2';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 80, centerY - 106);
+            ctx.lineTo(centerX, centerY + 106);
+            ctx.lineTo(centerX + 80, centerY - 106);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Center accent
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#f093fb';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 32, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Draw all icons on page load
+        window.onload = function() {
+            drawIcon1(document.getElementById('canvas1').getContext('2d'));
+            drawIcon2(document.getElementById('canvas2').getContext('2d'));
+            drawIcon3(document.getElementById('canvas3').getContext('2d'));
+            drawIcon4(document.getElementById('canvas4').getContext('2d'));
+            drawIcon5(document.getElementById('canvas5').getContext('2d'));
+            drawIcon6(document.getElementById('canvas6').getContext('2d'));
+            drawIcon7(document.getElementById('canvas7').getContext('2d'));
+            drawIcon8(document.getElementById('canvas8').getContext('2d'));
+        };
+    </script>
+</body>
+</html>

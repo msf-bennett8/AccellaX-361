@@ -1,5 +1,5 @@
 {
-  "name": "assessment",
+  "name": "AccellaX 361° | Sports Academy Assessment",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,9 @@
     "@react-navigation/stack": "^7.6.7",
     "date-fns": "^4.1.0",
     "expo": "~54.0.25",
+    "expo-crypto": "~15.0.7",
     "expo-file-system": "~19.0.19",
+    "expo-image-manipulator": "~14.0.7",
     "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
     "expo-sqlite": "~16.0.9",

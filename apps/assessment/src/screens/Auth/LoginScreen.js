@@ -1,4 +1,3 @@
-//src/screens/Auth/LoginScreen.js
 // src/screens/Auth/LoginScreen.js
 // User login screen with email and password
 
@@ -16,11 +15,9 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../config/firebase';
-import { insertKid, getAllKids } from '../../database/db';
 import { COLORS, APP_NAME } from '../../utils/constants';
 import { loginUser } from '../../utils/auth';
+import { initDatabase } from '../../database/db';
 
 const LoginScreen = ({ navigation, onAuthComplete }) => {
   const [email, setEmail] = useState('');
@@ -53,37 +50,69 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
     setErrors({});
 
     try {
-      const result = await loginUser(email.trim(), password);
+      console.log('🔐 Starting login process...');
+
+      // Initialize database first
+      await initDatabase();
+      console.log('✅ Database initialized');
+
+      // Attempt login
+      const result = await loginUser(email.trim().toLowerCase(), password);
 
       if (result.success) {
         console.log('✅ Login successful:', result.userProfile.fullName);
+        console.log('User ID:', result.userId);
+        console.log('Migrated:', result.migrated || false);
         
         // Mark onboarding as complete
         await AsyncStorage.setItem('onboardingComplete', 'true');
+        console.log('✅ Onboarding marked complete');
         
-        // Trigger sync to download kids and sessions from academy
-        console.log('🔄 Triggering initial sync after login...');
-        console.log('📋 User ID for sync:', result.userProfile.userId);
+        // Trigger sync in background
+        const syncPromise = (async () => {
+          try {
+            console.log('🔄 Triggering initial sync after login...');
+            const { performFullSync } = await import('../../database/sync');
+            const syncResult = await performFullSync(result.userId);
+            
+            if (syncResult.success) {
+              console.log('✅ Initial sync completed:', syncResult.results);
+            } else {
+              console.warn('⚠️ Initial sync failed:', syncResult.error);
+            }
+          } catch (syncError) {
+            console.error('❌ Sync error:', syncError);
+            // Don't block navigation if sync fails
+          }
+        })();
 
-        const { performFullSync } = await import('../../database/sync');
-        const syncResult = await performFullSync(result.userProfile.userId);
-        
-        if (syncResult.success) {
-          console.log('✅ Initial sync completed:', syncResult.results);
-        } else {
-          console.warn('⚠️ Initial sync failed:', syncResult.error);
-        }
-        
-        // Call the auth completion handler to update AppNavigator state
+        // Navigate immediately (don't wait for sync)
+        console.log('🚀 Calling onAuthComplete to trigger navigation...');
         if (onAuthComplete) {
           await onAuthComplete();
         }
+        
+        // Show welcome message after navigation starts
+        setTimeout(() => {
+          Alert.alert(
+            'Welcome Back!',
+            `Hello ${result.userProfile.fullName || 'there'}! ${
+              result.migrated 
+                ? 'Your offline account has been successfully synced to the cloud.' 
+                : result.warning || 'Good to see you again!'
+            }`,
+            [{ text: 'OK' }]
+          );
+        }, 500);
       } else {
-        setErrors({ general: result.error });
+        console.error('❌ Login failed:', result.error);
+        setErrors({ general: result.error || 'Invalid email or password' });
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setErrors({ general: 'An error occurred. Please try again.' });
+      console.error('❌ Login error:', error);
+      setErrors({ 
+        general: error.message || 'An unexpected error occurred. Please try again.' 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +130,10 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
     );
   };
 
+  const handleCreateAccount = () => {
+    navigation.navigate('Register');
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -109,6 +142,7 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -217,11 +251,22 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
             activeOpacity={0.8}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={COLORS.white} />
+                <Text style={styles.loadingText}>Signing In...</Text>
+              </View>
             ) : (
               <Text style={styles.loginButtonText}>Sign In</Text>
             )}
           </TouchableOpacity>
+
+          {/* Offline Mode Info */}
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoIcon}>ℹ️</Text>
+            <Text style={styles.infoText}>
+              Works offline. Your data will sync automatically when online.
+            </Text>
+          </View>
 
           {/* Divider */}
           <View style={styles.divider}>
@@ -234,7 +279,7 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>Don't have an account? </Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Onboarding')}
+              onPress={handleCreateAccount}
               activeOpacity={0.7}
             >
               <Text style={styles.signupLink}>Create Account</Text>
@@ -385,6 +430,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+    marginBottom: 16,
   },
   loginButtonDisabled: {
     opacity: 0.6,
@@ -393,6 +439,34 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: COLORS.white,
+    fontSize: 16,
+    marginLeft: 12,
+    fontWeight: '600',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.backgroundDark,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  infoIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
   },
   divider: {
     flexDirection: 'row',

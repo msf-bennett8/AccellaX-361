@@ -476,29 +476,34 @@ export const registerUser = async (userData) => {
       isOfflineAccount: true,
     };
     
-    // Save profile locally
+    // Create user in local database FIRST (critical for offline)
+    try {
+      const { createUser } = await import('../database/db');
+      await createUser({
+        id: userId,
+        fullName: userData.fullName,
+        email: userData.email,
+        username: userData.username || '',
+        phone: userData.phone || '',
+        passwordHash: hashedPassword,
+        authMethod: userData.authMethod || 'accellax',
+        role: userData.role || 'coach',
+        avatarBase64: null,
+        isOfflineAccount: true,
+      });
+      console.log('✅ User created in local database (offline mode)');
+    } catch (dbError) {
+      console.error('❌ CRITICAL: Failed to create user in database:', dbError);
+      return { 
+        success: false, 
+        error: 'Database error during registration. Please try again.' 
+      };
+    }
+
+    // Save profile to AsyncStorage
     const saveResult = await saveUserProfile(userProfile);
     
     if (saveResult.success) {
-      // Create user in local database
-      try {
-        const { createUser } = await import('../database/db');
-        await createUser({
-          id: userId,
-          fullName: userData.fullName,
-          email: userData.email,
-          username: userData.username || '',
-          phone: userData.phone || '',
-          passwordHash: hashedPassword,
-          authMethod: userData.authMethod || 'accellax',
-          role: userData.role || 'coach',
-          avatarBase64: null,
-          isOfflineAccount: true,
-        });
-      } catch (dbError) {
-        console.warn('⚠️ Failed to create user in database:', dbError);
-      }
-      
       console.log('✅ User registered in offline mode');
       return { 
         success: true, 
@@ -507,9 +512,10 @@ export const registerUser = async (userData) => {
           ...userProfile,
           passwordHash: undefined,
         },
+        offlineMode: true,
       };
     } else {
-      return saveResult;
+      return { success: false, error: 'Failed to save user profile' };
     }
     
   } catch (error) {
@@ -553,22 +559,42 @@ export const registerWithGoogle = async (googleUserData) => {
     
     if (saveResult.success) {
       // Create user in local database
-      try {
-        const { createUser } = await import('../database/db');
-        await createUser({
-          id: userId,
-          fullName: userProfile.fullName,
-          email: userProfile.email,
-          username: userProfile.username || '',
-          phone: userProfile.phone || '',
-          authMethod: 'google',
-          role: userProfile.role || 'coach',
-          avatarBase64: userProfile.avatarBase64 || null,
-          isOfflineAccount: false,
-        });
-      } catch (dbError) {
-        console.warn('⚠️ Failed to create user in database:', dbError);
-      }
+        try {
+          const { createUser, initializeAcademyInFirebase } = await import('../database/db');
+          
+          await createUser({
+            id: userId,
+            fullName: userData.fullName,
+            email: userData.email,
+            username: userData.username || '',
+            phone: userData.phone || '',
+            passwordHash: hashedPassword,
+            authMethod: userData.authMethod || 'accellax',
+            role: userData.role || 'coach',
+            avatarBase64: null,
+            isOfflineAccount: false,
+          });
+          console.log('✅ User created in local database');
+
+          // Initialize academy in Firebase
+          await initializeAcademyInFirebase(userId);
+          
+        } catch (dbError) {
+          console.error('❌ CRITICAL: Failed to create user in database:', dbError);
+          
+          // Rollback Firebase user
+          try {
+            await userCredential.user.delete();
+            console.log('🔄 Rolled back Firebase user creation');
+          } catch (deleteError) {
+            console.error('❌ Failed to rollback Firebase user:', deleteError);
+          }
+          
+          return { 
+            success: false, 
+            error: 'Database error during registration. Please try again.' 
+          };
+        }
       
       return { success: true, userId, userProfile };
     } else {
@@ -636,6 +662,16 @@ export const loginUser = async (email, password) => {
           // Save to local storage
           await saveUserProfile(userProfile);
           
+          // Sync to local database
+          try {
+            const { syncUserToLocalDB } = await import('../database/db');
+            await syncUserToLocalDB(userId, firebaseProfile);
+            console.log('✅ User synced to local database');
+          } catch (dbError) {
+            console.warn('⚠️ Failed to sync user to local DB:', dbError);
+            // Not critical - user can still login
+          }
+          
           return { 
             success: true, 
             userId,
@@ -686,6 +722,33 @@ export const loginUser = async (email, password) => {
                 
                 // Upload profile to Firestore
                 await saveUserProfileToFirebase(firebaseUserId, updatedProfile);
+                
+                // Update local database with new Firebase UID
+                try {
+                  const { createUser, deleteUser } = await import('../database/db');
+                  
+                  // Delete old offline user
+                  await deleteUser(localUser.userId);
+                  
+                  // Create new user with Firebase UID
+                  await createUser({
+                    id: firebaseUserId,
+                    fullName: updatedProfile.fullName,
+                    email: updatedProfile.email,
+                    username: updatedProfile.username || '',
+                    phone: updatedProfile.phone || '',
+                    passwordHash: localUser.passwordHash,
+                    authMethod: 'accellax',
+                    role: updatedProfile.role || 'coach',
+                    avatarBase64: updatedProfile.avatarBase64 || null,
+                    isOfflineAccount: false,
+                  });
+                  
+                  console.log('✅ Local database updated with Firebase UID');
+                  
+                } catch (dbError) {
+                  console.warn('⚠️ Failed to update local DB during migration:', dbError);
+                }
                 
                 console.log('✅ Offline account successfully migrated to Firebase');
                 
