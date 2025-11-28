@@ -904,7 +904,7 @@ export const deleteNote = async (id) => {
 
 // ========== SPORTS CRUD (NEW) ==========
 
-export const insertSport = async (sportData, userId) => {
+export const insertSport = async (sportData, userId, skipFirebaseSync = false) => {
   const sportId = sportData.id || generateId();
   const FIXED_ACADEMY_ID = 'academy_accellax361_main';
   
@@ -919,29 +919,34 @@ export const insertSport = async (sportData, userId) => {
       created_by: userId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      firebase_synced: 0,
+      firebase_synced: skipFirebaseSync ? 1 : 0, // Mark as synced if skipping
     };
     
     webDB.sports.push(sport);
     await saveWebDB();
 
-    try {
-      const { db: firebaseDb } = await import('../config/firebase.js');
-      const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+    // Only sync to Firebase if not skipping
+    if (!skipFirebaseSync) {
+      try {
+        const { db: firebaseDb } = await import('../config/firebase.js');
+        const { doc, setDoc, Timestamp } = await import('firebase/firestore');
 
-      const sportRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/sports`, sportId);
-      await setDoc(sportRef, {
-        ...sport,
-        created_at: Timestamp.fromDate(new Date(sport.created_at)),
-        updated_at: Timestamp.now(),
-        synced_at: Timestamp.now(),
-      });
+        const sportRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/sports`, sportId);
+        await setDoc(sportRef, {
+          ...sport,
+          created_at: Timestamp.fromDate(new Date(sport.created_at)),
+          updated_at: Timestamp.now(),
+          synced_at: Timestamp.now(),
+        });
 
-      sport.firebase_synced = 1;
-      console.log('✅ Sport added to Firebase');
-    } catch (error) {
-      console.error('⚠️ Failed to add sport to Firebase:', error);
-      sport.firebase_synced = 0;
+        sport.firebase_synced = 1;
+        console.log('✅ Sport added to Firebase');
+      } catch (error) {
+        console.error('⚠️ Failed to add sport to Firebase:', error);
+        sport.firebase_synced = 0;
+      }
+    } else {
+      console.log('⏭️ Skipping Firebase sync for sport (seeding mode)');
     }
 
     return sport;
@@ -1028,7 +1033,7 @@ export const deleteSport = async (sportId) => {
 
 // ========== METRICS CRUD (NEW) ==========
 
-export const insertMetric = async (metricData, userId) => {
+export const insertMetric = async (metricData, userId, skipFirebaseSync = false) => {
   const metricId = metricData.id || generateId();
   const FIXED_ACADEMY_ID = 'academy_accellax361_main';
   
@@ -1047,28 +1052,33 @@ export const insertMetric = async (metricData, userId) => {
       display_order: metricData.displayOrder || 0,
       created_by: userId,
       created_at: new Date().toISOString(),
-      firebase_synced: 0,
+      firebase_synced: skipFirebaseSync ? 1 : 0, // Mark as synced if skipping
     };
     
     webDB.metrics.push(metric);
     await saveWebDB();
 
-    try {
-      const { db: firebaseDb } = await import('../config/firebase.js');
-      const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+    // Only sync to Firebase if not skipping
+    if (!skipFirebaseSync) {
+      try {
+        const { db: firebaseDb } = await import('../config/firebase.js');
+        const { doc, setDoc, Timestamp } = await import('firebase/firestore');
 
-      const metricRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/metrics`, metricId);
-      await setDoc(metricRef, {
-        ...metric,
-        created_at: Timestamp.fromDate(new Date(metric.created_at)),
-        synced_at: Timestamp.now(),
-      });
+        const metricRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/metrics`, metricId);
+        await setDoc(metricRef, {
+          ...metric,
+          created_at: Timestamp.fromDate(new Date(metric.created_at)),
+          synced_at: Timestamp.now(),
+        });
 
-      metric.firebase_synced = 1;
-      console.log('✅ Metric added to Firebase');
-    } catch (error) {
-      console.error('⚠️ Failed to add metric to Firebase:', error);
-      metric.firebase_synced = 0;
+        metric.firebase_synced = 1;
+        console.log('✅ Metric added to Firebase');
+      } catch (error) {
+        console.error('⚠️ Failed to add metric to Firebase:', error);
+        metric.firebase_synced = 0;
+      }
+    } else {
+      console.log('⏭️ Skipping Firebase sync for metric (seeding mode)');
     }
 
     return metric;
@@ -1155,7 +1165,7 @@ export const insertAssessment = async (assessmentData, userId) => {
       kid_id: assessmentData.kidId,
       sport_id: assessmentData.sportId,
       assessment_date: assessmentData.assessmentDate,
-      term: assessmentData.term,
+      term: assessmentData.term || 'Q1', // Provide default value
       assessed_by: userId,
       notes: assessmentData.notes || null,
       status: assessmentData.status || 'completed',
@@ -1309,13 +1319,23 @@ export const insertAssessmentResult = async (resultData) => {
       const { doc, updateDoc, arrayUnion } = await import('firebase/firestore');
 
       const assessmentRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/assessments`, resultData.assessmentId);
+      
+      // Build result object with only defined values
+      const resultForFirebase = {
+        metric_id: resultData.metricId,
+        value: resultData.value,
+      };
+      
+      if (resultData.percentile !== null && resultData.percentile !== undefined) {
+        resultForFirebase.percentile = resultData.percentile;
+      }
+      
+      if (resultData.notes !== null && resultData.notes !== undefined) {
+        resultForFirebase.notes = resultData.notes;
+      }
+      
       await updateDoc(assessmentRef, {
-        results: arrayUnion({
-          metric_id: resultData.metricId,
-          value: resultData.value,
-          percentile: resultData.percentile,
-          notes: resultData.notes,
-        })
+        results: arrayUnion(resultForFirebase)
       });
 
       result.firebase_synced = 1;
@@ -1368,7 +1388,7 @@ export const updateAssessmentResult = async (resultId, resultData) => {
 
 // ========== BENCHMARKS CRUD (NEW) ==========
 
-export const insertBenchmark = async (benchmarkData) => {
+export const insertBenchmark = async (benchmarkData, skipFirebaseSync = false) => {
   const FIXED_ACADEMY_ID = 'academy_accellax361_main';
   
   if (isWeb) {
@@ -1388,19 +1408,24 @@ export const insertBenchmark = async (benchmarkData) => {
     webDB.benchmarks.push(benchmark);
     await saveWebDB();
 
-    try {
-      const { db: firebaseDb } = await import('../config/firebase.js');
-      const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+    // Only sync to Firebase if not skipping
+    if (!skipFirebaseSync) {
+      try {
+        const { db: firebaseDb } = await import('../config/firebase.js');
+        const { doc, setDoc, Timestamp } = await import('firebase/firestore');
 
-      const benchmarkRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/benchmarks`, `${benchmarkData.metricId}_${benchmarkData.ageGroup}_${benchmarkData.gender || 'all'}`);
-      await setDoc(benchmarkRef, {
-        ...benchmark,
-        created_at: Timestamp.fromDate(new Date(benchmark.created_at)),
-      });
+        const benchmarkRef = doc(firebaseDb, `academies/${FIXED_ACADEMY_ID}/benchmarks`, `${benchmarkData.metricId}_${benchmarkData.ageGroup}_${benchmarkData.gender || 'all'}`);
+        await setDoc(benchmarkRef, {
+          ...benchmark,
+          created_at: Timestamp.fromDate(new Date(benchmark.created_at)),
+        });
 
-      console.log('✅ Benchmark added to Firebase');
-    } catch (error) {
-      console.error('⚠️ Failed to add benchmark to Firebase:', error);
+        console.log('✅ Benchmark added to Firebase');
+      } catch (error) {
+        console.error('⚠️ Failed to add benchmark to Firebase:', error);
+      }
+    } else {
+      console.log('⏭️ Skipping Firebase sync for benchmark (seeding mode)');
     }
 
     return benchmark;

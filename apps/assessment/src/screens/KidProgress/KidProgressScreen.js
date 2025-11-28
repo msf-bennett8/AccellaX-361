@@ -243,7 +243,11 @@ export default function KidProgressScreen() {
         onRightPress={SMALL_SCREEN ? () => setMenuModalVisible(true) : handleShare}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.contentWrapper}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Kid Info Card */}
         <View style={styles.kidInfoCard}>
           <View style={styles.kidInfoHeader}>
@@ -456,7 +460,8 @@ export default function KidProgressScreen() {
 
         {/* Bottom Padding */}
         <View style={styles.bottomPadding} />
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Floating Action Button - Compare */}
       {assessments.length > 0 && (
@@ -590,7 +595,16 @@ export default function KidProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  content: { flex: 1 },
+  contentWrapper: {
+    position: 'absolute',
+    top: 116,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textSecondary },
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },

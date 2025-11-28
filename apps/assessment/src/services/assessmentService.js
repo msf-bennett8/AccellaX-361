@@ -13,12 +13,25 @@ const ACADEMY_ID = 'academy_accellax361_main';
 // ========== HELPER FUNCTIONS ==========
 
 const getWebDB = async () => {
-  const data = await AsyncStorage.getItem('assessment_db');
-  return data ? JSON.parse(data) : { assessments: [], assessment_results: [] };
+  const data = await AsyncStorage.getItem('assessmentWebDB');
+  if (!data) {
+    return { 
+      users: [],
+      kids: [],
+      sports: [],
+      metrics: [],
+      assessments: [], 
+      assessment_results: [],
+      benchmarks: [],
+      goals: [],
+      notes: []
+    };
+  }
+  return JSON.parse(data);
 };
 
 const saveWebDB = async (webDB) => {
-  await AsyncStorage.setItem('assessment_db', JSON.stringify(webDB));
+  await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(webDB));
 };
 
 const generateId = () => {

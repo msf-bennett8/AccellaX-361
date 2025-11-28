@@ -479,6 +479,7 @@ export default function SettingsScreen() {
         leftIcon="☰"
         onLeftPress={() => navigation.openDrawer()}
         showAvatar={true}
+        userProfile={userProfile}
       />
 
       <ScrollView

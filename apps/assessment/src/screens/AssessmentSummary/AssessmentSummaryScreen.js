@@ -132,7 +132,7 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
     setEditConfirmModal({ visible: true, kidId, testId });
   };
 
-  const confirmEdit = () => {
+  const confirmEdit = (editScope) => {
     const { kidId, testId } = editConfirmModal;
     setEditConfirmModal({ visible: false, kidId: null, testId: null });
     
@@ -141,8 +141,39 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
     const testIndex = selectedTests.findIndex(t => 
       (typeof t === 'string' ? t : t.id) === testId
     );
+
+    let dataToPass = assessmentData;
     
-    // Navigate back to entry screen with focus
+    // Handle different edit scopes
+    if (editScope === 'discard') {
+      // Discard everything - start fresh
+      dataToPass = {};
+    } else if (editScope === 'selected') {
+      // Keep all data except the selected field
+      const key = `${kidId}_${testId}`;
+      const newData = { ...assessmentData };
+      delete newData[key];
+      dataToPass = newData;
+    } else if (editScope === 'test') {
+      // Keep all data except all entries for this test across all kids
+      const newData = { ...assessmentData };
+      kids.forEach(kid => {
+        const key = `${kid.id}_${testId}`;
+        delete newData[key];
+      });
+      dataToPass = newData;
+    } else if (editScope === 'kid') {
+      // Keep all data except all entries for this kid across all tests
+      const newData = { ...assessmentData };
+      selectedTests.forEach(test => {
+        const tId = typeof test === 'string' ? test : test.id;
+        const key = `${kidId}_${tId}`;
+        delete newData[key];
+      });
+      dataToPass = newData;
+    }
+    
+    // Navigate back to entry screen with focus AND filtered data
     navigation.navigate('AssessmentEntry', {
       sport,
       kids,
@@ -150,6 +181,7 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
       selectedTests,
       initialKidIndex: kidIndex >= 0 ? kidIndex : 0,
       initialTestIndex: testIndex >= 0 ? testIndex : 0,
+      existingAssessmentData: dataToPass,
     });
   };
 
@@ -252,11 +284,11 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
       </View>
 
       {/* Scrollable Content */}
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.contentWrapper}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {Object.values(groupedData).map(({ kid, results, completionRate }) => (
           <View key={kid.id} style={styles.kidCard}>
             {/* Kid Header */}
@@ -351,7 +383,8 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
         </View>
 
         <View style={styles.bottomPadding} />
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Bottom Actions */}
       <View style={styles.bottomContainer}>
@@ -427,24 +460,67 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
       />
 
       {/* Edit Confirmation Modal */}
-      <CustomModal
+      <Modal
         visible={editConfirmModal.visible}
-        title="Edit Assessment"
-        message="Go back to edit this entry?"
-        icon="create-outline"
-        iconColor={COLORS.primary}
-        buttons={[
-          { 
-            text: 'Cancel', 
-            style: 'cancel',
-            onPress: () => setEditConfirmModal({ visible: false, kidId: null, testId: null })
-          },
-          { 
-            text: 'Edit', 
-            onPress: confirmEdit
-          }
-        ]}
-      />
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={[styles.modalIconContainer, { backgroundColor: COLORS.primary + '20' }]}>
+              <Ionicons name="create-outline" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.modalTitle}>Edit Options</Text>
+            <Text style={styles.modalMessage}>Choose what you want to edit:</Text>
+            
+            <View style={styles.editOptionsContainer}>
+              <TouchableOpacity
+                style={styles.editOptionButton}
+                onPress={() => confirmEdit('selected')}
+              >
+                <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.editOptionText}>Edit Selected Field Only</Text>
+                <Text style={styles.editOptionSubtext}>Keep all other data</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.editOptionButton}
+                onPress={() => confirmEdit('test')}
+              >
+                <Ionicons name="clipboard-outline" size={20} color={COLORS.warning} />
+                <Text style={styles.editOptionText}>Edit This Test (All Kids)</Text>
+                <Text style={styles.editOptionSubtext}>Clear this test for everyone</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.editOptionButton}
+                onPress={() => confirmEdit('kid')}
+              >
+                <Ionicons name="person-outline" size={20} color={COLORS.warning} />
+                <Text style={styles.editOptionText}>Edit This Kid (All Tests)</Text>
+                <Text style={styles.editOptionSubtext}>Clear all tests for this kid</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.editOptionButton, styles.editOptionDanger]}
+                onPress={() => confirmEdit('discard')}
+              >
+                <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                <Text style={[styles.editOptionText, styles.editOptionDangerText]}>Discard & Start Fresh</Text>
+                <Text style={[styles.editOptionSubtext, styles.editOptionDangerText]}>Delete all assessments</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setEditConfirmModal({ visible: false, kidId: null, testId: null })}
+            >
+              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Done Confirmation Modal */}
       <CustomModal
@@ -485,8 +561,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
-    flex: 1,
+  contentWrapper: {
+    position: 'absolute',
+    top: 200,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   scrollContent: {
     padding: 16,
@@ -827,6 +907,51 @@ const styles = StyleSheet.create({
   
   bottomPadding: {
     height: 16,
+  },
+  
+  // Edit Options Modal Styles
+  editOptionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  editOptionButton: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.backgroundDark,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  editOptionDanger: {
+    backgroundColor: COLORS.error + '10',
+    borderColor: COLORS.error + '30',
+  },
+  editOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  editOptionDangerText: {
+    color: COLORS.error,
+  },
+  editOptionSubtext: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  modalCancelButton: {
+    backgroundColor: COLORS.backgroundDark,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
   },
 });
 

@@ -197,7 +197,7 @@ export const getUserRole = async () => {
 export const isAdminOrOwner = async () => {
   try {
     const role = await getUserRole();
-    return role === 'admin' || role === 'owner';
+    return ['admin', 'super_admin', 'owner'].includes(role);
   } catch (error) {
     console.error('Error checking admin status:', error);
     return false;

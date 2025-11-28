@@ -16,9 +16,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import { COLORS } from '../../utils/constants';
-import { getAllAssessments } from '../../services/assessmentService';
+import { getRecentAssessments } from '../../database/queries';
 import { getKidByIdFromFirebase } from '../../services/kidService';
-import { getSportById } from '../../database/db';
+import { getKidById, getSportById } from '../../database/db';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export default function HistoryScreen() {
@@ -68,22 +68,41 @@ export default function HistoryScreen() {
   const loadHistory = async () => {
     try {
       setLoading(true);
-      const allAssessments = await getAllAssessments();
       
-      // Enrich with kid and sport names
+      console.log('📋 Loading assessment history...');
+      
+      // Use queries.js which properly handles the assessmentWebDB storage
+      const allAssessments = await getRecentAssessments(100); // Get last 100 assessments
+      
+      console.log('📊 Loaded assessments from queries:', allAssessments.length);
+      
+      // Enrich with kid and sport details
+      // queries.js already provides kid_name and sport_name from the JOIN
       const enrichedAssessments = await Promise.all(
         allAssessments.map(async (assessment) => {
-          const kid = await getKidByIdFromFirebase(assessment.kid_id);
+          // Try to get full kid object for additional details
+          let kid = null;
+          try {
+            kid = await getKidByIdFromFirebase(assessment.kid_id);
+          } catch (error) {
+            console.warn('⚠️ Could not fetch kid details:', error);
+          }
+          
+          // Get sport details
           const sport = await getSportById(assessment.sport_id);
+          
           return {
             ...assessment,
-            kidName: kid?.name || 'Unknown',
-            sportName: sport?.name || 'Unknown',
+            kidName: assessment.kid_name || kid?.name || 'Unknown',
+            sportName: assessment.sport_name || sport?.name || 'Unknown',
             sportColor: sport?.color || COLORS.primary,
+            kidDetails: kid,
+            sportDetails: sport,
           };
         })
       );
 
+      console.log('✅ Enriched assessments:', enrichedAssessments.length);
       setAssessments(enrichedAssessments);
       calculateStats(enrichedAssessments);
       setLoading(false);
@@ -252,11 +271,12 @@ export default function HistoryScreen() {
         onLeftPress={() => navigation.openDrawer()}
       />
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.contentWrapper}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
@@ -357,7 +377,8 @@ export default function HistoryScreen() {
             {filteredAssessments.map(renderAssessmentCard)}
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Filter Modal */}
       <Modal
@@ -419,7 +440,16 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  content: { flex: 1 },
+  contentWrapper: {
+    position: 'absolute',
+    top: 116,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textSecondary },
   

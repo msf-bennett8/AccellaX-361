@@ -23,9 +23,19 @@ const MetricInput = ({
   const [inputValue, setInputValue] = useState(value || '');
   const [isFocused, setIsFocused] = useState(false);
 
+  // Update input value when value prop changes OR when prefill is enabled
   useEffect(() => {
-    setInputValue(value || '');
-  }, [value]);
+    const newValue = value || (showPrevious && previousValue ? previousValue : '');
+    setInputValue(newValue);
+  }, [value, previousValue, showPrevious]);
+
+  // Auto-fill on mount if showPrevious is enabled and value is empty
+  useEffect(() => {
+    if (showPrevious && previousValue && (!value || value === '')) {
+      setInputValue(previousValue);
+      onChange(previousValue);
+    }
+  }, []);
 
   const handleChange = (text) => {
     setInputValue(text);

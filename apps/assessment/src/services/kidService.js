@@ -4,7 +4,7 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../config/firebase';
-import { doc, updateDoc, Timestamp, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, Timestamp, collection, getDocs, query, where } from 'firebase/firestore';
 import {
   getAllKids,
   getKidById,
@@ -285,18 +285,40 @@ export const getKidByIdFromFirebase = async (kidId) => {
   try {
     console.log('🔍 Getting kid by ID from Firebase:', kidId);
     
+    // First try local DB (faster)
+    const localKid = await getKidById(kidId);
+    if (localKid) {
+      console.log('✅ Kid found in local DB:', kidId);
+      return localKid;
+    }
+    
+    // If not in local DB, try Firebase
+    console.log('🔍 Kid not in local DB, checking Firebase...');
     const { doc, getDoc } = await import('firebase/firestore');
-    const kidRef = doc(db, `academies/${FIXED_ACADEMY_ID}/kids`, kidId);
+    const kidRef = doc(db, `academies/${FIXED_ACADEMY_ID}/kids`, kidId.toString());
     const kidDoc = await getDoc(kidRef);
     
     if (kidDoc.exists()) {
+      console.log('✅ Kid found in Firebase:', kidId);
       return { id: kidDoc.id, ...kidDoc.data() };
     }
     
-    console.log('❌ Kid not found in Firebase:', kidId);
+    console.log('❌ Kid not found in Firebase or local DB:', kidId);
     return null;
   } catch (error) {
     console.error('❌ Error getting kid from Firebase:', error);
+    
+    // Fallback to local DB in case of Firebase error
+    try {
+      const localKid = await getKidById(kidId);
+      if (localKid) {
+        console.log('✅ Fallback: Kid found in local DB:', kidId);
+        return localKid;
+      }
+    } catch (localError) {
+      console.error('❌ Also failed to get from local DB:', localError);
+    }
+    
     return null;
   }
 };

@@ -43,14 +43,28 @@ const Header = ({
   textStyle,
   variant = 'default',
   showAvatar = true,
-  onAvatarSecretTap, // NEW: Pass secret tap handler from ProfileScreen
-  showAdminElevation = false, // NEW: Only enable on ProfileScreen
+  onAvatarSecretTap,
+  showAdminElevation = false,
+  userProfile: propUserProfile, // ADD THIS LINE
 }) => {
   const navigation = useNavigation();
-  const [userProfile, setUserProfile] = useState(null);
+  const [userProfile, setUserProfile] = useState(propUserProfile || null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+
+  // DEBUG: Log props on mount
+  useEffect(() => {
+    console.log('🔍 Header DEBUG - Props received:', {
+      propUserProfile: propUserProfile ? {
+        fullName: propUserProfile.fullName,
+        role: propUserProfile.role,
+        email: propUserProfile.email,
+      } : null,
+      showAvatar,
+      showAdminElevation,
+    });
+  }, []);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -75,46 +89,90 @@ const Header = ({
     return unsubscribe;
   }, [navigation]);
 
+  // Watch for prop changes
+  useEffect(() => {
+    console.log('🔔 propUserProfile changed:', propUserProfile ? {
+      fullName: propUserProfile.fullName,
+      role: propUserProfile.role,
+    } : 'NULL');
+    
+    if (propUserProfile) {
+      setUserProfile(propUserProfile);
+      const adminStatus = ['admin', 'super_admin', 'owner'].includes(propUserProfile?.role);
+      setIsAdmin(adminStatus);
+      console.log('✅ Updated from prop - isAdmin:', adminStatus);
+    }
+  }, [propUserProfile]);
+
   const [clickCount, setClickCount] = useState(0);
   const [clickTimer, setClickTimer] = useState(null);
 
   const loadUserProfile = async () => {
-    const profile = await getCurrentUser();
-    setUserProfile(profile);
-    
-    // Check if user is admin
-    const adminStatus = profile?.role === 'super_admin';
+  console.log('🔄 loadUserProfile called, propUserProfile:', propUserProfile ? 'EXISTS' : 'NULL');
+  
+  // If userProfile was passed as prop, use it
+  if (propUserProfile) {
+    console.log('✅ Using prop userProfile:', {
+      fullName: propUserProfile.fullName,
+      role: propUserProfile.role,
+      email: propUserProfile.email,
+    });
+    setUserProfile(propUserProfile);
+    const adminStatus = ['admin', 'super_admin', 'owner'].includes(propUserProfile?.role);
     setIsAdmin(adminStatus);
-    console.log('👤 Header: User loaded, isAdmin:', adminStatus, 'Role:', profile?.role);
+    console.log('👤 Header: Using prop userProfile, isAdmin:', adminStatus, 'Role:', propUserProfile?.role);
+    return;
+  }
+  
+  // Otherwise load from storage
+  console.log('📦 Loading user from storage...');
+  const profile = await getCurrentUser();
+  console.log('📦 Loaded from storage:', profile ? {
+    fullName: profile.fullName,
+    role: profile.role,
+    email: profile.email,
+  } : 'NULL');
+  setUserProfile(profile);
+  
+  // Check if user is admin/owner
+  const adminStatus = ['admin', 'super_admin', 'owner'].includes(profile?.role);
+    setIsAdmin(adminStatus);
+    console.log('👤 Header: User loaded from storage, isAdmin:', adminStatus, 'Role:', profile?.role);
   };
 
   const handleAvatarPress = () => {
-    console.log('👆 Avatar pressed! Admin:', isAdmin, 'ShowElevation:', showAdminElevation);
-    
-    // If on ProfileScreen and admin elevation enabled, handle secret taps
-    if (showAdminElevation && onAvatarSecretTap) {
-      console.log('🔓 Triggering admin elevation tap');
-      onAvatarSecretTap();
-    } else if (isAdmin) {
-      // Admin: Toggle dropdown menu
-      console.log('📋 Toggling admin dropdown');
-      setShowDropdown(!showDropdown);
-    } else {
-      // Regular user: Navigate to profile
-      console.log('👤 Navigating to profile');
-      navigation.navigate('Profile');
-    }
+  console.log('👆 Avatar pressed!');
+  console.log('   - isAdmin:', isAdmin);
+  console.log('   - userProfile.role:', userProfile?.role);
+  console.log('   - showAdminElevation:', showAdminElevation);
+  console.log('   - onAvatarSecretTap exists:', !!onAvatarSecretTap);
+  
+  // If on ProfileScreen and admin elevation enabled, handle secret taps
+  if (showAdminElevation && onAvatarSecretTap) {
+    console.log('🔓 Triggering admin elevation tap');
+    onAvatarSecretTap();
+    return;
+  }
+  
+  if (isAdmin) {
+    // Admin: Toggle dropdown menu
+    console.log('📋 Toggling admin dropdown (current state:', showDropdown, ')');
+    setShowDropdown(!showDropdown);
+    return;
+  }
+  
+  // Regular user: Navigate to profile
+  console.log('👤 Regular user - navigating to profile');
+    navigation.navigate('Profile');
   };
 
-  const handleDropdownClose = () => {
-    setShowDropdown(false);
-  };
+    const handleDropdownClose = () => {
+      setShowDropdown(false);
+    };
 
-  const handleNavigateToProfile = () => {
+    const handleNavigateToProfile = () => {
     setShowDropdown(false);
-    navigation.navigate('HomeStack', {
-      screen: 'Profile'
-    });
+    navigation.navigate('Profile');
   };
 
   const handleNavigateToAdminDashboard = () => {

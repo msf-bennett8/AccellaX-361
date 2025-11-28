@@ -69,6 +69,7 @@ export default function ProfileScreen({ navigation }) {
         leftIcon="☰"
         onLeftPress={() => navigation.openDrawer()}
         showAvatar={true}
+        userProfile={userProfile}
       />
       <ScrollView
         style={styles.scrollContainer}

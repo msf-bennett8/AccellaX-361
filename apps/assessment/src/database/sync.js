@@ -287,7 +287,7 @@ const uploadUserProfileToFirebase = async (userId) => {
     const userRef = doc(db, 'users', userId);
     const userData = {
       id: userId,
-      full_name: userProfile.full_name,
+      full_name: userProfile.full_name || userProfile.fullName || 'Unknown User',
       email: userProfile.email,
       username: userProfile.username || '',
       phone: userProfile.phone || '',
@@ -868,26 +868,32 @@ const downloadAssessmentsFromFirebase = async (academyId) => {
       
       const userId = await AsyncStorage.getItem('currentUserId');
       
-      // Insert assessment
+      // Insert assessment with data validation
       await insertAssessment({
         id: assessmentId,
         kidId: firebaseAssessment.kid_id,
         sportId: firebaseAssessment.sport_id,
         assessmentDate: firebaseAssessment.assessment_date,
-        term: firebaseAssessment.term,
-        notes: firebaseAssessment.notes,
+        term: firebaseAssessment.term || 'Q1', // Default to Q1 if missing
+        notes: firebaseAssessment.notes || null,
         status: firebaseAssessment.status || 'completed',
       }, userId);
       
-      // Insert assessment results
+      // Insert assessment results with validation
       if (firebaseAssessment.results && firebaseAssessment.results.length > 0) {
         for (const result of firebaseAssessment.results) {
+          // Skip invalid results
+          if (!result.metric_id || result.value === undefined || result.value === null) {
+            console.warn('⚠️ Skipping invalid result:', result);
+            continue;
+          }
+          
           await insertAssessmentResult({
             assessmentId: assessmentId,
             metricId: result.metric_id,
             value: result.value,
-            percentile: result.percentile,
-            notes: result.notes,
+            percentile: result.percentile || null,
+            notes: result.notes || null,
           });
         }
       }

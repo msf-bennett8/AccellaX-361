@@ -66,7 +66,7 @@ export const seedSports = async (userId = 'system') => {
           name: sport.name,
           icon: sport.icon,
           isDefault: true,
-        }, userId);
+        }, userId, true); // ✅ Skip Firebase sync during seeding
         
         successCount++;
         console.log(`  ✅ Seeded sport: ${sport.name}`);
@@ -113,7 +113,7 @@ export const seedMetrics = async (userId = 'system') => {
           maxValue: metric.maxValue || null,
           isDefault: true,
           displayOrder: metric.displayOrder || 0,
-        }, userId);
+        }, userId, true); // ✅ Skip Firebase sync during seeding
         
         successCount++;
         console.log(`  ✅ Seeded metric: ${metric.name}`);
@@ -157,7 +157,7 @@ export const seedBenchmarks = async () => {
           fairMin: benchmark.fair,
           poorMax: benchmark.poor,
           source: benchmark.source || 'AccellaX Standard',
-        });
+        }, true); // ✅ Skip Firebase sync during seeding
         
         successCount++;
       } catch (error) {

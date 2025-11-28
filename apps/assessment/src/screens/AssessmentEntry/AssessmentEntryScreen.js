@@ -68,12 +68,15 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     sport, 
     kids = [], 
     mode,
-    selectedTests = [] 
+    selectedTests = [],
+    initialKidIndex = 0,
+    initialTestIndex = 0,
+    existingAssessmentData = {}
   } = route?.params || {};
   
-  const [currentKidIndex, setCurrentKidIndex] = useState(0);
-  const [currentTestIndex, setCurrentTestIndex] = useState(0);
-  const [assessmentData, setAssessmentData] = useState({});
+  const [currentKidIndex, setCurrentKidIndex] = useState(initialKidIndex);
+  const [currentTestIndex, setCurrentTestIndex] = useState(initialTestIndex);
+  const [assessmentData, setAssessmentData] = useState(existingAssessmentData);
   const [prefillEnabled, setPrefillEnabled] = useState(false);
   const [lastValues, setLastValues] = useState({});
   const [loading, setLoading] = useState(false);
@@ -138,8 +141,27 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
   useEffect(() => {
     if (currentKid?.id && currentMetric?.id) {
       loadPreviousData();
+      
+      // Auto-fill field if prefill is enabled and value exists
+      const currentValue = getCurrentValue();
+      if (prefillEnabled && !currentValue && lastValues[currentMetric.id]) {
+        saveCurrentValue(lastValues[currentMetric.id]);
+      }
     }
   }, [currentKid?.id, currentMetric?.id]);
+
+  // NEW: Auto-fill when entering the screen if there's existing data OR previous data with prefill enabled
+  useEffect(() => {
+    if (currentKid?.id && currentMetric?.id) {
+      const currentValue = getCurrentValue();
+      const previousValue = lastValues[currentMetric.id];
+      
+      // If prefill is enabled and field is empty but previous value exists, auto-fill
+      if (prefillEnabled && !currentValue && previousValue) {
+        saveCurrentValue(previousValue);
+      }
+    }
+  }, [prefillEnabled, lastValues]);
 
   const loadPreviousData = async () => {
     try {
@@ -199,8 +221,9 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     const newPrefillState = !prefillEnabled;
     setPrefillEnabled(newPrefillState);
     
-    // If enabling prefill and there's a previous value, save it immediately
-    if (newPrefillState && lastValues[currentMetric.id]) {
+    // If enabling prefill and there's a previous value AND current field is empty, save it immediately
+    const currentValue = getCurrentValue();
+    if (newPrefillState && lastValues[currentMetric.id] && (!currentValue || currentValue === '')) {
       await saveCurrentValue(lastValues[currentMetric.id]);
     }
   };
@@ -516,14 +539,18 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
             style: 'cancel',
             onPress: () => {
               setCompleteModal(false);
-              navigation.navigate('Home');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+              });
             }
           },
           { 
             text: 'View Summary', 
             onPress: () => {
               setCompleteModal(false);
-              navigation.navigate('AssessmentSummary', { 
+              // Use replace to swap current screen with summary
+              navigation.replace('AssessmentSummary', { 
                 assessmentData, 
                 sport, 
                 kids, 
