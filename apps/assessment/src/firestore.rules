@@ -1,0 +1,191 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========== HELPER FUNCTIONS ==========
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'admin'];
+    }
+    
+    function belongsToAcademy(academyId) {
+      // Check if user document exists and has matching academyId
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('academyId', '') == academyId;
+    }
+    
+    function isCoachOrAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'coach') in ['coach', 'admin', 'super_admin'];
+    }
+    
+    // ========== USER PROFILES ==========
+    
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles
+      allow read: if isAuthenticated();
+      // Only owner or admin can write
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update, delete: if isOwner(userId) || isAdmin();
+      
+      // User's personal kids collection (legacy - if still used)
+      match /kids/{kidId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId) || isAdmin();
+      }
+      
+      // User's personal sessions collection (legacy - if still used)
+      match /sessions/{sessionId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId) || isAdmin();
+      }
+    }
+    
+    // ========== ROOT-LEVEL COLLECTIONS (for web frontend) ==========
+    
+    // Kids at root level - for web frontend access
+    match /kids/{kidId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Sessions at root level - for web frontend access
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Attendance at root level - for web frontend access
+    match /attendance/{attendanceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Events at root level - for web frontend access
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // ========== NOTIFICATIONS ==========
+    
+    match /notifications/{notificationId} {
+      // Allow read for authenticated users (can filter by user_id in query)
+      allow read: if isAuthenticated();
+      // Allow create for authenticated users
+      allow create: if isAuthenticated();
+      // Allow update/delete for owner or admin
+      allow update, delete: if isAuthenticated() && 
+                                (resource.data.user_id == request.auth.uid || isAdmin());
+    }
+    
+    // ========== ACADEMY-WIDE STRUCTURE (for mobile apps) ==========
+    
+    match /academies/{academyId} {
+      // Allow authenticated users to read academy data
+      allow read: if isAuthenticated();
+      // Only admins can write to academy document
+      allow write: if isAdmin();
+      
+      // Kids are academy-wide - accessible by all authenticated users
+      match /kids/{kidId} {
+        allow read: if isAuthenticated();
+        // Any authenticated user can write (coaches need to add kids)
+        allow write: if isAuthenticated();
+      }
+      
+      // Sessions are academy-wide
+      match /sessions/{sessionId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+      
+      // Notes are academy-wide
+      match /notes/{noteId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+      
+      // Attendance records
+      match /attendance/{attendanceId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+      
+      // Coach attendance
+      match /coach_attendance/{coachAttendanceId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+
+       // ========== ASSESSMENT APP COLLECTIONS ==========
+      
+      // Sports (default + custom)
+      match /sports/{sportId} {
+        allow read: if isAuthenticated();
+        allow write: if isCoachOrAdmin();
+      }
+      
+      // Metrics (general fitness + sport-specific)
+      match /metrics/{metricId} {
+        allow read: if isAuthenticated();
+        allow write: if isCoachOrAdmin();
+      }
+      
+      // Benchmarks (age/gender performance standards)
+      match /benchmarks/{benchmarkId} {
+        allow read: if isAuthenticated();
+        allow write: if isCoachOrAdmin();
+      }
+      
+      // Assessments (individual kid assessments)
+      match /assessments/{assessmentId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+      
+      // Assessment Results (metric values per assessment)
+      match /assessment_results/{resultId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+    }
+    
+    // ========== MESSAGES & GROUPS ==========
+    
+    match /message_groups/{groupId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+      
+      match /messages/{messageId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+    }
+    
+    // ========== PAYMENTS ==========
+    
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // ========== CONNECTION TEST ==========
+    
+    match /__connection_test__/{document=**} {
+      allow read: if isAuthenticated();
+    }
+  }
+}

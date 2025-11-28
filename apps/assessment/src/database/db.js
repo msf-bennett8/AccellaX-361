@@ -427,7 +427,7 @@ export const updateUserField = async (userId, field, value) => {
 export const insertKid = async (userId, name, age, gender, area, ageGroup, sponsorshipType = 'SP', programType = 'ELT', programTypeOther = null, trialNotes = null, skipFirebaseSync = false, providedKidId = null) => {
   const FIXED_ACADEMY_ID = 'academy_accellax361_main';
   
-  if (isWeb) {
+   if (isWeb) {
     const kid = {
       id: providedKidId || generateId(),
       user_id: userId,
@@ -485,6 +485,11 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
       console.log('⏭️ Skipping Firebase sync (download operation)');
       kid.firebase_synced = 1;
     }
+    
+    // ✅ FIX: Add kid to local webDB BEFORE returning
+    webDB.kids.push(kid);
+    await saveWebDB();
+    console.log('✅ Kid added to local webDB:', kid.id);
     
     return kid;
   }

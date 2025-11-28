@@ -3,16 +3,22 @@
 
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../utils/constants';
-import EditProfileScreen from '../screens/Profile/EditProfileScreen';
 import { Platform } from 'react-native';
 import { useEffect } from 'react';
 
 // Import Screens
 import HomeScreen from '../screens/Home/HomeScreen';
+import KidsListScreen from '../screens/Kids/KidsListScreen';
+import AddEditKidScreen from '../screens/Kids/AddEditKidScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
+import EditProfileScreen from '../screens/Profile/EditProfileScreen';
+
+// Stack Navigators
+import AssessmentStackNavigator from './AssessmentStackNavigator';
+import HistoryStackNavigator from './HistoryStackNavigator';
 
 // Drawer Content
 import CustomDrawerContent from './CustomDrawerContent';
@@ -25,9 +31,13 @@ export default function DrawerNavigator({ onLogout }) {
     if (Platform.OS === 'web') {
       const pageTitles = {
         Home: 'Home',
+        Kids: 'Kids Management',
+        AddEditKid: 'Add/Edit Kid',
+        History: 'Assessment History',
         Profile: 'Profile',
         EditProfile: 'Edit Profile',
         Settings: 'Settings',
+        Assessment: 'New Assessment',
       };
       const pageTitle = pageTitles[routeName] || routeName;
       document.title = `AccellaX 361° | ${pageTitle}`;
@@ -67,7 +77,38 @@ export default function DrawerNavigator({ onLogout }) {
         component={HomeScreen}
         options={{
           title: 'Home',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          drawerIcon: ({ color }) => (
+            <Ionicons name="home" size={22} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Kids"
+        component={KidsListScreen}
+        options={{
+          title: 'Kids',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="account-group" size={22} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="AddEditKid"
+        component={AddEditKidScreen}
+        options={{
+          title: 'Add/Edit Kid',
+          drawerItemStyle: { display: 'none' }, // Hide from drawer menu
+        }}
+      />
+      {/* ✅ NEW: History Stack Navigator */}
+      <Drawer.Screen
+        name="History"
+        component={HistoryStackNavigator}
+        options={{
+          title: 'History',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="history" size={22} color={color} />
+          ),
         }}
       />
       <Drawer.Screen
@@ -75,7 +116,9 @@ export default function DrawerNavigator({ onLogout }) {
         component={ProfileScreen}
         options={{
           title: 'My Profile',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>👤</Text>,
+          drawerIcon: ({ color }) => (
+            <Ionicons name="person-circle" size={22} color={color} />
+          ),
         }}
       />
       <Drawer.Screen
@@ -91,7 +134,17 @@ export default function DrawerNavigator({ onLogout }) {
         component={SettingsScreen}
         options={{
           title: 'Settings',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>⚙️</Text>,
+          drawerIcon: ({ color }) => (
+            <Ionicons name="settings" size={22} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Assessment"
+        component={AssessmentStackNavigator}
+        options={{
+          title: 'New Assessment',
+          drawerItemStyle: { display: 'none' }, // Hidden - accessed via Home button
         }}
       />
     </Drawer.Navigator>

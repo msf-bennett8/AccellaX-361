@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import { COLORS, APP_NAME, AGE_GROUPS, SPORTS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
@@ -32,7 +33,7 @@ export default function HomeScreen() {
     totalKids: 0,
     activeSports: 6,
     pendingAssessments: 0,
-    recentAssessments: 0, // This week
+    recentAssessments: 0,
     lastAssessmentDate: null,
   });
   const [quickStats, setQuickStats] = useState({
@@ -60,12 +61,14 @@ export default function HomeScreen() {
     try {
       console.log('📊 Loading dashboard data...');
       
-      // Load user profile
       const profile = await getCurrentUser();
       setUserProfile(profile);
 
-      // Load assessment statistics
-      await loadStats();
+      try {
+        await loadStats();
+      } catch (error) {
+        console.log('⚠️ Stats not available yet');
+      }
       await loadQuickStats();
       await loadUpcomingTests();
       await loadRedFlags();
@@ -80,8 +83,7 @@ export default function HomeScreen() {
 
   const loadStats = async () => {
     try {
-      // TODO: Replace with actual database queries
-      const { getAssessmentStats } = await import('../../database/db');
+      const { getAssessmentStats } = await import('../../services/assessmentService');
       const statsData = await getAssessmentStats();
       
       setStats({
@@ -99,7 +101,6 @@ export default function HomeScreen() {
 
   const loadQuickStats = async () => {
     try {
-      // TODO: Replace with actual database queries
       const { getQuickStats } = await import('../../database/db');
       const quickStatsData = await getQuickStats();
       
@@ -115,7 +116,6 @@ export default function HomeScreen() {
 
   const loadUpcomingTests = async () => {
     try {
-      // TODO: Replace with actual database queries
       setUpcomingTests([
         { id: 1, sport: 'Football', date: 'Next Week', kidsCount: 45 },
         { id: 2, sport: 'Athletics', date: '2 Weeks', kidsCount: 38 },
@@ -127,7 +127,6 @@ export default function HomeScreen() {
 
   const loadRedFlags = async () => {
     try {
-      // TODO: Replace with actual database queries
       setRedFlags([
         { id: 1, kidName: 'Ahmed Hassan', metric: 'Endurance', change: -15, type: 'decline' },
         { id: 2, kidName: 'Sarah Ali', metric: 'Speed', change: -12, type: 'decline' },
@@ -139,7 +138,6 @@ export default function HomeScreen() {
 
   const loadTopPerformers = async () => {
     try {
-      // TODO: Replace with actual database queries
       setTopPerformers([
         { id: 1, name: 'John Kipchoge', sport: 'Athletics', score: 95 },
         { id: 2, name: 'Mary Wanjiku', sport: 'Football', score: 92 },
@@ -152,7 +150,6 @@ export default function HomeScreen() {
 
   const loadRecentActivity = async () => {
     try {
-      // TODO: Replace with actual database queries
       setRecentActivity([
         { id: 1, action: 'Assessment completed', sport: 'Football', time: '2 hours ago', count: 25 },
         { id: 2, action: 'New kids added', count: 8, time: '1 day ago' },
@@ -170,7 +167,7 @@ export default function HomeScreen() {
   };
 
   const handleNewAssessment = () => {
-    navigation.navigate('SelectSport');
+    navigation.navigate('Assessment', { screen: 'SelectSport' });
   };
 
   const handleViewHistory = () => {
@@ -182,7 +179,6 @@ export default function HomeScreen() {
   };
 
   const handleViewKids = () => {
-    // TODO: Navigate to Kids management screen
     Alert.alert('Kids Management', 'Coming soon!');
   };
 
@@ -215,9 +211,9 @@ export default function HomeScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return 'Morning';
+    if (hour < 18) return 'Afternoon';
+    return 'Evening';
   };
 
   const getCurrentTerm = () => {
@@ -226,6 +222,19 @@ export default function HomeScreen() {
     if (month >= 4 && month <= 6) return 'Q2';
     if (month >= 7 && month <= 9) return 'Q3';
     return 'Q4';
+  };
+
+  const getSportIcon = (sportName) => {
+    const iconMap = {
+      'Football': 'soccer',
+      'Athletics': 'run-fast',
+      'Rugby': 'rugby',
+      'Basketball': 'basketball',
+      'Tennis': 'tennis',
+      'Swimming': 'swim',
+      'default': 'trophy'
+    };
+    return iconMap[sportName] || iconMap['default'];
   };
 
   return (
@@ -251,11 +260,12 @@ export default function HomeScreen() {
         {/* Greeting Section */}
         <View style={styles.greetingSection}>
           <Text style={styles.greetingText}>
-            {getGreeting()}, {userProfile?.fullName?.split(' ')[0] || 'Coach'}! 👋
+            {getGreeting()}, {userProfile?.username || userProfile?.fullName?.split(' ')[0] || 'there'}!
           </Text>
-          <Text style={styles.termBadge}>
-            📅 Current Term: {getCurrentTerm()}
-          </Text>
+          <View style={styles.termBadgeContainer}>
+            <Ionicons name="calendar" size={14} color={COLORS.primary} style={{ marginTop: 1 }} />
+            <Text style={styles.termBadge}>Current Term: {getCurrentTerm()}</Text>
+          </View>
         </View>
 
         {/* Main Stats Cards */}
@@ -266,6 +276,7 @@ export default function HomeScreen() {
               onPress={handleViewHistory}
               activeOpacity={0.8}
             >
+              <MaterialCommunityIcons name="clipboard-check" size={32} color={COLORS.white} />
               <Text style={styles.statNumber}>{stats.totalAssessments}</Text>
               <Text style={styles.statLabel}>Total Assessments</Text>
               <Text style={styles.statSubtext}>All time</Text>
@@ -276,6 +287,7 @@ export default function HomeScreen() {
               onPress={handleViewKids}
               activeOpacity={0.8}
             >
+              <Ionicons name="people" size={32} color={COLORS.white} />
               <Text style={styles.statNumber}>{stats.totalKids}</Text>
               <Text style={styles.statLabel}>Athletes</Text>
               <Text style={styles.statSubtext}>Registered</Text>
@@ -284,12 +296,14 @@ export default function HomeScreen() {
 
           <View style={styles.statsRow}>
             <View style={[styles.statCard, styles.statCardSuccess]}>
+              <MaterialCommunityIcons name="trophy" size={32} color={COLORS.white} />
               <Text style={styles.statNumber}>{stats.activeSports}</Text>
               <Text style={styles.statLabel}>Sports</Text>
               <Text style={styles.statSubtext}>Active</Text>
             </View>
 
             <View style={[styles.statCard, styles.statCardWarning]}>
+              <Ionicons name="time" size={32} color={COLORS.white} />
               <Text style={styles.statNumber}>{stats.recentAssessments}</Text>
               <Text style={styles.statLabel}>This Week</Text>
               <Text style={styles.statSubtext}>Completed</Text>
@@ -307,13 +321,13 @@ export default function HomeScreen() {
             activeOpacity={0.85}
           >
             <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>➕</Text>
+              <Ionicons name="add-circle" size={28} color={COLORS.white} />
             </View>
             <View style={styles.actionTextContainer}>
               <Text style={styles.actionTitle}>New Assessment</Text>
               <Text style={styles.actionSubtitle}>Start fitness testing</Text>
             </View>
-            <Text style={styles.actionArrow}>→</Text>
+            <Ionicons name="chevron-forward" size={24} color={COLORS.white} />
           </TouchableOpacity>
 
           <View style={styles.actionButtonsRow}>
@@ -322,7 +336,7 @@ export default function HomeScreen() {
               onPress={handleViewHistory}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryActionIcon}>📊</Text>
+              <MaterialCommunityIcons name="history" size={28} color={COLORS.primary} />
               <Text style={styles.secondaryActionText}>History</Text>
             </TouchableOpacity>
 
@@ -331,7 +345,7 @@ export default function HomeScreen() {
               onPress={handleViewReports}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryActionIcon}>📈</Text>
+              <Ionicons name="stats-chart" size={28} color={COLORS.primary} />
               <Text style={styles.secondaryActionText}>Reports</Text>
             </TouchableOpacity>
 
@@ -340,7 +354,7 @@ export default function HomeScreen() {
               onPress={handleViewLeaderboards}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryActionIcon}>🏆</Text>
+              <MaterialCommunityIcons name="trophy-award" size={28} color={COLORS.primary} />
               <Text style={styles.secondaryActionText}>Rankings</Text>
             </TouchableOpacity>
           </View>
@@ -350,7 +364,7 @@ export default function HomeScreen() {
         {redFlags.length > 0 && (
           <View style={styles.redFlagsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>⚠️ Performance Alerts</Text>
+              <Text style={styles.sectionTitle}>Performance Alerts</Text>
               <TouchableOpacity>
                 <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
@@ -363,7 +377,7 @@ export default function HomeScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.redFlagIcon}>
-                  <Text style={styles.redFlagIconText}>📉</Text>
+                  <Ionicons name="trending-down" size={24} color={COLORS.error} />
                 </View>
                 <View style={styles.redFlagContent}>
                   <Text style={styles.redFlagName}>{flag.kidName}</Text>
@@ -383,7 +397,7 @@ export default function HomeScreen() {
         {upcomingTests.length > 0 && (
           <View style={styles.upcomingSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📅 Upcoming Tests</Text>
+              <Text style={styles.sectionTitle}>Upcoming Tests</Text>
               <TouchableOpacity>
                 <Text style={styles.seeAllText}>Manage</Text>
               </TouchableOpacity>
@@ -396,15 +410,18 @@ export default function HomeScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.upcomingIcon}>
-                  <Text style={styles.upcomingIconText}>📋</Text>
+                  <MaterialCommunityIcons name="clipboard-list" size={24} color={COLORS.primary} />
                 </View>
                 <View style={styles.upcomingContent}>
                   <Text style={styles.upcomingTitle}>{test.sport} Assessment</Text>
-                  <Text style={styles.upcomingDate}>{test.date} • {test.kidsCount} kids</Text>
+                  <View style={styles.upcomingMeta}>
+                    <Ionicons name="time-outline" size={14} color={COLORS.textSecondary} />
+                    <Text style={styles.upcomingDate}>{test.date}</Text>
+                    <Ionicons name="people-outline" size={14} color={COLORS.textSecondary} style={{ marginLeft: 8 }} />
+                    <Text style={styles.upcomingDate}>{test.kidsCount} kids</Text>
+                  </View>
                 </View>
-                <View style={styles.upcomingArrow}>
-                  <Text style={styles.upcomingArrowText}>→</Text>
-                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -426,9 +443,16 @@ export default function HomeScreen() {
                 onPress={() => handleSportPress(sport.name)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.sportIcon}>{sport.icon}</Text>
+                <View style={styles.sportIconContainer}>
+                  <MaterialCommunityIcons 
+                    name={getSportIcon(sport.name)} 
+                    size={32} 
+                    color={COLORS.primary} 
+                  />
+                </View>
                 <Text style={styles.sportName}>{sport.name}</Text>
                 <View style={styles.sportBadge}>
+                  <Ionicons name="checkmark-circle" size={10} color={COLORS.success} />
                   <Text style={styles.sportBadgeText}>Active</Text>
                 </View>
               </TouchableOpacity>
@@ -440,7 +464,7 @@ export default function HomeScreen() {
         {topPerformers.length > 0 && (
           <View style={styles.topPerformersSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🏆 Top Performers</Text>
+              <Text style={styles.sectionTitle}>Top Performers</Text>
               <TouchableOpacity onPress={handleViewLeaderboards}>
                 <Text style={styles.seeAllText}>View All</Text>
               </TouchableOpacity>
@@ -456,7 +480,10 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.performerScore}>
                   <Text style={styles.performerScoreNumber}>{performer.score}</Text>
-                  <Text style={styles.performerScoreLabel}>Score</Text>
+                  <View style={styles.performerScoreLabelRow}>
+                    <Ionicons name="star" size={10} color="#FFD700" />
+                    <Text style={styles.performerScoreLabel}>Score</Text>
+                  </View>
                 </View>
               </View>
             ))}
@@ -485,7 +512,7 @@ export default function HomeScreen() {
 
         {/* Info Banner */}
         <View style={styles.infoBanner}>
-          <Text style={styles.infoBannerIcon}>💡</Text>
+          <Ionicons name="information-circle" size={24} color={COLORS.primary} style={styles.infoBannerIcon} />
           <Text style={styles.infoBannerText}>
             Assessment Module tracks fitness metrics, sport-specific skills, and cognitive abilities across multiple sports. Quarterly assessments recommended.
           </Text>
@@ -515,12 +542,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 12,
+    gap: 4,
   },
   greetingText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text,
+    color: COLORS.primary,
     marginBottom: 8,
+  },
+  termBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   termBadge: {
     fontSize: 14,
@@ -565,6 +598,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: COLORS.white,
+    marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
@@ -589,6 +623,11 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 16,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   primaryActionButton: {
     backgroundColor: COLORS.primary,
     flexDirection: 'row',
@@ -603,16 +642,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   actionIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 16,
-  },
-  actionIcon: {
-    fontSize: 24,
   },
   actionTextContainer: {
     flex: 1,
@@ -627,14 +657,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
   },
-  actionArrow: {
-    fontSize: 24,
-    color: COLORS.white,
-    fontWeight: 'bold',
-  },
   actionButtonsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  actionButton: {
+    // Base button styles
   },
   secondaryActionButton: {
     flex: 1,
@@ -649,14 +677,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  secondaryActionIcon: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
   secondaryActionText: {
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text,
+    marginTop: 8,
   },
 
   // Section Header
@@ -695,9 +720,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  redFlagIconText: {
-    fontSize: 20,
   },
   redFlagContent: {
     flex: 1,
@@ -751,9 +773,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  upcomingIconText: {
-    fontSize: 20,
-  },
   upcomingContent: {
     flex: 1,
   },
@@ -763,22 +782,14 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 4,
   },
+  upcomingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   upcomingDate: {
     fontSize: 13,
     color: COLORS.textSecondary,
-  },
-  upcomingArrow: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.backgroundDark,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  upcomingArrowText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: 'bold',
   },
 
   // Sports Grid
@@ -804,8 +815,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  sportIcon: {
-    fontSize: 36,
+  sportIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
   sportName: {
@@ -816,6 +832,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sportBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: COLORS.success + '20',
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -880,6 +899,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.primary,
   },
+  performerScoreLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   performerScoreLabel: {
     fontSize: 11,
     color: COLORS.textSecondary,
@@ -919,26 +943,26 @@ const styles = StyleSheet.create({
 
   // Info Banner
   infoBanner: {
-backgroundColor: COLORS.primaryLight + '40',
-marginHorizontal: 20,
-padding: 16,
-borderRadius: 12,
-flexDirection: 'row',
-alignItems: 'flex-start',
-},
-infoBannerIcon: {
-fontSize: 24,
-marginRight: 12,
-marginTop: 2,
-},
-infoBannerText: {
-flex: 1,
-fontSize: 13,
-color: COLORS.primary,
-lineHeight: 20,
-},
-// Bottom Padding
-bottomPadding: {
-height: 32,
-},
+    backgroundColor: COLORS.primaryLight + '40',
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  infoBannerIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  infoBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.primary,
+    lineHeight: 20,
+  },
+
+  // Bottom Padding
+  bottomPadding: {
+    height: 32,
+  },
 });

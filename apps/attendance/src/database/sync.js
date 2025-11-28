@@ -367,6 +367,9 @@ const uploadKidsToFirebase = async (userId, academyId) => {
       const kidData = {
         ...kid,
         id: kid.id.toString(),
+        sports_enrolled: kid.sports_enrolled ? (typeof kid.sports_enrolled === 'string' ? JSON.parse(kid.sports_enrolled) : kid.sports_enrolled) : null,
+        primary_sport: kid.primary_sport || null,
+        sport_history: kid.sport_history ? (typeof kid.sport_history === 'string' ? JSON.parse(kid.sport_history) : kid.sport_history) : null,
         created_at: Timestamp.fromDate(new Date(kid.created_at)),
         updated_at: Timestamp.now(),
         synced_at: Timestamp.now(),

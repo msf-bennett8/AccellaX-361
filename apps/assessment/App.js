@@ -4,12 +4,14 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/contexts/AuthContext';
+import { AssessmentProvider } from './src/contexts/AssessmentContext';
 import { initDatabase } from './src/database/db';
+import { seedDatabaseIfNeeded } from './src/database/seeds';
 import { COLORS } from './src/utils/constants';
-import { Platform } from 'react-native';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,13 +22,6 @@ export default function App() {
   }, []);
 
   // Set initial document title for web
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      document.title = 'AccellaX 361° | Sports Academy Assessment';
-    }
-  }, []);
-
-  // Update document title for web
   useEffect(() => {
     if (Platform.OS === 'web') {
       document.title = 'AccellaX 361° | Sports Academy Assessment';
@@ -44,6 +39,11 @@ export default function App() {
       // Check authentication status
       const userProfile = await AsyncStorage.getItem('userProfile');
       const currentUserId = await AsyncStorage.getItem('currentUserId');
+
+      // Seed database (safe to call every time - checks if already seeded)
+      console.log('🌱 Checking database seeding...');
+      const seedResult = await seedDatabaseIfNeeded(currentUserId || 'system');
+      console.log('📊 Seeding result:', seedResult);
 
       if (userProfile && currentUserId) {
         console.log('✅ User is authenticated');
@@ -99,14 +99,18 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar style="auto" />
-      <AppNavigator 
-        isAuthenticated={isAuthenticated}
-        onAuthComplete={handleAuthComplete}
-        onLogout={handleLogout}
-      />
-    </NavigationContainer>
+    <AuthProvider>
+      <AssessmentProvider>
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          <AppNavigator 
+            isAuthenticated={isAuthenticated}
+            onAuthComplete={handleAuthComplete}
+            onLogout={handleLogout}
+          />
+        </NavigationContainer>
+      </AssessmentProvider>
+    </AuthProvider>
   );
 }
 

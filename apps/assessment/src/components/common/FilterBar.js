@@ -4,7 +4,12 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import FilterChip from './FilterChip';
 import { FILTER_LABELS, COLORS } from '../../utils/constants';
 
-const FilterBar = ({ filters, activeFilter, onFilterChange, counts }) => {
+const FilterBar = ({ filters = [], options = [], activeFilter, selectedValue, onFilterChange, onSelect, counts }) => {
+  // Support both prop naming conventions
+  const filterList = filters.length > 0 ? filters : options;
+  const currentValue = activeFilter || selectedValue;
+  const handleChange = onFilterChange || onSelect;
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -12,15 +17,22 @@ const FilterBar = ({ filters, activeFilter, onFilterChange, counts }) => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {filters.map((filter) => (
-          <FilterChip
-            key={filter}
-            label={FILTER_LABELS[filter] || filter}
-            count={counts ? counts[filter] : undefined}
-            isSelected={activeFilter === filter}
-            onPress={() => onFilterChange(filter)}
-          />
-        ))}
+        {filterList.map((filter) => {
+          // Handle both string filters and option objects
+          const filterValue = typeof filter === 'object' ? filter.value : filter;
+          const filterLabel = typeof filter === 'object' ? filter.label : (FILTER_LABELS[filter] || filter);
+          const filterIcon = typeof filter === 'object' ? filter.icon : '';
+          
+          return (
+            <FilterChip
+              key={filterValue}
+              label={filterIcon ? `${filterIcon} ${filterLabel}` : filterLabel}
+              count={counts ? counts[filterValue] : undefined}
+              isSelected={currentValue === filterValue}
+              onPress={() => handleChange(filterValue)}
+            />
+          );
+        })}
       </ScrollView>
     </View>
   );

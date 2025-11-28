@@ -17,6 +17,9 @@ export const KIDS_TABLE_SCHEMA = `
     programTypeOther TEXT,
     trialNotes TEXT,
     status TEXT DEFAULT 'active',
+    sports_enrolled TEXT,
+    primary_sport TEXT,
+    sport_history TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     firebase_synced INTEGER DEFAULT 0

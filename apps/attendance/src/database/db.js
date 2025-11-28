@@ -148,6 +148,40 @@ export const initDatabase = async () => {
   
   console.log('SQLite database initialized with notes table');
 
+  // ========== SPORTS FIELDS MIGRATION ==========
+  try {
+    await db.execAsync(`
+      ALTER TABLE kids ADD COLUMN sports_enrolled TEXT DEFAULT NULL;
+    `);
+    console.log('✅ Migration: Added sports_enrolled to kids');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+
+  try {
+    await db.execAsync(`
+      ALTER TABLE kids ADD COLUMN primary_sport TEXT DEFAULT NULL;
+    `);
+    console.log('✅ Migration: Added primary_sport to kids');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+
+  try {
+    await db.execAsync(`
+      ALTER TABLE kids ADD COLUMN sport_history TEXT DEFAULT NULL;
+    `);
+    console.log('✅ Migration: Added sport_history to kids');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+
   // ========== MIGRATION: Change ID columns from INTEGER to TEXT ==========
   try {
     // Check if migration is needed

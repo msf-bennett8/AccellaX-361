@@ -1,589 +1,82 @@
 // Location: /apps/assessment/src/database/seeds.js
-// Seed data for default sports, metrics, and benchmarks
+// Database Seeding Functions for AccellaX 361° Assessment App
 
-import { insertSport, insertMetric, insertBenchmark } from './db';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDatabase, insertSport, insertMetric, insertBenchmark } from './db';
+import { DEFAULT_SPORTS } from '../config/sports';
+import { ALL_DEFAULT_METRICS } from '../config/metrics';
+import { ALL_BENCHMARKS } from '../config/benchmarks';
 
+const isWeb = Platform.OS === 'web';
 const FIXED_ACADEMY_ID = 'academy_accellax361_main';
 
-// ========== DEFAULT SPORTS ==========
+// ========== SEEDING STATUS CHECKS ==========
 
-export const DEFAULT_SPORTS = [
-  {
-    id: 'football',
-    name: 'Football',
-    icon: '⚽',
-    isDefault: true,
-  },
-  {
-    id: 'athletics',
-    name: 'Athletics',
-    icon: '🏃',
-    isDefault: true,
-  },
-  {
-    id: 'rugby',
-    name: 'Rugby',
-    icon: '🏉',
-    isDefault: true,
-  },
-  {
-    id: 'swimming',
-    name: 'Swimming',
-    icon: '🏊',
-    isDefault: true,
-  },
-  {
-    id: 'tennis',
-    name: 'Tennis',
-    icon: '🎾',
-    isDefault: true,
-  },
-  {
-    id: 'basketball',
-    name: 'Basketball',
-    icon: '🏀',
-    isDefault: true,
-  },
-];
-
-// ========== DEFAULT METRICS PER SPORT ==========
-
-export const DEFAULT_METRICS = {
-  // ===== GENERAL FITNESS (ALL SPORTS) =====
-  general: [
-    {
-      id: 'gen_height',
-      name: 'Height',
-      category: 'general_fitness',
-      type: 'numeric',
-      unit: 'cm',
-      minValue: 50,
-      maxValue: 250,
-      displayOrder: 1,
-    },
-    {
-      id: 'gen_weight',
-      name: 'Weight',
-      category: 'general_fitness',
-      type: 'numeric',
-      unit: 'kg',
-      minValue: 10,
-      maxValue: 150,
-      displayOrder: 2,
-    },
-    {
-      id: 'gen_endurance',
-      name: 'Endurance (12-min run)',
-      category: 'general_fitness',
-      type: 'numeric',
-      unit: 'meters',
-      minValue: 0,
-      maxValue: 4000,
-      displayOrder: 3,
-    },
-    {
-      id: 'gen_strength',
-      name: 'Strength (Push-ups in 1 min)',
-      category: 'general_fitness',
-      type: 'counted',
-      unit: 'reps',
-      minValue: 0,
-      maxValue: 100,
-      displayOrder: 4,
-    },
-    {
-      id: 'gen_flexibility',
-      name: 'Flexibility (Sit & Reach)',
-      category: 'general_fitness',
-      type: 'numeric',
-      unit: 'cm',
-      minValue: -20,
-      maxValue: 50,
-      displayOrder: 5,
-    },
-    {
-      id: 'gen_agility',
-      name: 'Agility (T-Test)',
-      category: 'general_fitness',
-      type: 'timed',
-      unit: 'seconds',
-      minValue: 5,
-      maxValue: 30,
-      displayOrder: 6,
-    },
-    {
-      id: 'gen_speed',
-      name: 'Speed (100m Sprint)',
-      category: 'general_fitness',
-      type: 'timed',
-      unit: 'seconds',
-      minValue: 10,
-      maxValue: 30,
-      displayOrder: 7,
-    },
-    {
-      id: 'gen_power',
-      name: 'Power (Vertical Jump)',
-      category: 'general_fitness',
-      type: 'numeric',
-      unit: 'cm',
-      minValue: 0,
-      maxValue: 100,
-      displayOrder: 8,
-    },
-  ],
-
-  // ===== FOOTBALL =====
-  football: [
-    {
-      id: 'fb_passing',
-      name: 'Passing',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 1,
-    },
-    {
-      id: 'fb_receiving',
-      name: 'Receiving the Ball',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 2,
-    },
-    {
-      id: 'fb_dribbling',
-      name: 'Dribbling',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 3,
-    },
-    {
-      id: 'fb_shooting',
-      name: 'Shooting',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 4,
-    },
-    {
-      id: 'fb_defending',
-      name: 'Defending',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 5,
-    },
-    {
-      id: 'fb_iq',
-      name: 'Soccer IQ',
-      category: 'iq',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 6,
-    },
-  ],
-
-  // ===== ATHLETICS =====
-  athletics: [
-    {
-      id: 'ath_body_alignment',
-      name: 'Body Alignment',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 1,
-    },
-    {
-      id: 'ath_arm_action',
-      name: 'Arm Action',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 2,
-    },
-    {
-      id: 'ath_knee_drive',
-      name: 'Knee Drive',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 3,
-    },
-    {
-      id: 'ath_foot_landing',
-      name: 'Foot Landing Position',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 4,
-    },
-    {
-      id: 'ath_coordination',
-      name: 'Coordination',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 5,
-    },
-    {
-      id: 'ath_iq',
-      name: 'Athletics IQ',
-      category: 'iq',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 6,
-    },
-  ],
-
-  // ===== RUGBY =====
-  rugby: [
-    {
-      id: 'rg_passing',
-      name: 'Passing',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 1,
-    },
-    {
-      id: 'rg_receiving',
-      name: 'Receiving the Ball',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 2,
-    },
-    {
-      id: 'rg_running',
-      name: 'Running with the Ball',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 3,
-    },
-    {
-      id: 'rg_defending',
-      name: 'Defending',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 4,
-    },
-    {
-      id: 'rg_kicking',
-      name: 'Kicking',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 5,
-    },
-    {
-      id: 'rg_iq',
-      name: 'Rugby IQ',
-      category: 'iq',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 6,
-    },
-  ],
-
-  // ===== SWIMMING =====
-  swimming: [
-    {
-      id: 'sw_body_position',
-      name: 'Body Positioning',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 1,
-    },
-    {
-      id: 'sw_breathing',
-      name: 'Breathing',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 2,
-    },
-    {
-      id: 'sw_arm_recovery',
-      name: 'Arm Recovery',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 3,
-    },
-    {
-      id: 'sw_underwater_catch',
-      name: 'Underwater Catch',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 4,
-    },
-    {
-      id: 'sw_kicking',
-      name: 'Kicking',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 5,
-    },
-    {
-      id: 'sw_iq',
-      name: 'Swimming IQ',
-      category: 'iq',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 6,
-    },
-  ],
-
-  // ===== TENNIS =====
-  tennis: [
-    {
-      id: 'tn_serve',
-      name: 'Serve',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 1,
-    },
-    {
-      id: 'tn_forehand',
-      name: 'Forehand',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 2,
-    },
-    {
-      id: 'tn_backhand',
-      name: 'Backhand',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 3,
-    },
-    {
-      id: 'tn_volley',
-      name: 'Volley',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 4,
-    },
-    {
-      id: 'tn_footwork',
-      name: 'Footwork',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 5,
-    },
-    {
-      id: 'tn_iq',
-      name: 'Tennis IQ',
-      category: 'iq',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 6,
-    },
-  ],
-
-  // ===== BASKETBALL =====
-  basketball: [
-    {
-      id: 'bb_passing',
-      name: 'Passing',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 1,
-    },
-    {
-      id: 'bb_shooting',
-      name: 'Shooting',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 2,
-    },
-    {
-      id: 'bb_layup',
-      name: 'Layup',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 3,
-    },
-    {
-      id: 'bb_dribbling',
-      name: 'Dribbling/Ball Control',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 4,
-    },
-    {
-      id: 'bb_defending',
-      name: 'Defending',
-      category: 'sport_specific',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 5,
-    },
-    {
-      id: 'bb_iq',
-      name: 'Basketball IQ',
-      category: 'iq',
-      type: 'rating',
-      unit: '/10',
-      minValue: 1,
-      maxValue: 10,
-      displayOrder: 6,
-    },
-  ],
+/**
+ * Check if database has been seeded
+ */
+export const isDatabaseSeeded = async () => {
+  try {
+    if (isWeb) {
+      const seeded = await AsyncStorage.getItem('assessment_db_seeded');
+      return seeded === 'true';
+    }
+    
+    const db = getDatabase();
+    const result = await db.getFirstAsync('SELECT COUNT(*) as count FROM sports WHERE is_default = 1');
+    return result && result.count > 0;
+  } catch (error) {
+    console.error('❌ Error checking seed status:', error);
+    return false;
+  }
 };
 
-// ========== DEFAULT BENCHMARKS (Sample for U10 Endurance) ==========
+/**
+ * Mark database as seeded
+ */
+const markAsSeeded = async () => {
+  try {
+    if (isWeb) {
+      await AsyncStorage.setItem('assessment_db_seeded', 'true');
+      console.log('✅ Database marked as seeded (web)');
+    } else {
+      console.log('✅ Database marked as seeded (mobile)');
+    }
+  } catch (error) {
+    console.error('❌ Error marking as seeded:', error);
+  }
+};
 
-export const DEFAULT_BENCHMARKS = [
-  // U10 Endurance (12-min run) - based on Cooper Test
-  {
-    metricId: 'gen_endurance',
-    ageGroup: '10-13',
-    gender: 'male',
-    excellentMin: 2400,
-    goodMin: 2000,
-    fairMin: 1600,
-    poorMax: 1599,
-    source: 'Cooper Test',
-  },
-  {
-    metricId: 'gen_endurance',
-    ageGroup: '10-13',
-    gender: 'female',
-    excellentMin: 2200,
-    goodMin: 1800,
-    fairMin: 1400,
-    poorMax: 1399,
-    source: 'Cooper Test',
-  },
-  // U7-9 Endurance
-  {
-    metricId: 'gen_endurance',
-    ageGroup: '7-9',
-    gender: 'male',
-    excellentMin: 2000,
-    goodMin: 1600,
-    fairMin: 1200,
-    poorMax: 1199,
-    source: 'Cooper Test (Modified)',
-  },
-  {
-    metricId: 'gen_endurance',
-    ageGroup: '7-9',
-    gender: 'female',
-    excellentMin: 1800,
-    goodMin: 1400,
-    fairMin: 1000,
-    poorMax: 999,
-    source: 'Cooper Test (Modified)',
-  },
-];
-
-// ========== SEED FUNCTIONS ==========
+// ========== SEED SPORTS ==========
 
 /**
  * Seed default sports into the database
  */
-export const seedSports = async (userId) => {
-  console.log('🌱 Seeding default sports...');
-  
+export const seedSports = async (userId = 'system') => {
   try {
+    console.log('🌱 Seeding sports...');
+    
     let successCount = 0;
     
     for (const sport of DEFAULT_SPORTS) {
       try {
-        await insertSport(sport, userId);
+        await insertSport({
+          id: sport.id,
+          name: sport.name,
+          icon: sport.icon,
+          isDefault: true,
+        }, userId);
+        
         successCount++;
-        console.log(`✅ Seeded sport: ${sport.name}`);
+        console.log(`  ✅ Seeded sport: ${sport.name}`);
       } catch (error) {
-        // Sport might already exist, skip error
-        console.log(`⏭️ Sport already exists: ${sport.name}`);
+        // If sport already exists, skip
+        if (error.message.includes('UNIQUE constraint') || error.message.includes('already exists')) {
+          console.log(`  ⏭️  Sport already exists: ${sport.name}`);
+        } else {
+          console.error(`  ❌ Error seeding sport ${sport.name}:`, error.message);
+        }
       }
     }
     
@@ -596,114 +89,87 @@ export const seedSports = async (userId) => {
   }
 };
 
+// ========== SEED METRICS ==========
+
 /**
- * Seed default metrics for a specific sport
+ * Seed all default metrics (general fitness + sport-specific)
  */
-export const seedMetricsForSport = async (sportId, userId) => {
-  console.log(`🌱 Seeding metrics for ${sportId}...`);
-  
+export const seedMetrics = async (userId = 'system') => {
   try {
-    const sportMetrics = DEFAULT_METRICS[sportId];
-    if (!sportMetrics) {
-      console.log(`⚠️ No default metrics found for ${sportId}`);
-      return { success: true, count: 0 };
-    }
+    console.log('🌱 Seeding metrics...');
     
     let successCount = 0;
     
-    // Seed general fitness metrics (shared across all sports)
-    for (const metric of DEFAULT_METRICS.general) {
+    for (const metric of ALL_DEFAULT_METRICS) {
       try {
         await insertMetric({
-          id: `${sportId}_${metric.id}`,
-          sportId,
+          id: metric.id,
+          sportId: metric.sportId || 'general', // General fitness metrics don't have sportId
           name: metric.name,
           category: metric.category,
           type: metric.type,
-          unit: metric.unit,
-          minValue: metric.minValue,
-          maxValue: metric.maxValue,
+          unit: metric.unit || null,
+          minValue: metric.minValue || null,
+          maxValue: metric.maxValue || null,
           isDefault: true,
-          displayOrder: metric.displayOrder,
+          displayOrder: metric.displayOrder || 0,
         }, userId);
+        
         successCount++;
+        console.log(`  ✅ Seeded metric: ${metric.name}`);
       } catch (error) {
-        // Metric might already exist
+        if (error.message.includes('UNIQUE constraint') || error.message.includes('already exists')) {
+          console.log(`  ⏭️  Metric already exists: ${metric.name}`);
+        } else {
+          console.error(`  ❌ Error seeding metric ${metric.name}:`, error.message);
+        }
       }
     }
     
-    // Seed sport-specific metrics
-    for (const metric of sportMetrics) {
-      try {
-        await insertMetric({
-          id: `${sportId}_${metric.id}`,
-          sportId,
-          name: metric.name,
-          category: metric.category,
-          type: metric.type,
-          unit: metric.unit,
-          minValue: metric.minValue,
-          maxValue: metric.maxValue,
-          isDefault: true,
-          displayOrder: metric.displayOrder + 100, // Place after general fitness
-        }, userId);
-        successCount++;
-      } catch (error) {
-        // Metric might already exist
-      }
-    }
-    
-    console.log(`✅ Seeded ${successCount} metrics for ${sportId}`);
+    console.log(`✅ Seeded ${successCount}/${ALL_DEFAULT_METRICS.length} metrics`);
     return { success: true, count: successCount };
     
   } catch (error) {
-    console.error(`❌ Error seeding metrics for ${sportId}:`, error);
+    console.error('❌ Error seeding metrics:', error);
     return { success: false, error: error.message };
   }
 };
 
-/**
- * Seed all default metrics for all sports
- */
-export const seedAllMetrics = async (userId) => {
-  console.log('🌱 Seeding all default metrics...');
-  
-  try {
-    let totalCount = 0;
-    
-    for (const sport of DEFAULT_SPORTS) {
-      const result = await seedMetricsForSport(sport.id, userId);
-      totalCount += result.count || 0;
-    }
-    
-    console.log(`✅ Seeded ${totalCount} total metrics across all sports`);
-    return { success: true, count: totalCount };
-    
-  } catch (error) {
-    console.error('❌ Error seeding all metrics:', error);
-    return { success: false, error: error.message };
-  }
-};
+// ========== SEED BENCHMARKS ==========
 
 /**
- * Seed default benchmarks
+ * Seed default performance benchmarks
  */
 export const seedBenchmarks = async () => {
-  console.log('🌱 Seeding default benchmarks...');
-  
   try {
+    console.log('🌱 Seeding benchmarks...');
+    
     let successCount = 0;
     
-    for (const benchmark of DEFAULT_BENCHMARKS) {
+    for (const benchmark of ALL_BENCHMARKS) {
       try {
-        await insertBenchmark(benchmark);
+        await insertBenchmark({
+          metricId: benchmark.metricId || benchmark.category, // Rating benchmarks use 'category' field
+          ageGroup: benchmark.ageGroup,
+          gender: benchmark.gender,
+          excellentMin: benchmark.excellent,
+          goodMin: benchmark.good,
+          fairMin: benchmark.fair,
+          poorMax: benchmark.poor,
+          source: benchmark.source || 'AccellaX Standard',
+        });
+        
         successCount++;
       } catch (error) {
-        // Benchmark might already exist
+        if (error.message.includes('UNIQUE constraint') || error.message.includes('already exists')) {
+          // Skip duplicate benchmarks
+        } else {
+          console.error(`  ❌ Error seeding benchmark:`, error.message);
+        }
       }
     }
     
-    console.log(`✅ Seeded ${successCount}/${DEFAULT_BENCHMARKS.length} benchmarks`);
+    console.log(`✅ Seeded ${successCount}/${ALL_BENCHMARKS.length} benchmarks`);
     return { success: true, count: successCount };
     
   } catch (error) {
@@ -712,51 +178,215 @@ export const seedBenchmarks = async () => {
   }
 };
 
+// ========== SEED ACADEMY SETTINGS ==========
+
 /**
- * Seed all default data (sports, metrics, benchmarks)
+ * Seed academy-wide settings
  */
-export const seedAllDefaultData = async (userId) => {
-  console.log('🌱 ========== SEEDING ALL DEFAULT DATA ==========');
-  
+export const seedAcademySettings = async () => {
   try {
-    const results = {
-      sports: 0,
-      metrics: 0,
-      benchmarks: 0,
+    console.log('🌱 Seeding academy settings...');
+    
+    const settings = {
+      age_groups: ['4-6', '7-9', '10-13', '13+'],
+      assessment_terms: ['Q1', 'Q2', 'Q3', 'Q4'],
+      default_sport: 'football',
+      assessment_frequency: 'quarterly',
     };
     
-    // Step 1: Seed sports
-    const sportsResult = await seedSports(userId);
-    results.sports = sportsResult.count || 0;
+    if (isWeb) {
+      await AsyncStorage.setItem('academy_settings', JSON.stringify(settings));
+    } else {
+      const db = getDatabase();
+      for (const [key, value] of Object.entries(settings)) {
+        await db.runAsync(
+          'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+          [key, typeof value === 'string' ? value : JSON.stringify(value)]
+        );
+      }
+    }
     
-    // Step 2: Seed metrics
-    const metricsResult = await seedAllMetrics(userId);
-    results.metrics = metricsResult.count || 0;
-    
-    // Step 3: Seed benchmarks
-    const benchmarksResult = await seedBenchmarks();
-    results.benchmarks = benchmarksResult.count || 0;
-    
-    console.log('✅ ========== SEEDING COMPLETE ==========');
-    console.log(`   Sports: ${results.sports}`);
-    console.log(`   Metrics: ${results.metrics}`);
-    console.log(`   Benchmarks: ${results.benchmarks}`);
-    
-    return { success: true, results };
+    console.log('✅ Academy settings seeded');
+    return { success: true };
     
   } catch (error) {
-    console.error('❌ Error seeding all default data:', error);
+    console.error('❌ Error seeding academy settings:', error);
     return { success: false, error: error.message };
   }
 };
 
+// ========== MASTER SEED FUNCTION ==========
+
+/**
+ * MASTER SEED FUNCTION
+ * Seeds all default data: Sports → Metrics → Benchmarks → Settings
+ */
+export const seedDatabase = async (userId = 'system') => {
+  try {
+    console.log('🌱🌱🌱 STARTING DATABASE SEEDING 🌱🌱🌱');
+    
+    // Check if already seeded
+    const alreadySeeded = await isDatabaseSeeded();
+    if (alreadySeeded) {
+      console.log('✅ Database already seeded. Skipping.');
+      return { success: true, message: 'Database already seeded' };
+    }
+    
+    console.log('📦 Seeding fresh database...');
+    
+    // Step 1: Seed Sports
+    const sportsResult = await seedSports(userId);
+    if (!sportsResult.success) {
+      throw new Error('Failed to seed sports');
+    }
+    
+    // Step 2: Seed Metrics
+    const metricsResult = await seedMetrics(userId);
+    if (!metricsResult.success) {
+      throw new Error('Failed to seed metrics');
+    }
+    
+    // Step 3: Seed Benchmarks
+    const benchmarksResult = await seedBenchmarks();
+    if (!benchmarksResult.success) {
+      throw new Error('Failed to seed benchmarks');
+    }
+    
+    // Step 4: Seed Academy Settings
+    const settingsResult = await seedAcademySettings();
+    if (!settingsResult.success) {
+      console.warn('⚠️  Failed to seed academy settings (non-critical)');
+    }
+    
+    // Mark as seeded
+    await markAsSeeded();
+    
+    console.log('🎉🎉🎉 DATABASE SEEDING COMPLETE 🎉🎉🎉');
+    console.log(`📊 Summary:`);
+    console.log(`  - Sports: ${sportsResult.count}/${DEFAULT_SPORTS.length}`);
+    console.log(`  - Metrics: ${metricsResult.count}/${ALL_DEFAULT_METRICS.length}`);
+    console.log(`  - Benchmarks: ${benchmarksResult.count}/${ALL_BENCHMARKS.length}`);
+    
+    return {
+      success: true,
+      message: 'Database seeded successfully',
+      counts: {
+        sports: sportsResult.count,
+        metrics: metricsResult.count,
+        benchmarks: benchmarksResult.count,
+      },
+    };
+    
+  } catch (error) {
+    console.error('❌ CRITICAL ERROR SEEDING DATABASE:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+// ========== UTILITY FUNCTIONS ==========
+
+/**
+ * Reseed Database (force re-seed, useful for updates)
+ */
+export const reseedDatabase = async (userId = 'system') => {
+  try {
+    console.log('🔄 Force reseeding database...');
+    
+    // Clear seeded flag
+    if (isWeb) {
+      await AsyncStorage.removeItem('assessment_db_seeded');
+    }
+    
+    // Run seeding
+    return await seedDatabase(userId);
+    
+  } catch (error) {
+    console.error('❌ Error reseeding database:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Seed only if not seeded (safe to call on every app start)
+ */
+export const seedDatabaseIfNeeded = async (userId = 'system') => {
+  try {
+    const alreadySeeded = await isDatabaseSeeded();
+    
+    if (alreadySeeded) {
+      console.log('✅ Database already seeded');
+      return { success: true, message: 'Already seeded' };
+    }
+    
+    console.log('🌱 Database not seeded, seeding now...');
+    return await seedDatabase(userId);
+    
+  } catch (error) {
+    console.error('❌ Error in seedDatabaseIfNeeded:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get seeding status (for UI display)
+ */
+export const getSeedingStatus = async () => {
+  try {
+    const seeded = await isDatabaseSeeded();
+    
+    if (!seeded) {
+      return {
+        seeded: false,
+        message: 'Database not seeded',
+      };
+    }
+    
+    // Count seeded items
+    if (isWeb) {
+      const webDB = JSON.parse(await AsyncStorage.getItem('assessmentWebDB') || '{}');
+      return {
+        seeded: true,
+        counts: {
+          sports: webDB.sports?.length || 0,
+          metrics: webDB.metrics?.length || 0,
+          benchmarks: webDB.benchmarks?.length || 0,
+        },
+      };
+    }
+    
+    const db = getDatabase();
+    const sportsCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM sports WHERE is_default = 1');
+    const metricsCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM metrics WHERE is_default = 1');
+    const benchmarksCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM benchmarks');
+    
+    return {
+      seeded: true,
+      counts: {
+        sports: sportsCount?.count || 0,
+        metrics: metricsCount?.count || 0,
+        benchmarks: benchmarksCount?.count || 0,
+      },
+    };
+    
+  } catch (error) {
+    console.error('❌ Error getting seeding status:', error);
+    return { seeded: false, error: error.message };
+  }
+};
+
+// ========== EXPORTS ==========
+
 export default {
-  DEFAULT_SPORTS,
-  DEFAULT_METRICS,
-  DEFAULT_BENCHMARKS,
+  seedDatabase,
+  seedDatabaseIfNeeded,
+  reseedDatabase,
+  isDatabaseSeeded,
+  getSeedingStatus,
   seedSports,
-  seedMetricsForSport,
-  seedAllMetrics,
+  seedMetrics,
   seedBenchmarks,
-  seedAllDefaultData,
+  seedAcademySettings,
 };

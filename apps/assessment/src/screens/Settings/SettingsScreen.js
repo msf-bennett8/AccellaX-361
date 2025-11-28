@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import { COLORS, APP_NAME, APP_VERSION } from '../../utils/constants';
 import { getCurrentUser, logoutUser, isAdminOrOwner } from '../../utils/auth';
@@ -492,9 +493,11 @@ export default function SettingsScreen() {
           activeOpacity={0.8}
         >
           <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>
-              {userProfile?.fullName?.charAt(0)?.toUpperCase() || '?'}
-            </Text>
+            <Ionicons 
+              name="person" 
+              size={28} 
+              color={COLORS.white} 
+            />
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{userProfile?.fullName || 'User'}</Text>
@@ -505,12 +508,12 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </View>
-          <Text style={styles.profileArrow}>→</Text>
+          <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
         </TouchableOpacity>
 
         {/* Sync & Data Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔄 Sync & Data</Text>
+          <Text style={styles.sectionTitle}>Sync & Data</Text>
           
           {/* Sync Status Card */}
           <View style={styles.syncStatusCard}>
@@ -544,7 +547,7 @@ export default function SettingsScreen() {
           {/* Auto Sync Toggle */}
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>⚡</Text>
+              <Ionicons name="flash" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Auto Sync</Text>
                 <Text style={styles.settingSubtitle}>
@@ -563,7 +566,7 @@ export default function SettingsScreen() {
           {/* Sync Only on WiFi */}
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>📶</Text>
+              <Ionicons name="wifi" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>WiFi Only</Text>
                 <Text style={styles.settingSubtitle}>Sync only on WiFi connection</Text>
@@ -604,11 +607,11 @@ export default function SettingsScreen() {
 
         {/* Notifications Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔔 Notifications</Text>
+          <Text style={styles.sectionTitle}>Notifications</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>📬</Text>
+              <Ionicons name="notifications" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Enable Notifications</Text>
                 <Text style={styles.settingSubtitle}>Receive app notifications</Text>
@@ -624,7 +627,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>⚠️</Text>
+              <Ionicons name="alert-circle" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Performance Alerts</Text>
                 <Text style={styles.settingSubtitle}>Alert on significant changes</Text>
@@ -641,7 +644,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>📅</Text>
+              <Ionicons name="calendar" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Test Reminders</Text>
                 <Text style={styles.settingSubtitle}>Remind upcoming assessments</Text>
@@ -659,11 +662,11 @@ export default function SettingsScreen() {
 
         {/* Data Entry Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>✍️ Data Entry</Text>
+          <Text style={styles.sectionTitle}>Data Entry</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🔄</Text>
+              <MaterialCommunityIcons name="refresh" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Auto-Fill Previous Data</Text>
                 <Text style={styles.settingSubtitle}>Pre-populate last assessment</Text>
@@ -679,7 +682,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>✅</Text>
+              <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Confirm Before Save</Text>
                 <Text style={styles.settingSubtitle}>Show confirmation dialog</Text>
@@ -695,7 +698,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🎤</Text>
+              <Ionicons name="mic" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Voice Input (Beta)</Text>
                 <Text style={styles.settingSubtitle}>Experimental feature</Text>
@@ -712,11 +715,11 @@ export default function SettingsScreen() {
 
         {/* Display Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎨 Display</Text>
+          <Text style={styles.sectionTitle}>Display</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🌙</Text>
+              <Ionicons name="moon" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Dark Mode</Text>
                 <Text style={styles.settingSubtitle}>Coming soon</Text>
@@ -733,7 +736,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>📊</Text>
+              <Ionicons name="stats-chart" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Show Percentiles</Text>
                 <Text style={styles.settingSubtitle}>Display percentile rankings</Text>
@@ -766,11 +769,11 @@ export default function SettingsScreen() {
 
         {/* Assessment Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋 Assessment</Text>
+          <Text style={styles.sectionTitle}>Assessment</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>📸</Text>
+              <Ionicons name="camera" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Photo Capture</Text>
                 <Text style={styles.settingSubtitle}>Take photos during assessment</Text>
@@ -786,7 +789,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🎥</Text>
+              <Ionicons name="videocam" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Video Capture (Beta)</Text>
                 <Text style={styles.settingSubtitle}>Record technique videos</Text>
@@ -803,11 +806,11 @@ export default function SettingsScreen() {
 
         {/* Privacy Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔒 Privacy</Text>
+          <Text style={styles.sectionTitle}>Privacy</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>👨‍👩‍👧</Text>
+              <Ionicons name="people" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Share with Parents</Text>
                 <Text style={styles.settingSubtitle}>Allow parent access to data</Text>
@@ -823,7 +826,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🤝</Text>
+              <MaterialCommunityIcons name="handshake" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Share with Sponsors</Text>
                 <Text style={styles.settingSubtitle}>Allow sponsor access</Text>
@@ -839,7 +842,7 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>👥</Text>
+              <Ionicons name="people-outline" size={24} color={COLORS.primary} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Anonymous Comparisons</Text>
                 <Text style={styles.settingSubtitle}>Allow anonymous rankings</Text>
@@ -857,13 +860,13 @@ export default function SettingsScreen() {
         {/* Admin Section (Only visible to admin/owner) */}
         {isAdmin && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚙️ Admin Tools</Text>
+            <Text style={styles.sectionTitle}>Admin Tools</Text>
             <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate('SportManagement')}
           activeOpacity={0.7}
         >
-          <Text style={styles.actionButtonIcon}>🏅</Text>
+          <MaterialCommunityIcons name="medal" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
           <View style={styles.actionButtonTextContainer}>
             <Text style={styles.actionButtonTitle}>Manage Sports</Text>
             <Text style={styles.actionButtonSubtitle}>Add/edit sports & metrics</Text>
@@ -876,7 +879,7 @@ export default function SettingsScreen() {
           onPress={() => navigation.navigate('BenchmarkSettings')}
           activeOpacity={0.7}
         >
-          <Text style={styles.actionButtonIcon}>📐</Text>
+          <MaterialCommunityIcons name="ruler" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
           <View style={styles.actionButtonTextContainer}>
             <Text style={styles.actionButtonTitle}>Benchmark Settings</Text>
             <Text style={styles.actionButtonSubtitle}>Configure standards & percentiles</Text>
@@ -889,7 +892,7 @@ export default function SettingsScreen() {
           onPress={handleExportData}
           activeOpacity={0.7}
         >
-          <Text style={styles.actionButtonIcon}>📤</Text>
+          <Ionicons name="cloud-upload" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
           <View style={styles.actionButtonTextContainer}>
             <Text style={styles.actionButtonTitle}>Export All Data</Text>
             <Text style={styles.actionButtonSubtitle}>Download CSV/PDF reports</Text>
@@ -901,14 +904,14 @@ export default function SettingsScreen() {
 
         {/* Data Management Section */}
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>💾 Data Management</Text>
+      <Text style={styles.sectionTitle}>Data Management</Text>
       
       <TouchableOpacity
         style={styles.actionButton}
         onPress={handleResetSettings}
         activeOpacity={0.7}
       >
-        <Text style={styles.actionButtonIcon}>🔄</Text>
+        <MaterialCommunityIcons name="restore" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
         <View style={styles.actionButtonTextContainer}>
           <Text style={styles.actionButtonTitle}>Reset Settings</Text>
           <Text style={styles.actionButtonSubtitle}>Restore default settings</Text>
@@ -922,7 +925,7 @@ export default function SettingsScreen() {
           onPress={handleDeleteAllData}
           activeOpacity={0.7}
         >
-          <Text style={styles.actionButtonIcon}>🗑️</Text>
+          <Ionicons name="trash" size={24} color={COLORS.error} style={styles.actionButtonIcon} />
           <View style={styles.actionButtonTextContainer}>
             <Text style={[styles.actionButtonTitle, styles.dangerText]}>Delete All Data</Text>
             <Text style={styles.actionButtonSubtitle}>Permanently erase everything</Text>
@@ -934,14 +937,14 @@ export default function SettingsScreen() {
 
     {/* Support Section */}
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>💬 Help & Support</Text>
+      <Text style={styles.sectionTitle}>Help & Support</Text>
       
       <TouchableOpacity
         style={styles.actionButton}
         onPress={handleContactSupport}
         activeOpacity={0.7}
       >
-        <Text style={styles.actionButtonIcon}>📧</Text>
+        <Ionicons name="mail" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
         <View style={styles.actionButtonTextContainer}>
           <Text style={styles.actionButtonTitle}>Contact Support</Text>
           <Text style={styles.actionButtonSubtitle}>Get help from our team</Text>
@@ -954,7 +957,7 @@ export default function SettingsScreen() {
         onPress={handleRateApp}
         activeOpacity={0.7}
       >
-        <Text style={styles.actionButtonIcon}>⭐</Text>
+        <Ionicons name="star" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
         <View style={styles.actionButtonTextContainer}>
           <Text style={styles.actionButtonTitle}>Rate This App</Text>
           <Text style={styles.actionButtonSubtitle}>Share your feedback</Text>
@@ -967,7 +970,7 @@ export default function SettingsScreen() {
         onPress={handleShareApp}
         activeOpacity={0.7}
       >
-        <Text style={styles.actionButtonIcon}>📱</Text>
+        <Ionicons name="share-social" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
         <View style={styles.actionButtonTextContainer}>
           <Text style={styles.actionButtonTitle}>Share App</Text>
           <Text style={styles.actionButtonSubtitle}>Invite other coaches</Text>
@@ -978,14 +981,14 @@ export default function SettingsScreen() {
 
     {/* Legal Section */}
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>📄 Legal</Text>
+      <Text style={styles.sectionTitle}>Legal</Text>
       
       <TouchableOpacity
         style={styles.actionButton}
         onPress={handlePrivacyPolicy}
         activeOpacity={0.7}
       >
-        <Text style={styles.actionButtonIcon}>🔒</Text>
+        <Ionicons name="lock-closed" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
         <View style={styles.actionButtonTextContainer}>
           <Text style={styles.actionButtonTitle}>Privacy Policy</Text>
           <Text style={styles.actionButtonSubtitle}>How we protect your data</Text>
@@ -998,18 +1001,18 @@ export default function SettingsScreen() {
         onPress={handleTermsOfService}
         activeOpacity={0.7}
       >
-        <Text style={styles.actionButtonIcon}>📜</Text>
+        <MaterialCommunityIcons name="file-document" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
         <View style={styles.actionButtonTextContainer}>
           <Text style={styles.actionButtonTitle}>Terms of Service</Text>
           <Text style={styles.actionButtonSubtitle}>Usage terms & conditions</Text>
         </View>
-        <Text style={styles.actionButtonArrow}>→</Text>
+        <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
       </TouchableOpacity>
     </View>
 
     {/* About Section */}
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>ℹ️ About</Text>
+      <Text style={styles.sectionTitle}>About</Text>
       
       <View style={styles.aboutCard}>
         <Text style={styles.aboutAppName}>{APP_NAME}</Text>
@@ -1035,7 +1038,10 @@ export default function SettingsScreen() {
       onPress={handleLogout}
       activeOpacity={0.8}
     >
-      <Text style={styles.logoutButtonText}>🚪 Logout</Text>
+      <View style={styles.logoutButtonContent}>
+            <Ionicons name="log-out" size={20} color={COLORS.white} />
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </View>
     </TouchableOpacity>
 
     {/* Bottom Padding */}
@@ -1082,11 +1088,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  profileAvatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
   profileInfo: {
     flex: 1,
   },
@@ -1112,11 +1113,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: COLORS.primary,
-  },
-  profileArrow: {
-    fontSize: 24,
-    color: COLORS.textSecondary,
-    fontWeight: 'bold',
   },
 
   // Section
@@ -1205,7 +1201,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingIcon: {
-    fontSize: 24,
     marginRight: 12,
   },
   settingTextContainer: {
@@ -1278,7 +1273,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   actionButtonIcon: {
-    fontSize: 24,
     marginRight: 12,
   },
   actionButtonTextContainer: {
@@ -1293,11 +1287,6 @@ const styles = StyleSheet.create({
   actionButtonSubtitle: {
     fontSize: 13,
     color: COLORS.textSecondary,
-  },
-  actionButtonArrow: {
-    fontSize: 20,
-    color: COLORS.textSecondary,
-    fontWeight: 'bold',
   },
   dangerButton: {
     borderWidth: 1,
@@ -1367,6 +1356,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+  },
+  logoutButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   logoutButtonText: {
     fontSize: 16,

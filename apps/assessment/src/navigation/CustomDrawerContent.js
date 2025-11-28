@@ -15,6 +15,7 @@ import {
   DrawerItemList,
 } from '@react-navigation/drawer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, APP_NAME } from '../utils/constants';
 
 export default function CustomDrawerContent(props) {
@@ -61,15 +62,20 @@ export default function CustomDrawerContent(props) {
       {/* Header with User Info */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
-            {userProfile?.fullName?.charAt(0)?.toUpperCase() || '?'}
-          </Text>
+          <Ionicons 
+            name="person" 
+            size={40} 
+            color={COLORS.primary} 
+          />
         </View>
         <Text style={styles.userName}>{userProfile?.fullName || 'User'}</Text>
         <Text style={styles.userEmail}>{userProfile?.email || ''}</Text>
-        <Text style={styles.userRole}>
-          {userProfile?.role?.toUpperCase() || 'COACH'}
-        </Text>
+        <View style={styles.roleBadge}>
+          <MaterialCommunityIcons name="shield-account" size={12} color={COLORS.primaryLight} />
+          <Text style={styles.userRole}>
+            {userProfile?.role?.toUpperCase() || 'COACH'}
+          </Text>
+        </View>
       </View>
 
       {/* Drawer Items */}
@@ -84,12 +90,15 @@ export default function CustomDrawerContent(props) {
           onPress={handleLogout}
           activeOpacity={0.7}
         >
-          <Text style={styles.logoutIcon}>🚪</Text>
+          <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
         <View style={styles.appInfo}>
-          <Text style={styles.appName}>{APP_NAME}</Text>
+          <View style={styles.appNameRow}>
+            <MaterialCommunityIcons name="shield-star" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.appName}>{APP_NAME}</Text>
+          </View>
           <Text style={styles.version}>Version 1.0.0</Text>
         </View>
       </View>
@@ -115,11 +124,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
   userName: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -131,13 +135,18 @@ const styles = StyleSheet.create({
     color: COLORS.primaryLight,
     marginBottom: 8,
   },
-  userRole: {
-    fontSize: 11,
-    color: COLORS.primaryLight,
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  userRole: {
+    fontSize: 11,
+    color: COLORS.primaryLight,
   },
   drawerItems: {
     flex: 1,
@@ -148,18 +157,16 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     paddingVertical: 16,
     paddingHorizontal: 20,
+    backgroundColor: COLORS.white,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     backgroundColor: COLORS.backgroundDark,
     padding: 16,
     borderRadius: 8,
     marginBottom: 16,
-  },
-  logoutIcon: {
-    fontSize: 20,
-    marginRight: 12,
   },
   logoutText: {
     fontSize: 16,
@@ -168,15 +175,21 @@ const styles = StyleSheet.create({
   },
   appInfo: {
     alignItems: 'center',
+    paddingTop: 8,
+  },
+  appNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
   },
   appName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 2,
+    color: COLORS.text,
   },
   version: {
-    fontSize: 10,
-    color: COLORS.textLight,
+    fontSize: 11,
+    color: COLORS.textSecondary,
   },
 });

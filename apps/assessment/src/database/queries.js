@@ -1097,6 +1097,90 @@ export const getKidActiveGoals = async (kidId) => {
   );
 };
 
+// ========== ASSESSMENT PROGRESS QUERIES ==========
+
+/**
+ * Get assessment completion status for kids
+ * @param {Array} kidIds - Array of kid IDs
+ * @param {Array} metricIds - Array of metric IDs to assess
+ * @param {string} sportId - Sport ID
+ * @returns {Object} Completion status per kid
+ */
+export const getAssessmentProgress = async (kidIds, metricIds, sportId) => {
+  if (isWeb) {
+    const webDB = await getWebDB();
+
+    const progress = {};
+    
+    for (const kidId of kidIds) {
+      const assessments = webDB.assessments?.filter(a => 
+        a.kid_id === kidId && a.sport_id === sportId
+      ) || [];
+      
+      const latestAssessment = assessments.sort((a, b) => 
+        new Date(b.assessment_date) - new Date(a.assessment_date)
+      )[0];
+      
+      if (!latestAssessment) {
+        progress[kidId] = {
+          status: 'not_started',
+          completed: 0,
+          total: metricIds.length,
+          percentage: 0,
+        };
+        continue;
+      }
+      
+      const results = webDB.assessment_results?.filter(r => 
+        r.assessment_id === latestAssessment.id && metricIds.includes(r.metric_id)
+      ) || [];
+      
+      const completedCount = results.length;
+      const percentage = (completedCount / metricIds.length) * 100;
+      
+      progress[kidId] = {
+        status: completedCount === 0 ? 'not_started' : 
+                completedCount === metricIds.length ? 'completed' : 'in_progress',
+        completed: completedCount,
+        total: metricIds.length,
+        percentage: Math.round(percentage),
+        lastAssessmentDate: latestAssessment.assessment_date,
+      };
+    }
+    
+    return progress;
+  }
+  
+  const db = getDatabase();
+  const progress = {};
+  
+  for (const kidId of kidIds) {
+    const result = await db.getFirstAsync(
+      `SELECT 
+         COUNT(DISTINCT ar.metric_id) as completed_count,
+         MAX(a.assessment_date) as last_date
+       FROM assessments a
+       LEFT JOIN assessment_results ar ON a.id = ar.assessment_id AND ar.metric_id IN (${metricIds.map(() => '?').join(',')})
+       WHERE a.kid_id = ? AND a.sport_id = ?`,
+      [...metricIds, kidId, sportId]
+    );
+    
+    const completedCount = result?.completed_count || 0;
+    const percentage = (completedCount / metricIds.length) * 100;
+    
+    progress[kidId] = {
+      status: completedCount === 0 ? 'not_started' : 
+              completedCount === metricIds.length ? 'completed' : 'in_progress',
+      completed: completedCount,
+      total: metricIds.length,
+      percentage: Math.round(percentage),
+      lastAssessmentDate: result?.last_date || null,
+    };
+  }
+  
+  return progress;
+};
+
 // ========== DASHBOARD QUERIES ==========
 
 /**
@@ -1204,4 +1288,5 @@ export default {
   getKidActiveGoals,
   getDashboardStats,
   getRecentAssessments,
+  getAssessmentProgress,
 };

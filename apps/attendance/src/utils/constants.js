@@ -279,5 +279,15 @@ export const ANIMATION_DURATION = {
 export const SWIPE_THRESHOLD = 100;
 export const SWIPE_DISAPPEAR_DELAY = 3000; // 3 seconds
 
-export const APP_NAME = 'AccellaX 361°';
+export const APP_NAME = 'AccellaX 361° | Sports Academy Attendance Management';
 export const APP_VERSION = '1.0.4';
+
+// ========== SPORTS (FOR FUTURE FILTERING) ==========
+export const SPORTS = [
+  { id: 'football', name: 'Football', icon: '⚽' },
+  { id: 'athletics', name: 'Athletics', icon: '🏃' },
+  { id: 'rugby', name: 'Rugby', icon: '🏉' },
+  { id: 'swimming', name: 'Swimming', icon: '🏊' },
+  { id: 'tennis', name: 'Tennis', icon: '🎾' },
+  { id: 'basketball', name: 'Basketball', icon: '🏀' },
+];
