@@ -37,7 +37,7 @@ const AGE_GROUPS = [
 ];
 
 const SelectKidsScreen = ({ route, navigation }) => {
-  const { sport, assessmentMode, selectedTests = [], kidCount } = route.params || {};
+  const { sport, assessmentMode, selectedTests = [], kidCount, assessmentMetadata } = route.params || {};
   
   const [kids, setKids] = useState([]);
   const [filteredKids, setFilteredKids] = useState([]);
@@ -163,7 +163,8 @@ const SelectKidsScreen = ({ route, navigation }) => {
         sport,
         assessmentMode,
         selectedKids: selectedKidsData,
-        kidCount: selectedKidsData.length
+        kidCount: selectedKidsData.length,
+        assessmentMetadata: assessmentMetadata, // Pass metadata forward
       });
     } else {
       // Test-by-Test: Tests already selected, go directly to AssessmentEntry
@@ -173,6 +174,7 @@ const SelectKidsScreen = ({ route, navigation }) => {
         kids: selectedKidsData,
         mode: assessmentMode,
         selectedTests,
+        assessmentMetadata: assessmentMetadata, // Pass metadata forward
       });
     }
   };

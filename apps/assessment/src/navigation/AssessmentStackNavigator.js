@@ -5,6 +5,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
 // Import Assessment Screens
+import AssessmentSetupScreen from '../screens/AssessmentSetup/AssessmentSetupScreen';
 import SelectSportScreen from '../screens/SelectSport/SelectSportScreen';
 import AssessmentModeScreen from '../screens/SelectSport/AssessmentModeScreen';
 import SelectTestsScreen from '../screens/SelectSport/SelectTestsScreen';
@@ -22,6 +23,11 @@ export default function AssessmentStackNavigator() {
         gestureEnabled: true,
       }}
     >
+      <Stack.Screen 
+        name="AssessmentSetup" 
+        component={AssessmentSetupScreen}
+        options={{ title: 'Assessment Setup' }}
+      />
       <Stack.Screen 
         name="SelectSport" 
         component={SelectSportScreen}

@@ -18,14 +18,15 @@ export default function AssessmentModeScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   
-  const { sport, kidCount } = route.params;
+  const { sport, kidCount, assessmentMetadata } = route.params;
 
   const handleTestByTest = () => {
     // Test-by-Test: Coach selects tests first, then kids
     navigation.navigate('SelectTests', { 
       sport,
       assessmentMode: 'test_by_test',
-      kidCount 
+      kidCount,
+      assessmentMetadata: assessmentMetadata, // Pass metadata forward
     });
   };
 
@@ -34,7 +35,8 @@ export default function AssessmentModeScreen() {
     navigation.navigate('SelectKids', { 
       sport,
       assessmentMode: 'kid_by_kid',
-      kidCount 
+      kidCount,
+      assessmentMetadata: assessmentMetadata, // Pass metadata forward
     });
   };
 

@@ -21,7 +21,7 @@ export default function SelectTestsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   
-  const { sport, assessmentMode, selectedKids = [], kidCount } = route.params || {};
+  const { sport, assessmentMode, selectedKids = [], kidCount, assessmentMetadata } = route.params || {};
   
   const [metrics, setMetrics] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -92,6 +92,7 @@ export default function SelectTestsScreen() {
         kids: selectedKids,
         mode: assessmentMode,
         selectedTests: selectedMetrics,
+        assessmentMetadata: assessmentMetadata, // Pass metadata forward
       });
     } else {
       // Test-by-Test: Navigate to SelectKids
@@ -100,7 +101,8 @@ export default function SelectTestsScreen() {
         sport,
         assessmentMode,
         selectedTests: selectedMetrics,
-        kidCount
+        kidCount,
+        assessmentMetadata: assessmentMetadata, // Pass metadata forward
       });
     }
   };

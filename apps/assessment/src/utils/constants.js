@@ -159,18 +159,43 @@ export const METRIC_TYPE_LABELS = {
 
 // Assessment Status
 export const ASSESSMENT_STATUS = {
-  DRAFT: 'draft',
-  COMPLETED: 'completed',
+  DRAFT: 'draft',               // Assessment started but not finished
+  SCHEDULED: 'scheduled',       // Assessment planned but not started
+  IN_PROGRESS: 'in_progress',   // Assessment currently being conducted
+  COMPLETED: 'completed',       // Assessment finished
+  CANCELLED: 'cancelled',       // Assessment cancelled (e.g., bad weather)
+  RESCHEDULED: 'rescheduled',  // Assessment postponed to another date
+  MISSED: 'missed',            // Assessment was supposed to happen but didn't
 };
 
 export const ASSESSMENT_STATUS_LABELS = {
   draft: 'Draft',
+  scheduled: 'Scheduled',
+  in_progress: 'In Progress',
   completed: 'Completed',
+  cancelled: 'Cancelled',
+  rescheduled: 'Rescheduled',
+  missed: 'Missed',
 };
 
 export const ASSESSMENT_STATUS_COLORS = {
-  draft: '#FF9800',
-  completed: '#4CAF50',
+  draft: '#FF9800',        // Orange - draft
+  scheduled: '#2196F3',    // Blue - upcoming
+  in_progress: '#FFEB3B',  // Yellow - ongoing (fixed from invalid color)
+  completed: '#4CAF50',    // Green - done
+  cancelled: '#9E9E9E',    // Gray - cancelled
+  rescheduled: '#9C27B0',  // Purple - rescheduled
+  missed: '#F44336',       // Red - missed
+};
+
+export const ASSESSMENT_STATUS_ICONS = {
+  draft: 'create-outline',
+  scheduled: 'calendar',
+  in_progress: 'time',
+  completed: 'checkmark-circle',
+  cancelled: 'close-circle',
+  rescheduled: 'swap-horizontal',
+  missed: 'alert-circle',
 };
 
 // Performance Ratings

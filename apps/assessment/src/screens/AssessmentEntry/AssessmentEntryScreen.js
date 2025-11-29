@@ -69,6 +69,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     kids = [], 
     mode,
     selectedTests = [],
+    assessmentMetadata, // ✅ Receive metadata
     initialKidIndex = 0,
     initialTestIndex = 0,
     existingAssessmentData = {}
@@ -206,6 +207,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
         metric_id: currentMetric.id,
         value: value,
         assessment_date: new Date().toISOString(),
+        metadata: assessmentMetadata, // ✅ Pass metadata
       });
       console.log('✅ Auto-saved:', { kid: currentKid.name, metric: currentMetric.name, value });
     } catch (error) {
@@ -554,7 +556,8 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
                 assessmentData, 
                 sport, 
                 kids, 
-                selectedTests 
+                selectedTests,
+                assessmentMetadata: assessmentMetadata, // ✅ Pass metadata forward
               });
             }
           }

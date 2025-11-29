@@ -42,10 +42,11 @@ const generateId = () => {
 
 /**
  * Save single assessment result (called on each metric entry)
- * @param {Object} resultData - { kid_id, sport_id, metric_id, value, assessment_date }
+ * @param {Object} resultData - { kid_id, sport_id, metric_id, value, assessment_date, metadata }
+ * @param {Object} metadata - { year, term, assessmentType, weekNumber, location, assessorName, generalNotes }
  */
 export const saveAssessmentResult = async (resultData) => {
-  const { kid_id, sport_id, metric_id, value, assessment_date } = resultData;
+  const { kid_id, sport_id, metric_id, value, assessment_date, metadata } = resultData;
   
   console.log('💾 Saving assessment result:', { kid_id, sport_id, metric_id, value });
   
@@ -65,7 +66,17 @@ export const saveAssessmentResult = async (resultData) => {
         kid_id,
         sport_id,
         assessment_date: assessment_date.split('T')[0],
+        // ✅ Metadata fields
+        year: metadata?.year || null,
+        term: metadata?.term || null,
+        assessment_type: metadata?.assessmentType || null,
+        week_number: metadata?.weekNumber || null,
+        location: metadata?.location || null,
+        assessor_name: metadata?.assessorName || 'Coach',
+        general_notes: metadata?.generalNotes || null,
+        // Original fields
         assessed_by: 'current_user', // TODO: Replace with actual user ID
+        status: 'completed',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         firebase_synced: 0,
@@ -114,8 +125,25 @@ export const saveAssessmentResult = async (resultData) => {
     if (!existingAssessment) {
       const newId = generateId();
       await database.runAsync(
-        'INSERT INTO assessments (id, kid_id, sport_id, assessment_date, assessed_by, created_at, updated_at, firebase_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [newId, kid_id, sport_id, assessment_date.split('T')[0], 'current_user', new Date().toISOString(), new Date().toISOString(), 0]
+        'INSERT INTO assessments (id, kid_id, sport_id, assessment_date, year, term, assessment_type, week_number, location, assessor_name, general_notes, assessed_by, status, created_at, updated_at, firebase_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          newId, 
+          kid_id, 
+          sport_id, 
+          assessment_date.split('T')[0], 
+          metadata?.year || null,
+          metadata?.term || null,
+          metadata?.assessmentType || null,
+          metadata?.weekNumber || null,
+          metadata?.location || null,
+          metadata?.assessorName || 'Coach',
+          metadata?.generalNotes || null,
+          'current_user', 
+          'completed',
+          new Date().toISOString(), 
+          new Date().toISOString(), 
+          0
+        ]
       );
       assessmentId = newId;
     } else {

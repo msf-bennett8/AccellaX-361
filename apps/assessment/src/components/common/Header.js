@@ -240,7 +240,7 @@ const Header = ({
             onPress={handleNavigateToAdminDashboard}
             activeOpacity={0.7}
           >
-            <Text style={styles.dropdownIcon}>📊</Text>
+            <Text style={styles.dropdownIcon}>👤</Text>
             <Text style={styles.dropdownItemText}>Admin Dashboard</Text>
           </TouchableOpacity>
 

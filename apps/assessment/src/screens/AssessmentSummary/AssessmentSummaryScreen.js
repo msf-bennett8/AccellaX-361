@@ -63,7 +63,7 @@ const CustomModal = ({ visible, title, message, buttons, icon, iconColor }) => {
 };
 
 const AssessmentSummaryScreen = ({ route, navigation }) => {
-  const { assessmentData = {}, sport = {}, kids = [], selectedTests = [] } = route.params || {};
+  const { assessmentData = {}, sport = {}, kids = [], selectedTests = [], assessmentMetadata } = route.params || {};
   
   const [syncing, setSyncing] = useState(false);
   const [groupedData, setGroupedData] = useState({});
@@ -289,6 +289,61 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+        {/* Assessment Metadata Card */}
+        {assessmentMetadata && (
+          <View style={styles.metadataCard}>
+            <View style={styles.metadataHeader}>
+              <Ionicons name="information-circle" size={20} color={COLORS.primary} />
+              <Text style={styles.metadataTitle}>Assessment Context</Text>
+            </View>
+            
+            <View style={styles.metadataGrid}>
+              <View style={styles.metadataItem}>
+                <Text style={styles.metadataLabel}>Academic Year</Text>
+                <Text style={styles.metadataValue}>{assessmentMetadata.year || 'N/A'}</Text>
+              </View>
+              
+              <View style={styles.metadataItem}>
+                <Text style={styles.metadataLabel}>Term</Text>
+                <Text style={styles.metadataValue}>{assessmentMetadata.term || 'N/A'}</Text>
+              </View>
+              
+              <View style={styles.metadataItem}>
+                <Text style={styles.metadataLabel}>Type</Text>
+                <Text style={styles.metadataValue}>
+                  {assessmentMetadata.assessmentType === 'baseline' ? 'Baseline' :
+                   assessmentMetadata.assessmentType === 'mid_term' ? 'Mid-Term' :
+                   assessmentMetadata.assessmentType === 'final' ? 'Final' : 'Ad-hoc'}
+                </Text>
+              </View>
+              
+              <View style={styles.metadataItem}>
+                <Text style={styles.metadataLabel}>Week</Text>
+                <Text style={styles.metadataValue}>Week {assessmentMetadata.weekNumber || 'N/A'}</Text>
+              </View>
+              
+              {assessmentMetadata.location && (
+                <View style={[styles.metadataItem, styles.metadataItemFull]}>
+                  <Text style={styles.metadataLabel}>Location</Text>
+                  <Text style={styles.metadataValue}>{assessmentMetadata.location}</Text>
+                </View>
+              )}
+              
+              <View style={[styles.metadataItem, styles.metadataItemFull]}>
+                <Text style={styles.metadataLabel}>Assessor</Text>
+                <Text style={styles.metadataValue}>{assessmentMetadata.assessorName || 'N/A'}</Text>
+              </View>
+              
+              {assessmentMetadata.generalNotes && (
+                <View style={[styles.metadataItem, styles.metadataItemFull]}>
+                  <Text style={styles.metadataLabel}>Notes</Text>
+                  <Text style={styles.metadataValueNotes}>{assessmentMetadata.generalNotes}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+        
         {Object.values(groupedData).map(({ kid, results, completionRate }) => (
           <View key={kid.id} style={styles.kidCard}>
             {/* Kid Header */}
@@ -952,6 +1007,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+  },
+  
+  // Metadata Card Styles
+  metadataCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  metadataHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  metadataTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  metadataGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  metadataItem: {
+    width: '48%',
+    backgroundColor: COLORS.backgroundDark,
+    padding: 12,
+    borderRadius: 8,
+  },
+  metadataItemFull: {
+    width: '100%',
+  },
+  metadataLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  metadataValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  metadataValueNotes: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
   },
 });
 

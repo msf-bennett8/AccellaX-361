@@ -19,6 +19,7 @@ import EditProfileScreen from '../screens/Profile/EditProfileScreen';
 // Stack Navigators
 import AssessmentStackNavigator from './AssessmentStackNavigator';
 import HistoryStackNavigator from './HistoryStackNavigator';
+import ReportsStackNavigator from './ReportsStackNavigator';
 
 // Drawer Content
 import CustomDrawerContent from './CustomDrawerContent';
@@ -109,6 +110,14 @@ export default function DrawerNavigator({ onLogout }) {
           drawerIcon: ({ color }) => (
             <MaterialCommunityIcons name="history" size={22} color={color} />
           ),
+        }}
+      />
+      <Drawer.Screen
+        name="Reports"
+        component={ReportsStackNavigator}
+        options={{
+          title: 'Export Data',
+          drawerItemStyle: { display: 'none' }, // Hidden - accessed from History
         }}
       />
       <Drawer.Screen

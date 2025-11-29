@@ -167,7 +167,7 @@ export default function HomeScreen() {
   };
 
   const handleNewAssessment = () => {
-    navigation.navigate('Assessment', { screen: 'SelectSport' });
+    navigation.navigate('Assessment', { screen: 'AssessmentSetup' });
   };
 
   const handleViewHistory = () => {

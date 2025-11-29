@@ -296,6 +296,15 @@ export default function HistoryScreen() {
           </View>
         </View>
 
+        {/* Export Button */}
+        <TouchableOpacity
+          style={styles.exportButton}
+          onPress={() => navigation.navigate('Reports')}
+        >
+          <Ionicons name="download-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.exportButtonText}>Export Data</Text>
+        </TouchableOpacity>
+
         {/* View Mode Toggle & Filters */}
         <View style={styles.controlsContainer}>
           <View style={styles.viewToggle}>
@@ -449,6 +458,28 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 20,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  exportButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textSecondary },

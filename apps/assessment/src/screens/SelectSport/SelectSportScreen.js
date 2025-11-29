@@ -24,8 +24,11 @@ const { width } = Dimensions.get('window');
 MaterialCommunityIcons.loadFont();
 Ionicons.loadFont();
 
-export default function SelectSportScreen() {
+export default function SelectSportScreen({ route }) {
   const navigation = useNavigation();
+  
+  // Get metadata from AssessmentSetup screen
+  const assessmentMetadata = route.params?.assessmentMetadata || null;
   
   const [sports, setSports] = useState([]);
   const [sportKidCounts, setSportKidCounts] = useState({});

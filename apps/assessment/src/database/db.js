@@ -271,6 +271,79 @@ export const initDatabase = async () => {
     }
   }
   
+  // ✅ NEW: Add metadata columns to assessments table
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN year TEXT;`);
+    console.log('✅ Migration: Added year column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN assessment_type TEXT;`);
+    console.log('✅ Migration: Added assessment_type column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN week_number INTEGER;`);
+    console.log('✅ Migration: Added week_number column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN location TEXT;`);
+    console.log('✅ Migration: Added location column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN assessor_name TEXT;`);
+    console.log('✅ Migration: Added assessor_name column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN general_notes TEXT;`);
+    console.log('✅ Migration: Added general_notes column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN scheduled_date DATE;`);
+    console.log('✅ Migration: Added scheduled_date column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  try {
+    await db.execAsync(`ALTER TABLE assessments ADD COLUMN rescheduled_reason TEXT;`);
+    console.log('✅ Migration: Added rescheduled_reason column to assessments table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
   console.log('✅ SQLite database initialized for Assessment App with all tables');
 };
 
