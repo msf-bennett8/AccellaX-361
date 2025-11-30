@@ -75,6 +75,8 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     existingAssessmentData = {}
   } = route?.params || {};
   
+  console.log('🔍 AssessmentEntry - Received metadata:', assessmentMetadata);
+  
   const [currentKidIndex, setCurrentKidIndex] = useState(initialKidIndex);
   const [currentTestIndex, setCurrentTestIndex] = useState(initialTestIndex);
   const [assessmentData, setAssessmentData] = useState(existingAssessmentData);

@@ -48,7 +48,13 @@ const generateId = () => {
 export const saveAssessmentResult = async (resultData) => {
   const { kid_id, sport_id, metric_id, value, assessment_date, metadata } = resultData;
   
-  console.log('💾 Saving assessment result:', { kid_id, sport_id, metric_id, value });
+  console.log('💾 Saving assessment result:', { 
+    kid_id, 
+    sport_id, 
+    metric_id, 
+    value,
+    metadata 
+  });
   
   if (isWeb) {
     const webDB = await getWebDB();
@@ -60,7 +66,10 @@ export const saveAssessmentResult = async (resultData) => {
       a.assessment_date === assessment_date.split('T')[0]
     );
     
+    
     if (!assessment) {
+      console.log('🔍 Creating NEW assessment with metadata:', metadata);
+      
       assessment = {
         id: generateId(),
         kid_id,
@@ -426,10 +435,29 @@ export const syncFromFirebase = async () => {
         const data = docSnap.data();
         const existingIndex = webDB.assessments?.findIndex(a => a.id === docSnap.id) ?? -1;
         
+        // Convert Firebase Timestamps to ISO strings
+        const processedData = {
+          ...data,
+          created_at: data.created_at?.toDate?.() ? data.created_at.toDate().toISOString() : data.created_at,
+          updated_at: data.updated_at?.toDate?.() ? data.updated_at.toDate().toISOString() : data.updated_at,
+          synced_at: data.synced_at?.toDate?.() ? data.synced_at.toDate().toISOString() : data.synced_at,
+          firebase_synced: 1,
+        };
+        
         if (existingIndex >= 0) {
-          webDB.assessments[existingIndex] = { ...data, firebase_synced: 1 };
+          // Only update if Firebase version is newer
+          const localUpdatedAt = new Date(webDB.assessments[existingIndex].updated_at);
+          const firebaseUpdatedAt = new Date(processedData.updated_at);
+          
+          if (firebaseUpdatedAt > localUpdatedAt) {
+            webDB.assessments[existingIndex] = processedData;
+            console.log('✅ Updated assessment from Firebase:', docSnap.id);
+          } else {
+            console.log('ℹ️ Local assessment is newer, keeping local:', docSnap.id);
+          }
         } else {
-          webDB.assessments = [...(webDB.assessments || []), { ...data, firebase_synced: 1 }];
+          webDB.assessments = [...(webDB.assessments || []), processedData];
+          console.log('✅ Added new assessment from Firebase:', docSnap.id);
         }
         
         // Sync results

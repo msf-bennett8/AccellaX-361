@@ -66,7 +66,7 @@ export default function ReportsScreen() {
 
   useEffect(() => {
     applyFilters();
-  }, [searchQuery, selectedYear, selectedTerm, selectedSport, selectedAgeGroup, selectedSort, kids, assessments]);
+  }, [searchQuery, selectedYear, selectedTerm, selectedSport, selectedAgeGroup, kids, assessments]);
 
   const loadData = async () => {
     setLoading(true);
@@ -91,43 +91,16 @@ export default function ReportsScreen() {
       const currentYear = new Date().getFullYear();
       const startDate = `${currentYear - 2}-01-01`;
       const endDate = `${currentYear + 1}-12-31`;
-      console.log('🔄 Loading assessments from', startDate, 'to', endDate);
       const allAssessments = await getAssessmentsByDateRange(startDate, endDate);
-      console.log('📊 Loaded assessments:', allAssessments.length);
-      
-      // Log sample assessment structure
-      if (allAssessments.length > 0) {
-        console.log('📋 Sample assessment structure from DB:', JSON.stringify(allAssessments[0], null, 2));
-      }
-      
       setAssessments(allAssessments);
 
-      // Generate year options dynamically from actual assessment data
-      const assessmentYears = new Set();
-      allAssessments.forEach(a => {
-        // Use the saved year field if available, otherwise derive from assessment_date
-        if (a.year && a.year !== 'null' && a.year !== null) {
-          assessmentYears.add(a.year);
-        } else {
-          // Fallback: generate from assessment_date
-          const assessmentYear = new Date(a.assessment_date).getFullYear();
-          assessmentYears.add(`${assessmentYear}/${assessmentYear + 1}`);
-        }
-      });
-      
-      // Sort years in descending order (most recent first)
-      const sortedYears = Array.from(assessmentYears).sort((a, b) => {
-        const yearA = parseInt(a.split('/')[0]);
-        const yearB = parseInt(b.split('/')[0]);
-        return yearB - yearA;
-      });
-      
-      const dynamicYearOptions = sortedYears.map(year => ({
-        value: year,
-        label: year
-      }));
-      
-      setYearOptions([{ value: 'all', label: 'All Years' }, ...dynamicYearOptions]);
+      // Generate year options (academic years)
+      const years = [];
+      for (let i = 0; i < 5; i++) {
+        const year = currentYear - i;
+        years.push({ value: `${year}/${year + 1}`, label: `${year}/${year + 1}` });
+      }
+      setYearOptions([{ value: 'all', label: 'All Years' }, ...years]);
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -146,15 +119,10 @@ export default function ReportsScreen() {
   };
 
   const selectAll = () => {
-    const allKids = filteredData.kids || [];
-    setSelectedRecords(selectedRecords.length === allKids.length ? [] : allKids.map(k => k.id));
+    setSelectedRecords(selectedRecords.length === filteredData.length ? [] : filteredData.map(k => k.id));
   };
 
-  const applyFilters = async () => {
-    console.log('🔍 ===== APPLY FILTERS START =====');
-    console.log('📊 Total kids loaded:', kids.length);
-    console.log('📊 Total assessments loaded:', assessments.length);
-    
+  const applyFilters = () => {
     let filtered = [...kids];
 
     // Search filter
@@ -162,155 +130,47 @@ export default function ReportsScreen() {
       filtered = filtered.filter(kid =>
         kid.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      console.log('🔎 After search filter:', filtered.length, 'kids');
     }
 
     // Age group filter
     if (selectedAgeGroup !== 'all') {
       filtered = filtered.filter(kid => kid.age_group === selectedAgeGroup);
-      console.log('👶 After age group filter:', filtered.length, 'kids');
     }
 
     // Get assessments for filtered kids
     let relevantAssessments = assessments.filter(a =>
       filtered.some(k => k.id === a.kid_id)
     );
-    console.log('📋 Relevant assessments before filters:', relevantAssessments.length);
 
-    // Year filter - Use saved year field (prioritize metadata over date calculation)
+    // Year filter
     if (selectedYear !== 'all') {
-      console.log('📅 Filtering by year:', selectedYear);
-      const beforeYearFilter = relevantAssessments.length;
       relevantAssessments = relevantAssessments.filter(a => {
-        // Use the saved year field if available
-        if (a.year && a.year !== 'null' && a.year !== null) {
-          return a.year === selectedYear;
-        }
-        
-        // Fallback: Use calendar year matching if no year field exists
         const assessmentYear = new Date(a.assessment_date).getFullYear();
         const [startYear] = selectedYear.split('/');
         return assessmentYear.toString() === startYear;
       });
-      console.log(`📅 After year filter: ${relevantAssessments.length} (removed ${beforeYearFilter - relevantAssessments.length})`);
     }
 
     // Term filter
     if (selectedTerm !== 'all') {
-      console.log('📆 Filtering by term:', selectedTerm);
-      const beforeTermFilter = relevantAssessments.length;
       relevantAssessments = relevantAssessments.filter(a => a.term === selectedTerm);
-      console.log(`📆 After term filter: ${relevantAssessments.length} (removed ${beforeTermFilter - relevantAssessments.length})`);
     }
 
     // Sport filter
     if (selectedSport !== 'all') {
-      console.log('⚽ Filtering by sport:', selectedSport);
-      const beforeSportFilter = relevantAssessments.length;
       relevantAssessments = relevantAssessments.filter(a => a.sport_id === selectedSport);
-      console.log(`⚽ After sport filter: ${relevantAssessments.length} (removed ${beforeSportFilter - relevantAssessments.length})`);
-      
-      // Log sample assessment structure
-      if (relevantAssessments.length > 0) {
-        console.log('📋 Sample assessment structure:', JSON.stringify(relevantAssessments[0], null, 2));
-      }
     }
 
-    // ✅ NEW: Get metrics for the selected sport
-    const { getMetricsBySport } = await import('../../config/metrics');
-    const sportMetrics = selectedSport !== 'all' 
-      ? getMetricsBySport(selectedSport)
-      : [];
-    
-    console.log('📊 Sport metrics loaded:', sportMetrics.length);
-    if (sportMetrics.length > 0) {
-      console.log('📊 Metrics:', sportMetrics.map(m => m.id).join(', '));
-    }
-
-    // Combine kids with their LATEST assessment per kid
-    const dataWithLatestValues = filtered.map(kid => {
+    // Combine kids with their filtered assessments
+    const dataWithAssessments = filtered.map(kid => {
       const kidAssessments = relevantAssessments.filter(a => a.kid_id === kid.id);
-      
-      console.log(`👤 Kid: ${kid.name} (${kid.id}) - Found ${kidAssessments.length} assessments`);
-      
-      if (kidAssessments.length === 0) {
-        console.log(`⚠️ No assessments found for ${kid.name}`);
-        return null;
-      }
-
-      // Get the most recent assessment
-      const latestAssessment = kidAssessments.sort((a, b) => 
-        new Date(b.assessment_date) - new Date(a.assessment_date)
-      )[0];
-
-      console.log(`📅 Latest assessment for ${kid.name}:`, latestAssessment.assessment_date);
-      console.log(`📋 Has results?`, !!latestAssessment.results, 'Count:', latestAssessment.results?.length || 0);
-
-      // Extract metric values from latest assessment
-      const metricValues = {};
-      if (latestAssessment.results) {
-        latestAssessment.results.forEach(result => {
-          metricValues[result.metric_id] = result.value;
-          console.log(`  ✅ ${kid.name} - ${result.metric_id}: ${result.value}`);
-        });
-      } else {
-        console.log(`  ❌ ${kid.name} - NO RESULTS ARRAY!`);
-      }
-
-      console.log(`📊 Final metricValues for ${kid.name}:`, Object.keys(metricValues).length, 'metrics');
-
       return {
         ...kid,
-        latestAssessment,
-        metricValues,
+        assessments: kidAssessments,
       };
-    }).filter(Boolean); // Remove nulls
+    }).filter(kid => kid.assessments.length > 0); // Only show kids with matching assessments
 
-    // Apply sorting
-    let sortedData = dataWithLatestValues;
-    if (selectedSort !== 'none') {
-      sortedData = applySorting(dataWithLatestValues, selectedSort);
-      console.log('🔀 Applied sorting:', selectedSort);
-    }
-
-    console.log('✅ Final filtered data:', sortedData.length, 'kids');
-    console.log('✅ Metrics to display:', sportMetrics.length);
-    console.log('🔍 ===== APPLY FILTERS END =====\n');
-
-    setFilteredData({ kids: sortedData, metrics: sportMetrics });
-  };
-
-  // Apply sorting logic
-  const applySorting = (data, sortType) => {
-    const sorted = [...data];
-    
-    switch (sortType) {
-      case 'a_z':
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case 'z_a':
-        return sorted.sort((a, b) => b.name.localeCompare(a.name));
-      case 'high_performer':
-        return sorted.sort((a, b) => {
-          const avgA = calculateAverage(a.metricValues);
-          const avgB = calculateAverage(b.metricValues);
-          return avgB - avgA;
-        });
-      case 'low_performer':
-        return sorted.sort((a, b) => {
-          const avgA = calculateAverage(a.metricValues);
-          const avgB = calculateAverage(b.metricValues);
-          return avgA - avgB;
-        });
-      default:
-        return sorted;
-    }
-  };
-
-  const calculateAverage = (metricValues) => {
-    const values = Object.values(metricValues || {}).filter(v => v != null);
-    if (values.length === 0) return 0;
-    const sum = values.reduce((acc, val) => acc + parseFloat(val || 0), 0);
-    return sum / values.length;
+    setFilteredData(dataWithAssessments);
   };
 
   const handleExport = () => {
@@ -325,44 +185,28 @@ export default function ReportsScreen() {
     performExport();
   };
 
-    const performExport = () => {
-    const kidsToExport = selectedRecords.length > 0 
-      ? filteredData.kids.filter(k => selectedRecords.includes(k.id))
-      : filteredData.kids;
+  const performExport = () => {
+    const dataToExport = selectedRecords.length > 0 
+      ? filteredData.filter(k => selectedRecords.includes(k.id))
+      : filteredData;
     
-    // Build the data to pass to ExportDetailScreen
-    const exportPayload = kidsToExport.map(kid => ({
-      ...kid,
-      assessments: [kid.latestAssessment], // Include latest assessment
-      metricValues: kid.metricValues, // Include metric values
-    }));
+    // TODO: Implement actual export logic based on format
+    console.log('Exporting:', dataToExport.length, 'records');
     
-    console.log('✅ Navigating to ExportDetailScreen with:', exportPayload.length, 'records');
-    
-    // Navigate to ExportDetailScreen
-    navigation.navigate('ExportDetail', {
-      filteredData: exportPayload,
-      filters: {
-        year: selectedYear,
-        term: selectedTerm,
-        sport: selectedSport,
-        ageGroup: selectedAgeGroup,
-      },
-      format: selectedFormat,
-      sports: sports,
-      metrics: filteredData.metrics || [], // ✅ Pass sport-specific metrics
-    });
+    setShowSuccessModal(true);
+    setTimeout(() => {
+      setShowSuccessModal(false);
+    }, 2000);
   };
 
   const getExportCount = () => {
-    return selectedRecords.length > 0 ? selectedRecords.length : (filteredData.kids?.length || 0);
+    return selectedRecords.length > 0 ? selectedRecords.length : filteredData.length;
   };
 
   const getExportMessage = () => {
-    const count = filteredData.kids?.length || 0;
     return selectedRecords.length > 0 
       ? `${selectedRecords.length} selected records`
-      : `all ${count} filtered records`;
+      : `all ${filteredData.length} filtered records`;
   };
 
   const sportOptions = [
@@ -661,7 +505,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Select Mode / Filter Summary Controls */}
-        {showFilters && filteredData.kids && filteredData.kids.length > 0 && (
+        {showFilters && filteredData.length > 0 && (
           <View style={styles.selectAllContainer}>
             {!isSelectMode ? (
               <>
@@ -709,159 +553,124 @@ export default function ReportsScreen() {
         <View style={styles.previewContainer}>
           <Text style={styles.previewTitle}>Data Preview</Text>
           
-          {!filteredData.kids || filteredData.kids.length === 0 ? (
+          {filteredData.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="document-outline" size={48} color={COLORS.textSecondary} />
               <Text style={styles.emptyText}>No data matches your filters</Text>
-              <Text style={styles.emptyHint}>
-                {selectedSport === 'all' 
-                  ? 'Select a specific sport to view metric columns'
-                  : 'Try adjusting your filter criteria'}
-              </Text>
+              <Text style={styles.emptyHint}>Try adjusting your filter criteria</Text>
             </View>
           ) : (
-            <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                <View>
-                  {/* Table Header */}
-                  <View style={styles.tableRow}>
-                    {isSelectMode && (
-                      <View style={[styles.tableCell, styles.tableHeader, styles.checkboxColumn]}>
-                        <Text style={styles.tableHeaderText}>Select</Text>
-                      </View>
-                    )}
-                    <Text style={[styles.tableCell, styles.tableHeader, styles.nameColumn]}>
-                      Name
-                    </Text>
-                    <Text style={[styles.tableCell, styles.tableHeader, styles.ageColumn]}>
-                      Age
-                    </Text>
-                    
-                    {/* ✅ DYNAMIC METRIC COLUMNS - Show if sport is selected */}
-                    {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 0 ? (
-                      filteredData.metrics.slice(0, 8).map((metric) => (
-                        <View key={metric.id} style={[styles.tableCell, styles.tableHeader, styles.metricColumn]}>
-                          <Text style={styles.tableHeaderText} numberOfLines={2}>
-                            {metric.name}
-                          </Text>
-                          {metric.unit && (
-                            <Text style={styles.headerSubtext}>{metric.unit}</Text>
-                          )}
-                        </View>
-                      ))
-                    ) : (
-                      <>
-                        <Text style={[styles.tableCell, styles.tableHeader, styles.sportColumn]}>
-                          Sport
-                        </Text>
-                        <Text style={[styles.tableCell, styles.tableHeader, styles.termColumn]}>
-                          Term
-                        </Text>
-                        <Text style={[styles.tableCell, styles.tableHeader, styles.assessmentsColumn]}>
-                          Last Assessment
-                        </Text>
-                      </>
-                    )}
-                  </View>
-
-                  {/* Table Rows */}
-                  {filteredData.kids.map((kid, index) => {
-                    const isSelected = selectedRecords.includes(kid.id);
-                    
-                    // Format metric value helper
-                    const formatMetricValue = (metric, value) => {
-                      if (!value) return '--';
-                      
-                      switch (metric.type) {
-                        case 'numeric':
-                          return `${parseFloat(value).toFixed(1)}${metric.unit || ''}`;
-                        case 'rating':
-                          return `${value}/10`;
-                        case 'timed':
-                          return `${parseFloat(value).toFixed(2)}s`;
-                        case 'counted':
-                          return `${value}`;
-                        default:
-                          return value.toString();
-                      }
-                    };
-
-                    return (
-                      <TouchableOpacity
-                        key={kid.id}
-                        style={[
-                          styles.tableRow,
-                          index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
-                          isSelected && styles.tableRowSelected,
-                        ]}
-                        onPress={() => isSelectMode && toggleRecordSelection(kid.id)}
-                        disabled={!isSelectMode}
-                      >
-                        {isSelectMode && (
-                          <View style={[styles.tableCell, styles.checkboxColumn]}>
-                            <View style={styles.checkbox}>
-                              {isSelected && <View style={styles.checkmark} />}
-                            </View>
-                          </View>
-                        )}
-                        <Text style={[styles.tableCell, styles.nameColumn]}>
-                          {kid.name}
-                        </Text>
-                        <Text style={[styles.tableCell, styles.ageColumn]}>
-                          {kid.age}
-                        </Text>
-                        
-                        {/* ✅ DYNAMIC METRIC VALUES - Show if sport is selected */}
-                        {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 0 ? (
-                          filteredData.metrics.slice(0, 8).map((metric) => (
-                            <Text key={metric.id} style={[styles.tableCell, styles.metricColumn]}>
-                              {formatMetricValue(metric, kid.metricValues[metric.id])}
-                            </Text>
-                          ))
-                        ) : (
-                          <>
-                            <Text style={[styles.tableCell, styles.sportColumn]}>
-                              {kid.latestAssessment?.sport_id || 'N/A'}
-                            </Text>
-                            <Text style={[styles.tableCell, styles.termColumn]}>
-                              {kid.latestAssessment?.term || 'N/A'}
-                            </Text>
-                            <Text style={[styles.tableCell, styles.assessmentsColumn]}>
-                              {kid.latestAssessment?.assessment_date || 'N/A'}
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-
-              {/* ✅ Metrics Note - Show if more than 8 metrics */}
-              {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 8 && (
-                <View style={styles.metricsNote}>
-                  <Ionicons name="information-circle" size={16} color="#FF9800" />
-                  <Text style={styles.metricsNoteText}>
-                    Showing first 8 of {filteredData.metrics.length} metrics. Full data available in export.
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View>
+                {/* Table Header */}
+                <View style={styles.tableRow}>
+                  {isSelectMode && (
+                    <View style={[styles.tableCell, styles.tableHeader, styles.checkboxColumn]}>
+                      <Text style={styles.tableHeaderText}>Select</Text>
+                    </View>
+                  )}
+                  <Text style={[styles.tableCell, styles.tableHeader, styles.nameColumn]}>
+                    Name
+                  </Text>
+                  <Text style={[styles.tableCell, styles.tableHeader, styles.ageColumn]}>
+                    Age
+                  </Text>
+                  <Text style={[styles.tableCell, styles.tableHeader, styles.sportColumn]}>
+                    Sport
+                  </Text>
+                  <Text style={[styles.tableCell, styles.tableHeader, styles.termColumn]}>
+                    Term
+                  </Text>
+                  <Text style={[styles.tableCell, styles.tableHeader, styles.assessmentsColumn]}>
+                    Assessments
                   </Text>
                 </View>
-              )}
-            </>
+
+                {/* Table Rows */}
+                {filteredData.map((kid, index) => {
+                  const isSelected = selectedRecords.includes(kid.id);
+                  return (
+                    <TouchableOpacity
+                      key={kid.id}
+                      style={[
+                        styles.tableRow,
+                        index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
+                        isSelected && styles.tableRowSelected,
+                      ]}
+                      onPress={() => isSelectMode && toggleRecordSelection(kid.id)}
+                      disabled={!isSelectMode}
+                    >
+                      {isSelectMode && (
+                        <View style={[styles.tableCell, styles.checkboxColumn]}>
+                          <View style={styles.checkbox}>
+                            {isSelected && <View style={styles.checkmark} />}
+                          </View>
+                        </View>
+                      )}
+                      <Text style={[styles.tableCell, styles.nameColumn]}>
+                        {kid.name}
+                      </Text>
+                    <Text style={[styles.tableCell, styles.ageColumn]}>
+                      {kid.age}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.sportColumn]}>
+                      {kid.assessments.length > 0
+                        ? sports.find(s => s.id === kid.assessments[0].sport_id)?.name || 'Multiple'
+                        : 'N/A'}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.termColumn]}>
+                      {kid.assessments.length > 0
+                        ? kid.assessments[0].term
+                        : 'N/A'}
+                    </Text>
+                    <Text style={[styles.tableCell, styles.assessmentsColumn]}>
+                      {kid.assessments.length}
+                    </Text>
+                  </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
           )}
         </View>
+
+        {/* Floating Export Button - Shows when scrolling down */}
+      {!showFilters && filteredData.length > 0 && (
+        <TouchableOpacity
+          style={styles.floatingExportButton}
+          onPress={handleExport}
+        >
+          <Ionicons name="download" size={24} color={COLORS.white} />
+          <Text style={styles.floatingExportText}>
+            Export ({getExportCount()})
+          </Text>
+        </TouchableOpacity>
+      )}
         
         <View style={styles.bottomPadding} />
         </ScrollView>
       </View>
 
+      {/* Floating Export Button - Shows when scrolling down */}
+      {!showFilters && filteredData.length > 0 && (
+        <TouchableOpacity
+          style={styles.floatingExportButton}
+          onPress={handleExport}
+        >
+          <Ionicons name="download" size={24} color={COLORS.white} />
+          <Text style={styles.floatingExportText}>
+            Export ({getExportCount()})
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* Floating Action Button - Always visible */}
-      {filteredData.kids && filteredData.kids.length > 0 && (
+      {filteredData.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
           onPress={handleExport}
-          activeOpacity={0.8}
         >
-          <Ionicons name="share-outline" size={28} color={COLORS.white} />
+          <Ionicons name="download" size={24} color={COLORS.white} />
           {getExportCount() > 0 && (
             <View style={styles.fabBadge}>
               <Text style={styles.fabBadgeText}>{getExportCount()}</Text>
@@ -869,9 +678,6 @@ export default function ReportsScreen() {
           )}
         </TouchableOpacity>
       )}
-
-      {/* Export Confirmation Modal */}
-      {showExportModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -1221,40 +1027,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  fab: {
+  floatingExportButton: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    backgroundColor: '#2196F3',
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#2196F3',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 30,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    zIndex: 1000,
+    gap: 8,
   },
-  fabBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#FF5252',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-  fabBadgeText: {
+  floatingExportText: {
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   modalOverlay: {
@@ -1380,27 +1172,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2196F3',
-  },
-  metricColumn: {
-    width: 110,
-  },
-  headerSubtext: {
-    fontSize: 10,
-    color: '#E3F2FD',
-    marginTop: 2,
-  },
-  metricsNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
-  },
-  metricsNoteText: {
-    fontSize: 13,
-    color: '#F57C00',
-    flex: 1,
   },
 });

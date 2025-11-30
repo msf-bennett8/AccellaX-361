@@ -70,10 +70,13 @@ export default function SelectSportScreen({ route }) {
       return;
     }
     
+    console.log('🔍 SelectSport - Passing metadata to AssessmentMode:', assessmentMetadata);
+    
     // Navigate to Assessment Mode selection
     navigation.navigate('AssessmentMode', { 
       sport: sport,
-      kidCount: kidCount 
+      kidCount: kidCount,
+      assessmentMetadata: assessmentMetadata, // ✅ Pass metadata forward
     });
   };
 

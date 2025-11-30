@@ -38,7 +38,7 @@ const AGE_GROUPS = [
 
 const SelectKidsScreen = ({ route, navigation }) => {
   const { sport, assessmentMode, selectedTests = [], kidCount, assessmentMetadata } = route.params || {};
-  
+   console.log('🔍 SelectTests - Received metadata:', assessmentMetadata);
   const [kids, setKids] = useState([]);
   const [filteredKids, setFilteredKids] = useState([]);
   const [selectedKids, setSelectedKids] = useState([]);

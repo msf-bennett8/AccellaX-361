@@ -138,17 +138,23 @@ export default function AssessmentSetupScreen() {
     return Object.keys(newErrors).length === 0;
   };
   
-  // Handle Continue
   const handleContinue = () => {
-    if (!validateForm()) {
-      return;
-    }
-    
-    // Pass metadata to next screen (Select Sport)
-    navigation.navigate('SelectSport', {
-      assessmentMetadata: {
-        year,
-        term,
+  if (!validateForm()) {
+    return;
+  }
+  
+  console.log('🔍 AssessmentSetup - Metadata being passed:', {
+    year,
+    term,
+    assessmentType,
+    weekNumber,
+  });
+  
+  // Pass metadata to next screen (Select Sport)
+  navigation.navigate('SelectSport', {
+    assessmentMetadata: {
+      year,
+      term,
         assessmentType,
         weekNumber: parseInt(weekNumber),
         location: location.trim() || null,

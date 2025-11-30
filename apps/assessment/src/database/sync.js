@@ -499,9 +499,16 @@ const uploadAssessmentsToFirebase = async (userId, academyId) => {
         kid_id: assessment.kid_id.toString(),
         sport_id: assessment.sport_id.toString(),
         assessment_date: assessment.assessment_date,
-        term: assessment.term,
+        // ✅ METADATA FIELDS (preserve all rich data)
+        year: assessment.year || null,
+        term: assessment.term || null,
+        assessment_type: assessment.assessment_type || null,
+        week_number: assessment.week_number || null,
+        location: assessment.location || null,
+        assessor_name: assessment.assessor_name || assessment.assessed_by || 'Coach',
+        general_notes: assessment.general_notes || assessment.notes || null,
+        // Standard fields
         assessed_by: assessment.assessed_by,
-        notes: assessment.notes || null,
         status: assessment.status || 'completed',
         created_at: Timestamp.fromDate(new Date(assessment.created_at)),
         updated_at: Timestamp.now(),
@@ -868,14 +875,22 @@ const downloadAssessmentsFromFirebase = async (academyId) => {
       
       const userId = await AsyncStorage.getItem('currentUserId');
       
-      // Insert assessment with data validation
+      // Insert assessment with ALL metadata fields preserved
       await insertAssessment({
         id: assessmentId,
         kidId: firebaseAssessment.kid_id,
         sportId: firebaseAssessment.sport_id,
         assessmentDate: firebaseAssessment.assessment_date,
-        term: firebaseAssessment.term || 'Q1', // Default to Q1 if missing
-        notes: firebaseAssessment.notes || null,
+        // ✅ METADATA FIELDS
+        year: firebaseAssessment.year || null,
+        term: firebaseAssessment.term || 'Q1',
+        assessmentType: firebaseAssessment.assessment_type || null,
+        weekNumber: firebaseAssessment.week_number || null,
+        location: firebaseAssessment.location || null,
+        assessorName: firebaseAssessment.assessor_name || 'Coach',
+        generalNotes: firebaseAssessment.general_notes || firebaseAssessment.notes || null,
+        // Standard fields
+        notes: firebaseAssessment.general_notes || firebaseAssessment.notes || null,
         status: firebaseAssessment.status || 'completed',
       }, userId);
       

@@ -515,15 +515,21 @@ export const getAssessmentsByDateRange = async (startDate, endDate, sportId = nu
       const kid = webDB.kids?.find(k => k.id === assessment.kid_id);
       const sport = webDB.sports?.find(s => s.id === assessment.sport_id);
       
+      // ✅ CRITICAL FIX: Include results from assessment_results table
+      const results = webDB.assessment_results?.filter(r => r.assessment_id === assessment.id) || [];
+      
+      console.log(`📊 Assessment ${assessment.id} - Found ${results.length} results`);
+      
       return {
         ...assessment,
         kid,
         sport,
+        results, // ✅ Add results array
       };
     }).sort((a, b) => new Date(b.assessment_date) - new Date(a.assessment_date));
   }
   
-  const db = getDatabase();
+    const db = getDatabase();
   
   const query = sportId
     ? `SELECT a.*, 
@@ -549,7 +555,19 @@ export const getAssessmentsByDateRange = async (startDate, endDate, sportId = nu
   
   const params = sportId ? [startDate, endDate, sportId] : [startDate, endDate];
   
-  return await db.getAllAsync(query, params);
+  const assessments = await db.getAllAsync(query, params);
+  
+  // ✅ CRITICAL FIX: Load results for each assessment
+  for (const assessment of assessments) {
+    const results = await db.getAllAsync(
+      'SELECT * FROM assessment_results WHERE assessment_id = ?',
+      [assessment.id]
+    );
+    assessment.results = results;
+    console.log(`📊 Assessment ${assessment.id} - Found ${results.length} results`);
+  }
+  
+  return assessments;
 };
 
 /**

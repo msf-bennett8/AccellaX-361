@@ -1238,7 +1238,15 @@ export const insertAssessment = async (assessmentData, userId) => {
       kid_id: assessmentData.kidId,
       sport_id: assessmentData.sportId,
       assessment_date: assessmentData.assessmentDate,
-      term: assessmentData.term || 'Q1', // Provide default value
+      // ✅ METADATA FIELDS
+      year: assessmentData.year || null,
+      term: assessmentData.term || 'Q1',
+      assessment_type: assessmentData.assessmentType || null,
+      week_number: assessmentData.weekNumber || null,
+      location: assessmentData.location || null,
+      assessor_name: assessmentData.assessorName || 'Coach',
+      general_notes: assessmentData.generalNotes || assessmentData.notes || null,
+      // Standard fields
       assessed_by: userId,
       notes: assessmentData.notes || null,
       status: assessmentData.status || 'completed',
@@ -1273,9 +1281,25 @@ export const insertAssessment = async (assessmentData, userId) => {
   }
 
   await db.runAsync(
-    'INSERT INTO assessments (id, academy_id, kid_id, sport_id, assessment_date, term, assessed_by, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [assessmentId, FIXED_ACADEMY_ID, assessmentData.kidId, assessmentData.sportId, assessmentData.assessmentDate, assessmentData.term, userId, assessmentData.notes, assessmentData.status || 'completed']
-  );
+      'INSERT INTO assessments (id, academy_id, kid_id, sport_id, assessment_date, year, term, assessment_type, week_number, location, assessor_name, general_notes, assessed_by, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        assessmentId, 
+        FIXED_ACADEMY_ID, 
+        assessmentData.kidId, 
+        assessmentData.sportId, 
+        assessmentData.assessmentDate, 
+        assessmentData.year || null,
+        assessmentData.term, 
+        assessmentData.assessmentType || null,
+        assessmentData.weekNumber || null,
+        assessmentData.location || null,
+        assessmentData.assessorName || 'Coach',
+        assessmentData.generalNotes || assessmentData.notes || null,
+        userId, 
+        assessmentData.notes, 
+        assessmentData.status || 'completed'
+      ]
+    );
 
   return { id: assessmentId, ...assessmentData };
 };
