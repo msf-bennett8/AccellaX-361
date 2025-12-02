@@ -29,3 +29,22 @@ Created TensorFlow Lite XNNPACK delegate for CPU.
 [14059:14059:1201/125546.032642:ERROR:mojo/public/cpp/bindings/lib/interface_endpoint_client.cc:732] Message 1 rejected by interface blink.mojom.WidgetHost
 [14059:14088:1201/125618.150064:ERROR:google_apis/gcm/engine/registration_request.cc:292] Registration response error message: DEPRECATED_ENDPOINT
 [14059:14088:1201/125807.508169:ERROR:google_apis/gcm/engine/registration_request.cc:292] Registration response error message: DEPRECATED_ENDPOINT
+[14059:14088:1201/130207.750162:ERROR:google_apis/gcm/engine/registration_request.cc:292] Registration response error message: DEPRECATED_ENDPOINT
+[14059:14088:1201/130417.824561:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130417.825577:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130619.086677:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130619.090131:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130638.545131:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130757.927048:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130757.929153:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130921.150417:ERROR:google_apis/gcm/engine/registration_request.cc:292] Registration response error message: DEPRECATED_ENDPOINT
+[14059:14088:1201/130931.232447:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/130931.243122:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/131308.892059:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/131308.893413:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/131407.719447:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/131407.720798:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14108:14108:1201/131744.644735:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:393] SharedImageManager::ProduceSkia: Trying to Produce a Skia representation from a non-existent mailbox.
+[14059:14088:1201/135537.425770:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[14059:14088:1201/135537.427539:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+Gdk-Message: 14:14:58.725: Lost connection to Wayland compositor.
