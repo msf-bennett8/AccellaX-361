@@ -20,9 +20,10 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import * as IntentLauncher from 'expo-intent-launcher';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// Removed jsPDF and XLSX - using React Native compatible exports
+//import * as XLSX from 'xlsx';
+//import { jsPDF } from 'jspdf';
+//import autoTable from 'jspdf-autotable';
 import Header from '../../components/common/Header';
 import SearchBar from '../../components/common/SearchBar';
 import { COLORS, AGE_GROUPS, ASSESSMENT_TERMS } from '../../utils/constants';
@@ -324,250 +325,76 @@ export default function ExportDetailScreen() {
     return csv;
   };
 
-  // Generate Real Excel .xlsx File
+  // Excel format now exports as CSV (universally compatible)
   const generateExcel = async () => {
+    // Just return CSV format - works everywhere and opens in Excel
+    return generateCSV();
+  };
+
+  // Generate PDF using expo-print (HTML-to-PDF) - works on all platforms
+  const generatePDF = async () => {
     const dataToExport = selectedRecords.length > 0
       ? filteredData.kids.filter(k => selectedRecords.includes(k.id))
       : filteredData.kids;
 
     const metrics = filteredData.metrics || [];
 
-    // Prepare headers
-    const headers = ['Name', 'Age', 'Age Group', 'Gender', 'Sponsorship', 'Program', 'Sport', 'Assessment Date', 'Term', 'Year'];
-    metrics.forEach(metric => {
-      headers.push(`${metric.name}${metric.unit ? ' (' + metric.unit + ')' : ''}`);
-    });
-
-    // Prepare rows
-    const rows = dataToExport.map(kid => {
-      const assessment = kid.assessments?.[0] || kid.latestAssessment || {};
-      
-      const row = [
-        kid.name,
-        kid.age,
-        kid.age_group || 'N/A',
-        kid.gender || 'N/A',
-        kid.sponsorshipType === 'SC' ? 'Scholarship' : 'Self-Sponsored',
-        kid.programType === 'ELT' ? 'Elite' : 'Weekend Warrior',
-        selectedSport || 'N/A',
-        assessment.assessment_date || 'N/A',
-        assessment.term || 'N/A',
-        assessment.year || 'N/A',
-      ];
-
-      // Add metric values
-      metrics.forEach(metric => {
-        const value = kid.metricValues?.[metric.id];
-        row.push(formatMetricValueForCSV(metric, value));
-      });
-
-      return row;
-    });
-
-    // Create worksheet
-    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-
-    // Set column widths
-    worksheet['!cols'] = [
-      { wch: 20 }, // Name
-      { wch: 6 },  // Age
-      { wch: 12 }, // Age Group
-      { wch: 10 }, // Gender
-      { wch: 15 }, // Sponsorship
-      { wch: 15 }, // Program
-      { wch: 15 }, // Sport
-      { wch: 15 }, // Assessment Date
-      { wch: 8 },  // Term
-      { wch: 12 }, // Year
-      ...metrics.map(() => ({ wch: 12 })), // Metric columns
-    ];
-
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Assessments');
-
-    // Generate binary Excel file
-    const excelBuffer = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
-    return excelBuffer;
-  };
-
-  // Generate Real PDF File using jsPDF (No HTML rendering)
-  const generatePDF = async () => {
-    if (Platform.OS === 'web') {
-      // Web: Use jsPDF
-      const dataToExport = selectedRecords.length > 0
-        ? filteredData.kids.filter(k => selectedRecords.includes(k.id))
-        : filteredData.kids;
-
-      const metrics = filteredData.metrics || [];
-
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      // Header
-      doc.setFontSize(18);
-      doc.setTextColor(33, 150, 243);
-      doc.text('AccellaX 361° - Assessment Export Report', 148, 15, { align: 'center' });
-
-      // Info Section
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      let yPos = 25;
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, yPos);
-      yPos += 5;
-      doc.text(`Total Records: ${dataToExport.length}`, 14, yPos);
-      yPos += 5;
-      
-      if (selectedYear !== 'all') {
-        doc.text(`Year: ${selectedYear}`, 14, yPos);
-        yPos += 5;
-      }
-      if (selectedTerm !== 'all') {
-        doc.text(`Term: ${selectedTerm}`, 14, yPos);
-        yPos += 5;
-      }
-      if (selectedSport !== 'all') {
-        doc.text(`Sport: ${sports.find(s => s.id === selectedSport)?.name || selectedSport}`, 14, yPos);
-        yPos += 5;
-      }
-
-      // Table Headers
-      const headers = [
-        'Name', 'Age', 'Age Group', 'Gender', 'Sponsorship', 'Program',
-        ...metrics.slice(0, 8).map(m => `${m.name}${m.unit ? `\n(${m.unit})` : ''}`)
-      ];
-
-      // Table Rows
-      const rows = dataToExport.map(kid => {
-        return [
-          kid.name,
-          kid.age,
-          kid.age_group || 'N/A',
-          kid.gender || 'N/A',
-          kid.sponsorshipType === 'SC' ? 'Scholarship' : 'Self-Spon.',
-          kid.programType === 'ELT' ? 'Elite' : 'Weekend',
-          ...metrics.slice(0, 8).map(m => formatMetricValue(m, kid.metricValues?.[m.id]))
-        ];
-      });
-
-      // Generate Table
-      autoTable(doc, {
-        head: [headers],
-        body: rows,
-        startY: yPos + 5,
-        theme: 'striped',
-        headStyles: {
-          fillColor: [33, 150, 243],
-          textColor: 255,
-          fontSize: 8,
-          fontStyle: 'bold'
-        },
-        bodyStyles: {
-          fontSize: 7,
-          textColor: 50
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245]
-        },
-        margin: { top: 10, left: 14, right: 14 },
-        styles: {
-          cellPadding: 2,
-          overflow: 'linebreak',
-          cellWidth: 'wrap'
-        },
-        columnStyles: {
-          0: { cellWidth: 30 }, // Name
-          1: { cellWidth: 12 }, // Age
-          2: { cellWidth: 18 }, // Age Group
-          3: { cellWidth: 15 }, // Gender
-          4: { cellWidth: 20 }, // Sponsorship
-          5: { cellWidth: 18 }, // Program
-        }
-      });
-
-      // Footer
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(
-          'AccellaX 361° Sports Academy - Confidential',
-          148,
-          doc.internal.pageSize.height - 10,
-          { align: 'center' }
-        );
-      }
-
-      return doc;
-    } else {
-      // Mobile: Use expo-print with HTML
-      const dataToExport = selectedRecords.length > 0
-        ? filteredData.kids.filter(k => selectedRecords.includes(k.id))
-        : filteredData.kids;
-
-      const metrics = filteredData.metrics || [];
-
-      const html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-              @page { size: A4 landscape; margin: 10mm; }
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: Arial, sans-serif; padding: 20px; background: white; }
-              h1 { color: #2196F3; font-size: 18px; text-align: center; margin-bottom: 15px; }
-              .info { font-size: 9px; color: #666; margin-bottom: 15px; }
-              .info p { margin: 3px 0; }
-              table { width: 100%; border-collapse: collapse; font-size: 8px; }
-              th { background: #2196F3; color: white; padding: 8px 4px; text-align: left; font-weight: bold; }
-              td { padding: 6px 4px; border-bottom: 1px solid #ddd; }
-              tr:nth-child(even) { background: #f9f9f9; }
-              .footer { text-align: center; font-size: 8px; color: #999; margin-top: 15px; }
-            </style>
-          </head>
-          <body>
-            <h1>AccellaX 361° - Assessment Export Report</h1>
-            <div class="info">
-              <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-              <p><strong>Total Records:</strong> ${dataToExport.length}</p>
-              ${selectedYear !== 'all' ? `<p><strong>Year:</strong> ${selectedYear}</p>` : ''}
-              ${selectedTerm !== 'all' ? `<p><strong>Term:</strong> ${selectedTerm}</p>` : ''}
-              ${selectedSport !== 'all' ? `<p><strong>Sport:</strong> ${sports.find(s => s.id === selectedSport)?.name || selectedSport}</p>` : ''}
-            </div>
-            <table>
-              <thead>
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            @page { size: A4 landscape; margin: 10mm; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; padding: 20px; background: white; }
+            h1 { color: #2196F3; font-size: 18px; text-align: center; margin-bottom: 15px; }
+            .info { font-size: 9px; color: #666; margin-bottom: 15px; }
+            .info p { margin: 3px 0; }
+            table { width: 100%; border-collapse: collapse; font-size: 8px; }
+            th { background: #2196F3; color: white; padding: 8px 4px; text-align: left; font-weight: bold; }
+            td { padding: 6px 4px; border-bottom: 1px solid #ddd; }
+            tr:nth-child(even) { background: #f9f9f9; }
+            .footer { text-align: center; font-size: 8px; color: #999; margin-top: 15px; }
+          </style>
+        </head>
+        <body>
+          <h1>AccellaX 361° - Assessment Export Report</h1>
+          <div class="info">
+            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Total Records:</strong> ${dataToExport.length}</p>
+            ${selectedYear !== 'all' ? `<p><strong>Year:</strong> ${selectedYear}</p>` : ''}
+            ${selectedTerm !== 'all' ? `<p><strong>Term:</strong> ${selectedTerm}</p>` : ''}
+            ${selectedSport !== 'all' ? `<p><strong>Sport:</strong> ${sports.find(s => s.id === selectedSport)?.name || selectedSport}</p>` : ''}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th><th>Age</th><th>Age Group</th><th>Gender</th><th>Sponsor</th><th>Program</th>
+                ${metrics.slice(0, 8).map(m => `<th>${m.name}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${dataToExport.map(kid => `
                 <tr>
-                  <th>Name</th><th>Age</th><th>Age Group</th><th>Gender</th><th>Sponsor</th><th>Program</th>
-                  ${metrics.slice(0, 8).map(m => `<th>${m.name}</th>`).join('')}
+                  <td>${kid.name}</td>
+                  <td>${kid.age}</td>
+                  <td>${kid.age_group || 'N/A'}</td>
+                  <td>${kid.gender || 'N/A'}</td>
+                  <td>${kid.sponsorshipType === 'SC' ? 'Schol.' : 'Self'}</td>
+                  <td>${kid.programType === 'ELT' ? 'Elite' : 'WW'}</td>
+                  ${metrics.slice(0, 8).map(m => `<td>${formatMetricValue(m, kid.metricValues?.[m.id])}</td>`).join('')}
                 </tr>
-              </thead>
-              <tbody>
-                ${dataToExport.map(kid => `
-                  <tr>
-                    <td>${kid.name}</td>
-                    <td>${kid.age}</td>
-                    <td>${kid.age_group || 'N/A'}</td>
-                    <td>${kid.gender || 'N/A'}</td>
-                    <td>${kid.sponsorshipType === 'SC' ? 'Schol.' : 'Self'}</td>
-                    <td>${kid.programType === 'ELT' ? 'Elite' : 'WW'}</td>
-                    ${metrics.slice(0, 8).map(m => `<td>${formatMetricValue(m, kid.metricValues?.[m.id])}</td>`).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-            <div class="footer">AccellaX 361° Sports Academy - Confidential</div>
-          </body>
-        </html>
-      `;
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="footer">AccellaX 361° Sports Academy - Confidential</div>
+        </body>
+      </html>
+    `;
 
-      return html;
-    }
+    return html;
   };
 
   // Generate PDF/Excel (simplified text format)
@@ -669,48 +496,44 @@ export default function ExportDetailScreen() {
         }
 
       } else if (selectedFormat === 'excel') {
-        // Real Excel Export
-        const excelBase64 = await generateExcel();
-        filename = `AccellaX_Export_${Date.now()}.xlsx`;
-        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        // Excel Export (CSV format - opens in Excel)
+        const csvContent = await generateExcel();
+        filename = `AccellaX_Export_${Date.now()}.csv`;
+        mimeType = 'text/csv';
 
         if (Platform.OS === 'web') {
+          const blob = new Blob([csvContent], { type: mimeType });
+          const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.href = `data:${mimeType};base64,${excelBase64}`;
+          link.href = url;
           link.download = filename;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          URL.revokeObjectURL(url);
         } else {
           fileUri = `${FileSystem.documentDirectory}${filename}`;
-          await FileSystem.writeAsStringAsync(fileUri, excelBase64, {
-            encoding: FileSystem.EncodingType.Base64,
+          await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+            encoding: FileSystem.EncodingType.UTF8,
           });
         }
 
       } else if (selectedFormat === 'pdf') {
-        // Real PDF Export
+        // PDF Export using expo-print
         filename = `AccellaX_Export_${Date.now()}.pdf`;
         mimeType = 'application/pdf';
 
-        if (Platform.OS === 'web') {
-          // Web: Use jsPDF (returns doc object)
-          const pdfDoc = await generatePDF();
-          pdfDoc.save(filename);
-          // No need for fileUri on web
+        const htmlContent = await generatePDF();
+        const printResult = await Print.printToFileAsync({ html: htmlContent });
+        
+        if (printResult && printResult.uri) {
+          fileUri = `${FileSystem.documentDirectory}${filename}`;
+          await FileSystem.moveAsync({
+            from: printResult.uri,
+            to: fileUri,
+          });
         } else {
-          // Mobile: Use expo-print (returns HTML)
-          const htmlContent = await generatePDF();
-          const printResult = await Print.printToFileAsync({ html: htmlContent });
-          if (printResult && printResult.uri) {
-            fileUri = `${FileSystem.documentDirectory}${filename}`;
-            await FileSystem.moveAsync({
-              from: printResult.uri,
-              to: fileUri,
-            });
-          } else {
-            throw new Error('PDF generation failed');
-          }
+          throw new Error('PDF generation failed');
         }
       }
 
@@ -767,19 +590,18 @@ export default function ExportDetailScreen() {
         });
 
       } else if (selectedFormat === 'excel') {
-        const excelBase64 = await generateExcel();
-        filename = `AccellaX_Export_${Date.now()}.xlsx`;
-        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        const csvContent = await generateExcel();
+        filename = `AccellaX_Export_${Date.now()}.csv`;
+        mimeType = 'text/csv';
         fileUri = `${FileSystem.documentDirectory}${filename}`;
-        await FileSystem.writeAsStringAsync(fileUri, excelBase64, {
-          encoding: FileSystem.EncodingType.Base64,
+        await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+          encoding: FileSystem.EncodingType.UTF8,
         });
 
       } else if (selectedFormat === 'pdf') {
         filename = `AccellaX_Export_${Date.now()}.pdf`;
         mimeType = 'application/pdf';
         
-        // Mobile always uses expo-print
         const htmlContent = await generatePDF();
         const printResult = await Print.printToFileAsync({ html: htmlContent });
         if (printResult && printResult.uri) {
@@ -807,17 +629,28 @@ export default function ExportDetailScreen() {
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
         } else if (selectedFormat === 'excel') {
-          const excelBase64 = await generateExcel();
+          const csvContent = await generateExcel();
+          const blob = new Blob([csvContent], { type: mimeType });
+          const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.href = `data:${mimeType};base64,${excelBase64}`;
+          link.href = url;
           link.download = filename;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          URL.revokeObjectURL(url);
         } else {
-          // Web PDF: Use jsPDF
-          const pdfDoc = await generatePDF();
-          pdfDoc.save(filename);
+          // Web PDF: Use expo-print
+          const htmlContent = await generatePDF();
+          const printResult = await Print.printToFileAsync({ html: htmlContent });
+          if (printResult && printResult.uri) {
+            const link = document.createElement('a');
+            link.href = printResult.uri;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
         }
         setSuccessMessage('File downloaded successfully!');
         setShowSuccessModal(true);

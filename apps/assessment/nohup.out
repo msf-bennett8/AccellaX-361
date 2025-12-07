@@ -48,3 +48,26 @@ Created TensorFlow Lite XNNPACK delegate for CPU.
 [14059:14088:1201/135537.425770:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
 [14059:14088:1201/135537.427539:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
 Gdk-Message: 14:14:58.725: Lost connection to Wayland compositor.
+[5209:5239:1206/063713.733664:ERROR:google_apis/gcm/engine/registration_request.cc:275] Registration URL fetching failed.
+Created TensorFlow Lite XNNPACK delegate for CPU.
+[5209:5239:1206/063734.655650:ERROR:google_apis/gcm/engine/registration_request.cc:275] Registration URL fetching failed.
+[5209:5209:1206/063828.507353:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 245350905893 project: 2
+[5209:5209:1206/063829.712303:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 585406161706 project: 2
+[5209:5239:1206/063830.876649:ERROR:google_apis/gcm/engine/registration_request.cc:275] Registration URL fetching failed.
+[5209:5209:1206/063956.790678:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 245350905893 project: 2
+[5209:5209:1206/063956.793639:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 585406161706 project: 2
+[5209:5239:1206/064026.245695:ERROR:google_apis/gcm/engine/registration_request.cc:275] Registration URL fetching failed.
+[5209:5209:1206/064128.708062:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 585406161706 project: 2
+[5209:5209:1206/064133.443321:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 245350905893 project: 2
+[5209:5239:1206/064138.381579:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5239:1206/064138.384018:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5239:1206/064207.591755:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5239:1206/064223.092997:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5239:1206/064258.892194:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5239:1206/064312.541332:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5239:1206/064352.177669:ERROR:google_apis/gcm/engine/registration_request.cc:275] Registration URL fetching failed.
+[5209:5239:1206/064357.685622:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5239:1206/064430.288494:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[5209:5209:1206/064450.515209:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 585406161706 project: 2
+[5209:5209:1206/064456.185689:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 245350905893 project: 2
+Gdk-Message: 06:46:46.355: Lost connection to Wayland compositor.
