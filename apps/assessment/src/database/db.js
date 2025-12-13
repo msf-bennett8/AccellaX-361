@@ -1940,6 +1940,197 @@ export const syncUserToLocalDB = async (userId, firebaseUserData) => {
   }
 };
 
+// ========== STATISTICS & COUNTS ==========
+
+/**
+ * Get total number of kids (for leaderboards stats)
+ */
+export const getKidsCount = async () => {
+  try {
+    if (isWeb) {
+      return webDB.kids.filter(k => k.status === 'active').length;
+    }
+    const result = await db.getFirstAsync('SELECT COUNT(*) as count FROM kids WHERE status = ?', ['active']);
+    return result?.count || 0;
+  } catch (error) {
+    console.error('Error getting kids count:', error);
+    return 0;
+  }
+};
+
+/**
+ * Get assessment statistics for current time periods
+ */
+export const getAssessmentStats = async () => {
+  try {
+    const now = new Date();
+    
+    if (isWeb) {
+      const assessments = webDB.assessments || [];
+      
+      // This week
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      // This month
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      // This quarter
+      const quarter = Math.floor(now.getMonth() / 3);
+      const startOfQuarter = new Date(now.getFullYear(), quarter * 3, 1);
+      
+      const thisWeek = assessments.filter(a => 
+        new Date(a.assessment_date) >= startOfWeek
+      ).length;
+      
+      const thisMonth = assessments.filter(a => 
+        new Date(a.assessment_date) >= startOfMonth
+      ).length;
+      
+      const thisQuarter = assessments.filter(a => 
+        new Date(a.assessment_date) >= startOfQuarter
+      ).length;
+      
+      return {
+        thisWeek,
+        thisMonth,
+        thisQuarter,
+        total: assessments.length,
+      };
+    }
+    
+    // Mobile: Use SQL queries
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const quarter = Math.floor(now.getMonth() / 3);
+    const startOfQuarter = new Date(now.getFullYear(), quarter * 3, 1);
+    
+    const weekResult = await db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM assessments WHERE assessment_date >= ? AND status = ?',
+      [startOfWeek.toISOString().split('T')[0], 'completed']
+    );
+    
+    const monthResult = await db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM assessments WHERE assessment_date >= ? AND status = ?',
+      [startOfMonth.toISOString().split('T')[0], 'completed']
+    );
+    
+    const quarterResult = await db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM assessments WHERE assessment_date >= ? AND status = ?',
+      [startOfQuarter.toISOString().split('T')[0], 'completed']
+    );
+    
+    const totalResult = await db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM assessments WHERE status = ?',
+      ['completed']
+    );
+    
+    return {
+      thisWeek: weekResult?.count || 0,
+      thisMonth: monthResult?.count || 0,
+      thisQuarter: quarterResult?.count || 0,
+      total: totalResult?.count || 0,
+    };
+  } catch (error) {
+    console.error('Error getting assessment stats:', error);
+    return { thisWeek: 0, thisMonth: 0, thisQuarter: 0, total: 0 };
+  }
+};
+
+/**
+ * Get storage information for settings screen
+ */
+export const getStorageInfo = async () => {
+  try {
+    if (isWeb) {
+      const totalAssessments = webDB.assessments?.length || 0;
+      const totalKids = webDB.kids?.length || 0;
+      
+      // Estimate database size
+      const dbString = JSON.stringify(webDB);
+      const dbSizeMB = (dbString.length / 1024 / 1024).toFixed(2);
+      
+      return {
+        totalAssessments,
+        totalKids,
+        databaseSize: `${dbSizeMB} MB`,
+        photosSize: '0 MB', // Not tracked in web version
+        videosSize: '0 MB', // Not tracked in web version
+      };
+    }
+    
+    // Mobile: Get actual counts
+    const assessmentCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM assessments');
+    const kidCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM kids WHERE status = ?', ['active']);
+    
+    return {
+      totalAssessments: assessmentCount?.count || 0,
+      totalKids: kidCount?.count || 0,
+      databaseSize: 'Calculating...', // TODO: Get actual SQLite file size
+      photosSize: '0 MB',
+      videosSize: '0 MB',
+    };
+  } catch (error) {
+    console.error('Error getting storage info:', error);
+    return {
+      totalAssessments: 0,
+      totalKids: 0,
+      databaseSize: '0 MB',
+      photosSize: '0 MB',
+      videosSize: '0 MB',
+    };
+  }
+};
+
+/**
+ * Delete all data (for settings reset)
+ */
+export const deleteAllData = async () => {
+  try {
+    if (isWeb) {
+      webDB.users = [];
+      webDB.kids = [];
+      webDB.sessions = [];
+      webDB.attendance = [];
+      webDB.notes = [];
+      webDB.sports = [];
+      webDB.metrics = [];
+      webDB.assessments = [];
+      webDB.assessment_results = [];
+      webDB.benchmarks = [];
+      webDB.goals = [];
+      await saveWebDB();
+      console.log('✅ All data deleted (web)');
+      return { success: true };
+    }
+    
+    // Mobile: Delete all tables
+    await db.execAsync(`
+      DELETE FROM goals;
+      DELETE FROM benchmarks;
+      DELETE FROM assessment_results;
+      DELETE FROM assessments;
+      DELETE FROM metrics;
+      DELETE FROM sports;
+      DELETE FROM notes;
+      DELETE FROM attendance;
+      DELETE FROM sessions;
+      DELETE FROM kids;
+    `);
+    // Note: Don't delete users to preserve login
+    
+    console.log('✅ All data deleted (mobile)');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error deleting all data:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 console.log(`✅ Assessment Database running in ${isWeb ? 'WEB' : 'NATIVE (Android/iOS)'} mode`);
 
 // Initialize academy ID on app start

@@ -20,6 +20,7 @@ import EditProfileScreen from '../screens/Profile/EditProfileScreen';
 import AssessmentStackNavigator from './AssessmentStackNavigator';
 import HistoryStackNavigator from './HistoryStackNavigator';
 import ReportsStackNavigator from './ReportsStackNavigator';
+import LeaderboardsStackNavigator from './LeaderboardsStackNavigator';
 
 // Drawer Content
 import CustomDrawerContent from './CustomDrawerContent';
@@ -154,6 +155,16 @@ export default function DrawerNavigator({ onLogout }) {
         options={{
           title: 'New Assessment',
           drawerItemStyle: { display: 'none' }, // Hidden - accessed via Home button
+        }}
+      />
+      <Drawer.Screen
+        name="Leaderboards"
+        component={LeaderboardsStackNavigator}
+        options={{
+          title: 'Rankings',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="trophy-award" size={22} color={color} />
+          ),
         }}
       />
     </Drawer.Navigator>

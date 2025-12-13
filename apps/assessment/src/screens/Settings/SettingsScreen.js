@@ -9,11 +9,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Alert,
   Platform,
   Linking,
   Share,
 } from 'react-native';
+import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -80,6 +80,13 @@ export default function SettingsScreen() {
     isSyncing: false,
     lastSync: null,
     pendingItems: 0,
+  });
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
   });
 
   useEffect(() => {
@@ -158,18 +165,26 @@ export default function SettingsScreen() {
 
   const handleManualSync = async () => {
     if (syncStatus.isSyncing) {
-      Alert.alert('Sync in Progress', 'Please wait for the current sync to complete.');
+      setModalConfig({
+        visible: true,
+        title: 'Sync in Progress',
+        message: 'Please wait for the current sync to complete.',
+        type: 'info',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
       return;
     }
 
-    Alert.alert(
-      'Manual Sync',
-      `Sync ${syncStatus.pendingItems} pending items to cloud?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sync Now',
-          onPress: async () => {
+    setModalConfig({
+      visible: true,
+      title: 'Manual Sync',
+      message: `Sync ${syncStatus.pendingItems} pending items to cloud?`,
+      type: 'info',
+      showCancel: true,
+      confirmText: 'Sync Now',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setModalConfig({ ...modalConfig, visible: false });
             setSyncStatus({ ...syncStatus, isSyncing: true });
             
             try {
@@ -179,92 +194,111 @@ export default function SettingsScreen() {
               const result = await performFullSync(userId);
               
               if (result.success) {
-                Alert.alert('Success', 'Data synced successfully!');
+                setModalConfig({
+                  visible: true,
+                  title: 'Success',
+                  message: 'Data synced successfully!',
+                  type: 'success',
+                  onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+                });
                 await AsyncStorage.setItem('lastSyncTime', new Date().toISOString());
                 await AsyncStorage.setItem('pendingSyncItems', '0');
                 loadSyncStatus();
               } else {
-                Alert.alert('Sync Failed', result.error || 'Please try again later.');
+                setModalConfig({
+                  visible: true,
+                  title: 'Sync Failed',
+                  message: result.error || 'Please try again later.',
+                  type: 'error',
+                  onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+                });
               }
             } catch (error) {
               console.error('Sync error:', error);
-              Alert.alert('Error', 'Sync failed. Please check your connection.');
+              setModalConfig({
+                visible: true,
+                title: 'Error',
+                message: 'Sync failed. Please check your connection.',
+                type: 'error',
+                onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+              });
             } finally {
               setSyncStatus({ ...syncStatus, isSyncing: false });
             }
-          },
-        },
-      ]
-    );
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const handleClearCache = () => {
-    Alert.alert(
-      'Clear Cache',
-      'This will clear temporary files but keep your assessments and data.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
+    setModalConfig({
+      visible: true,
+      title: 'Clear Cache',
+      message: 'This will clear temporary files but keep your assessments and data.',
+      type: 'warning',
+      showCancel: true,
+      confirmText: 'Clear',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setModalConfig({ ...modalConfig, visible: false });
             try {
               // TODO: Implement cache clearing
-              Alert.alert('Success', 'Cache cleared successfully!');
+              setModalConfig({
+                visible: true,
+                title: 'Success',
+                message: 'Cache cleared successfully!',
+                type: 'success',
+                onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+              });
               loadStorageInfo();
             } catch (error) {
-              Alert.alert('Error', 'Failed to clear cache.');
+              setModalConfig({
+                visible: true,
+                title: 'Error',
+                message: 'Failed to clear cache.',
+                type: 'error',
+                onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+              });
             }
-          },
-        },
-      ]
-    );
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const handleExportData = async () => {
-    Alert.alert(
-      'Export Data',
-      'Export all assessments as CSV/PDF?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'CSV',
-          onPress: async () => {
-            try {
-              const { exportAllDataAsCSV } = await import('../../utils/exportUtils');
-              const result = await exportAllDataAsCSV();
-              
-              if (result.success) {
-                Share.share({
-                  message: 'Assessment data exported',
-                  url: result.fileUri,
-                });
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Export failed. Please try again.');
-            }
-          },
-        },
-        {
-          text: 'PDF',
-          onPress: async () => {
-            try {
-              const { exportAllDataAsPDF } = await import('../../utils/exportUtils');
-              const result = await exportAllDataAsPDF();
-              
-              if (result.success) {
-                Share.share({
-                  message: 'Assessment data exported',
-                  url: result.fileUri,
-                });
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Export failed. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+    setModalConfig({
+      visible: true,
+      title: 'Export Data',
+      message: 'Export all assessments as CSV or PDF?',
+      type: 'info',
+      showCancel: true,
+      confirmText: 'CSV',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setModalConfig({ ...modalConfig, visible: false });
+        try {
+          const { exportAllDataAsCSV } = await import('../../utils/exportUtils');
+          const result = await exportAllDataAsCSV();
+          
+          if (result.success) {
+            Share.share({
+              message: 'Assessment data exported',
+              url: result.fileUri,
+            });
+          }
+        } catch (error) {
+          setModalConfig({
+            visible: true,
+            title: 'Error',
+            message: 'Export failed. Please try again.',
+            type: 'error',
+            onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+          });
+        }
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
+    // TODO: Add PDF option as second modal or separate button
   };
 
   const handleResetSettings = () => {
@@ -370,15 +404,16 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout? Unsynced data will remain on this device.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
+    setModalConfig({
+      visible: true,
+      title: 'Logout',
+      message: 'Are you sure you want to logout? Unsynced data will remain on this device.',
+      type: 'warning',
+      showCancel: true,
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setModalConfig({ ...modalConfig, visible: false });
             try {
               await logoutUser();
               navigation.reset({
@@ -386,12 +421,17 @@ export default function SettingsScreen() {
                 routes: [{ name: 'AuthChoice' }],
               });
             } catch (error) {
-              Alert.alert('Error', 'Logout failed. Please try again.');
+              setModalConfig({
+                visible: true,
+                title: 'Error',
+                message: 'Logout failed. Please try again.',
+                type: 'error',
+                onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+              });
             }
-          },
-        },
-      ]
-    );
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const handleContactSupport = () => {
@@ -1047,7 +1087,20 @@ export default function SettingsScreen() {
 
     {/* Bottom Padding */}
     <View style={styles.bottomPadding} />
-    </ScrollView>
+      </ScrollView>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        showCancel={modalConfig.showCancel}
+        onConfirm={modalConfig.onConfirm}
+        onCancel={modalConfig.onCancel}
+      />
     </View>
     );
     }
@@ -1372,5 +1425,9 @@ const styles = StyleSheet.create({
   // Bottom Padding
   bottomPadding: {
     height: 32,
+  },
+  actionButtonArrow: {
+    fontSize: 20,
+    color: COLORS.textSecondary,
   },
 });

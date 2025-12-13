@@ -26,7 +26,7 @@ const getResponsiveTitle = (fullTitle, screenWidth) => {
 const Header = ({
   title = APP_NAME,
   subtitle,
-  leftIcon,
+  leftIcon = '☰', // Default to hamburger menu
   rightIcon,
   onLeftPress,
   onRightPress,
@@ -45,7 +45,8 @@ const Header = ({
   showAvatar = true,
   onAvatarSecretTap,
   showAdminElevation = false,
-  userProfile: propUserProfile, // ADD THIS LINE
+  userProfile: propUserProfile,
+  showBackButton = false, // New prop for showing back button instead of hamburger
 }) => {
   const navigation = useNavigation();
   const [userProfile, setUserProfile] = useState(propUserProfile || null);
@@ -282,9 +283,31 @@ const Header = ({
       <View style={[getHeaderStyle(), { backgroundColor }, style]}>
         {/* Left Section */}
         <View style={styles.leftSection}>
-          {leftIcon && (
+          {showBackButton ? (
+            // Show back button if specified
             <TouchableOpacity
               onPress={onLeftPress}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={[styles.iconText, { color: iconColor }]}>←</Text>
+            </TouchableOpacity>
+          ) : leftText ? (
+            // Show text button if provided
+            <TouchableOpacity
+              onPress={onLeftPress}
+              style={styles.textButton}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.buttonText, { color: iconColor }, textStyle]}>
+                {leftText}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            // Always show hamburger menu by default
+            <TouchableOpacity
+              onPress={onLeftPress || (() => navigation.openDrawer?.())}
               style={styles.iconButton}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -300,17 +323,6 @@ const Header = ({
                   {leftIcon}
                 </Text>
               )}
-            </TouchableOpacity>
-          )}
-          {leftText && (
-            <TouchableOpacity
-              onPress={onLeftPress}
-              style={styles.textButton}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.buttonText, { color: iconColor }, textStyle]}>
-                {leftText}
-              </Text>
             </TouchableOpacity>
           )}
         </View>

@@ -8,8 +8,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
+import ConfirmationModal from '../components/modals/ConfirmationModal';
 import {
   DrawerContentScrollView,
   DrawerItemList,
@@ -20,6 +20,13 @@ import { COLORS, APP_NAME } from '../utils/constants';
 
 export default function CustomDrawerContent(props) {
   const [userProfile, setUserProfile] = useState(null);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     loadUserProfile();
@@ -38,23 +45,20 @@ export default function CustomDrawerContent(props) {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => {
-            props.onLogout();
-          },
-        },
-      ]
-    );
+    setModalConfig({
+      visible: true,
+      title: 'Logout',
+      message: 'Are you sure you want to logout?',
+      type: 'warning',
+      showCancel: true,
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      onConfirm: () => {
+        setModalConfig({ ...modalConfig, visible: false });
+        props.onLogout();
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   return (
@@ -102,6 +106,19 @@ export default function CustomDrawerContent(props) {
           <Text style={styles.version}>Version 1.0.0</Text>
         </View>
       </View>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        showCancel={modalConfig.showCancel}
+        onConfirm={modalConfig.onConfirm}
+        onCancel={modalConfig.onCancel}
+      />
     </DrawerContentScrollView>
   );
 }

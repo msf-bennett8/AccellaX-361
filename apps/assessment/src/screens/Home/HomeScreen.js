@@ -11,12 +11,12 @@ import {
   RefreshControl,
   Dimensions,
   Platform,
-  Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import { COLORS, APP_NAME, AGE_GROUPS, SPORTS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
 
@@ -45,6 +45,13 @@ export default function HomeScreen() {
   const [redFlags, setRedFlags] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+  });
 
   // Load data on mount and when screen focused
   useEffect(() => {
@@ -179,7 +186,13 @@ export default function HomeScreen() {
   };
 
   const handleViewKids = () => {
-    Alert.alert('Kids Management', 'Coming soon!');
+    setModalConfig({
+      visible: true,
+      title: 'Kids Management',
+      message: 'Coming soon!',
+      type: 'info',
+      onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const handleViewLeaderboards = () => {
@@ -187,26 +200,40 @@ export default function HomeScreen() {
   };
 
   const handleSportPress = (sportName) => {
-    Alert.alert(sportName, `View ${sportName} assessments - Coming soon!`);
+    setModalConfig({
+      visible: true,
+      title: sportName,
+      message: `View ${sportName} assessments - Coming soon!`,
+      type: 'info',
+      onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const handleRedFlagPress = (flag) => {
-    Alert.alert(
-      'Performance Alert',
-      `${flag.kidName}'s ${flag.metric} dropped by ${Math.abs(flag.change)}%. Tap to view details.`,
-      [{ text: 'OK' }]
-    );
+    setModalConfig({
+      visible: true,
+      title: 'Performance Alert',
+      message: `${flag.kidName}'s ${flag.metric} dropped by ${Math.abs(flag.change)}%. Tap to view details.`,
+      type: 'warning',
+      onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const handleUpcomingTestPress = (test) => {
-    Alert.alert(
-      'Upcoming Test',
-      `${test.sport} assessment scheduled for ${test.date}\n${test.kidsCount} kids to assess`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Start Now', onPress: () => navigation.navigate('SelectSport') },
-      ]
-    );
+    setModalConfig({
+      visible: true,
+      title: 'Upcoming Test',
+      message: `${test.sport} assessment scheduled for ${test.date}\n${test.kidsCount} kids to assess`,
+      type: 'info',
+      showCancel: true,
+      confirmText: 'Start Now',
+      cancelText: 'Cancel',
+      onConfirm: () => {
+        setModalConfig({ ...modalConfig, visible: false });
+        navigation.navigate('Assessment', { screen: 'SelectSport' });
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const getGreeting = () => {
@@ -243,8 +270,6 @@ export default function HomeScreen() {
       <Header
         title={APP_NAME}
         subtitle="Assessment Dashboard"
-        leftIcon="☰"
-        onLeftPress={() => navigation.openDrawer()}
         showAvatar={true}
         variant="large"
       />
@@ -431,7 +456,13 @@ export default function HomeScreen() {
         <View style={styles.sportsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Sports Modules</Text>
-            <TouchableOpacity onPress={() => Alert.alert('Manage Sports', 'Add or edit sports - Coming soon!')}>
+            <TouchableOpacity onPress={() => setModalConfig({
+              visible: true,
+              title: 'Manage Sports',
+              message: 'Add or edit sports - Coming soon!',
+              type: 'info',
+              onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+            })}>
               <Text style={styles.seeAllText}>Manage</Text>
             </TouchableOpacity>
           </View>
@@ -521,9 +552,21 @@ export default function HomeScreen() {
         {/* Bottom Padding */}
         <View style={styles.bottomPadding} />
       </ScrollView>
-    </View>
-  );
-}
+      {/* Confirmation Modal */}
+        <ConfirmationModal
+          visible={modalConfig.visible}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          confirmText={modalConfig.confirmText}
+          cancelText={modalConfig.cancelText}
+          showCancel={modalConfig.showCancel}
+          onConfirm={modalConfig.onConfirm}
+          onCancel={modalConfig.onCancel}
+        />
+      </View>
+      );
+      }
 
 const styles = StyleSheet.create({
   container: {
