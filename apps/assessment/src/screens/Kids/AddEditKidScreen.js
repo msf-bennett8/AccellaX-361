@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   StyleSheet,
   Alert,
@@ -20,6 +21,7 @@ import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
+import { HOUSE_TEAMS } from '../../utils/constants';
 
 const SPORTS_CONFIG = {
   football: { name: 'Football', icon: '⚽', color: '#4CAF50' },
@@ -59,6 +61,7 @@ const AddEditKidScreen = () => {
   const [ageGroup, setAgeGroup] = useState(existingKid?.age_group || '10-13');
   const [sponsorshipType, setSponsorshipType] = useState(existingKid?.sponsorshipType || 'SP');
   const [programType, setProgramType] = useState(existingKid?.programType || 'ELT');
+  const [houseTeam, setHouseTeam] = useState(existingKid?.house_team || null);
   
   // Sports state
   const [selectedSports, setSelectedSports] = useState([]);
@@ -189,6 +192,7 @@ const AddEditKidScreen = () => {
           age_group: ageGroup,
           sponsorshipType,
           programType,
+          house_team: houseTeam,
         });
 
         // Update sports assignment
@@ -213,7 +217,8 @@ const AddEditKidScreen = () => {
           null, // programTypeOther
           null, // trialNotes
           false, // skipFirebaseSync
-          null // providedKidId
+          null, // providedKidId
+          houseTeam // house_team
         );
 
         // Assign sports
@@ -247,21 +252,21 @@ const AddEditKidScreen = () => {
         
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Name *</Text>
-          <input
+          <TextInput
             style={styles.input}
             value={name}
-            onInput={(e) => setName(e.target.value)}
+            onChangeText={setName}
             placeholder="Enter kid's full name"
           />
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Age *</Text>
-          <input
+          <TextInput
             style={styles.input}
-            type="number"
+            keyboardType="numeric"
             value={age}
-            onInput={(e) => setAge(e.target.value)}
+            onChangeText={setAge}
             placeholder="Enter age"
           />
         </View>
@@ -293,10 +298,10 @@ const AddEditKidScreen = () => {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Area of Residence</Text>
-          <input
+          <TextInput
             style={styles.input}
             value={area}
-            onInput={(e) => setArea(e.target.value)}
+            onChangeText={setArea}
             placeholder="Enter area (e.g., Nairobi)"
           />
         </View>
@@ -403,6 +408,42 @@ const AddEditKidScreen = () => {
             </Text>
           </View>
         )}
+
+        {/* House Team Selection */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>House Team</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.scrollableOptions}
+          >
+            {HOUSE_TEAMS.map(team => (
+              <TouchableOpacity
+                key={team.id}
+                style={[
+                  styles.houseTeamButton,
+                  houseTeam === team.id && styles.houseTeamButtonSelected,
+                  { borderColor: team.color }
+                ]}
+                onPress={() => setHouseTeam(team.id)}
+              >
+                <Text style={styles.houseTeamEmoji}>{team.emoji}</Text>
+                <Text style={[
+                  styles.houseTeamText,
+                  houseTeam === team.id && { color: team.color }
+                ]}>{team.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          {houseTeam && (
+            <View style={[styles.selectedHouseTeamBadge, { backgroundColor: HOUSE_TEAMS.find(t => t.id === houseTeam)?.color + '20' }]}>
+              <Text style={styles.selectedHouseTeamText}>
+                Selected: {HOUSE_TEAMS.find(t => t.id === houseTeam)?.name}
+              </Text>
+            </View>
+          )}
+        </View>
       </Card>
 
       {/* Sports Selection */}
@@ -708,6 +749,40 @@ sportCard: {
     fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  houseTeamButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    minWidth: 120,
+  },
+  houseTeamButtonSelected: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 3,
+  },
+  houseTeamEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  houseTeamText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#212121',
+  },
+  selectedHouseTeamBadge: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  selectedHouseTeamText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212121',
   },
 });
 

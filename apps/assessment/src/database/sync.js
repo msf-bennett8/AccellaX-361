@@ -598,6 +598,7 @@ const uploadKidsToFirebase = async (userId, academyId) => {
         programType: kid.programType,
         sports_enrolled: kid.sports_enrolled || null,
         primary_sport: kid.primary_sport || null,
+        house_team: kid.house_team || null,  // ✅ ADD THIS LINE
         status: kid.status || 'active',
         created_at: Timestamp.fromDate(new Date(kid.created_at)),
         updated_at: Timestamp.now(),

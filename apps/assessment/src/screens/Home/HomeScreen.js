@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,10 @@ import Header from '../../components/common/Header';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import { COLORS, APP_NAME, AGE_GROUPS, SPORTS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
+import { getAssessmentStats, getAllAssessments } from '../../services/assessmentService';
+import { getKidsWithSports } from '../../services/kidService';
+import { getAllSports } from '../../database/db';
+import { getStartOfWeek, getEndOfWeek, isThisWeek, getCurrentTerm as getTermHelper } from '../../utils/dateUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -31,16 +36,11 @@ export default function HomeScreen() {
   const [stats, setStats] = useState({
     totalAssessments: 0,
     totalKids: 0,
-    activeSports: 6,
-    pendingAssessments: 0,
-    recentAssessments: 0,
-    lastAssessmentDate: null,
-  });
-  const [quickStats, setQuickStats] = useState({
+    activeSports: 0,
     thisWeek: 0,
-    thisMonth: 0,
-    thisQuarter: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [sports, setSports] = useState([]);
   const [upcomingTests, setUpcomingTests] = useState([]);
   const [redFlags, setRedFlags] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
@@ -66,104 +66,271 @@ export default function HomeScreen() {
 
   const loadDashboardData = async () => {
     try {
+      setLoading(true);
       console.log('📊 Loading dashboard data...');
       
       const profile = await getCurrentUser();
       setUserProfile(profile);
 
-      try {
-        await loadStats();
-      } catch (error) {
-        console.log('⚠️ Stats not available yet');
-      }
-      await loadQuickStats();
-      await loadUpcomingTests();
-      await loadRedFlags();
-      await loadTopPerformers();
-      await loadRecentActivity();
+      await Promise.all([
+        loadStats(),
+        loadSports(),
+        loadUpcomingTests(),
+        loadRedFlags(),
+        loadTopPerformers(),
+        loadRecentActivity(),
+      ]);
       
       console.log('✅ Dashboard data loaded');
     } catch (error) {
       console.error('❌ Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const loadStats = async () => {
     try {
-      const { getAssessmentStats } = await import('../../services/assessmentService');
-      const statsData = await getAssessmentStats();
+      console.log('📊 Loading stats...');
+      
+      // Get kids count
+      const kids = await getKidsWithSports();
+      const totalKids = kids.length;
+      
+      // Get sports count
+      const allSports = await getAllSports();
+      const activeSports = allSports.length;
+      
+      // Get assessments from this week
+      const allAssessments = await getAllAssessments();
+      const thisWeekAssessments = allAssessments.filter(a => 
+        isThisWeek(new Date(a.assessment_date))
+      );
       
       setStats({
-        totalAssessments: statsData?.totalAssessments || 0,
-        totalKids: statsData?.totalKids || 0,
-        activeSports: statsData?.activeSports || 6,
-        pendingAssessments: statsData?.pendingAssessments || 0,
-        recentAssessments: statsData?.recentAssessments || 0,
-        lastAssessmentDate: statsData?.lastAssessmentDate || null,
+        totalAssessments: allAssessments.length,
+        totalKids,
+        activeSports,
+        thisWeek: thisWeekAssessments.length,
       });
+      
+      console.log('✅ Stats loaded:', { totalKids, activeSports, thisWeek: thisWeekAssessments.length });
     } catch (error) {
-      console.log('⚠️ Stats not yet available:', error.message);
+      console.error('❌ Error loading stats:', error);
     }
   };
 
-  const loadQuickStats = async () => {
+  const loadSports = async () => {
     try {
-      const { getQuickStats } = await import('../../database/db');
-      const quickStatsData = await getQuickStats();
+      console.log('🏃 Loading sports...');
+      const allSports = await getAllSports();
       
-      setQuickStats({
-        thisWeek: quickStatsData?.thisWeek || 0,
-        thisMonth: quickStatsData?.thisMonth || 0,
-        thisQuarter: quickStatsData?.thisQuarter || 0,
-      });
+      const SPORTS_CONFIG = {
+        football: { icon: 'soccer', color: '#4CAF50' },
+        athletics: { icon: 'run-fast', color: '#2196F3' },
+        rugby: { icon: 'rugby', color: '#FF9800' },
+        swimming: { icon: 'swim', color: '#00BCD4' },
+        tennis: { icon: 'tennis', color: '#9C27B0' },
+        basketball: { icon: 'basketball', color: '#FF5722' },
+      };
+      
+      const mappedSports = allSports.map(sport => ({
+        id: sport.id,
+        name: sport.name,
+        icon: SPORTS_CONFIG[sport.id]?.icon || 'trophy',
+        color: SPORTS_CONFIG[sport.id]?.color || COLORS.primary,
+        isActive: sport.is_active === 1,
+      }));
+      
+      setSports(mappedSports);
+      console.log('✅ Sports loaded:', mappedSports.length);
     } catch (error) {
-      console.log('⚠️ Quick stats not yet available');
+      console.error('❌ Error loading sports:', error);
+      setSports([]);
     }
   };
 
   const loadUpcomingTests = async () => {
     try {
-      setUpcomingTests([
-        { id: 1, sport: 'Football', date: 'Next Week', kidsCount: 45 },
-        { id: 2, sport: 'Athletics', date: '2 Weeks', kidsCount: 38 },
-      ]);
+      console.log('📅 Loading upcoming tests...');
+      
+      const allAssessments = await getAllAssessments();
+      const kids = await getKidsWithSports();
+      const allSports = await getAllSports();
+      
+      const startOfWeek = getStartOfWeek(new Date());
+      const endOfWeek = getEndOfWeek(new Date());
+      
+      const upcomingBySport = {};
+      
+      for (const sport of allSports) {
+        const kidsInSport = kids.filter(k => 
+          k.sports_enrolled && k.sports_enrolled.includes(sport.id)
+        );
+        
+        const assessedThisWeek = allAssessments.filter(a => 
+          a.sport_id === sport.id &&
+          new Date(a.assessment_date) >= startOfWeek &&
+          new Date(a.assessment_date) <= endOfWeek
+        );
+        
+        const kidsAssessedThisWeek = new Set(assessedThisWeek.map(a => a.kid_id));
+        const kidsDue = kidsInSport.filter(k => !kidsAssessedThisWeek.has(k.id));
+        
+        if (kidsDue.length > 0) {
+          upcomingBySport[sport.id] = {
+            id: sport.id,
+            sport: sport.name,
+            date: 'This Week',
+            kidsCount: kidsDue.length,
+          };
+        }
+      }
+      
+      const upcoming = Object.values(upcomingBySport).slice(0, 3);
+      setUpcomingTests(upcoming);
+      console.log('✅ Upcoming tests loaded:', upcoming.length);
     } catch (error) {
-      console.log('⚠️ Upcoming tests not yet available');
+      console.error('❌ Error loading upcoming tests:', error);
+      setUpcomingTests([]);
     }
   };
 
   const loadRedFlags = async () => {
     try {
-      setRedFlags([
-        { id: 1, kidName: 'Ahmed Hassan', metric: 'Endurance', change: -15, type: 'decline' },
-        { id: 2, kidName: 'Sarah Ali', metric: 'Speed', change: -12, type: 'decline' },
-      ]);
+      console.log('🚩 Loading red flags...');
+      
+      const allAssessments = await getAllAssessments();
+      const kids = await getKidsWithSports();
+      const flags = [];
+      
+      for (const kid of kids) {
+        const kidAssessments = allAssessments
+          .filter(a => a.kid_id === kid.id)
+          .sort((a, b) => new Date(b.assessment_date) - new Date(a.assessment_date));
+        
+        if (kidAssessments.length >= 2) {
+          const latest = kidAssessments[0];
+          const previous = kidAssessments[1];
+          
+          if (latest.results && previous.results) {
+            for (const latestResult of latest.results) {
+              const previousResult = previous.results.find(r => r.metric_id === latestResult.metric_id);
+              
+              if (previousResult) {
+                const latestValue = parseFloat(latestResult.value);
+                const previousValue = parseFloat(previousResult.value);
+                
+                if (!isNaN(latestValue) && !isNaN(previousValue) && previousValue > 0) {
+                  const change = ((latestValue - previousValue) / previousValue) * 100;
+                  
+                  if (change < -15) {
+                    flags.push({
+                      id: `${kid.id}_${latestResult.metric_id}`,
+                      kidId: kid.id,
+                      kidName: kid.name,
+                      metric: latestResult.metric_id || 'Performance',
+                      change: Math.round(change),
+                      type: 'decline',
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      setRedFlags(flags.slice(0, 5));
+      console.log('✅ Red flags loaded:', flags.length);
     } catch (error) {
-      console.log('⚠️ Red flags not yet available');
+      console.error('❌ Error loading red flags:', error);
+      setRedFlags([]);
     }
   };
 
   const loadTopPerformers = async () => {
     try {
-      setTopPerformers([
-        { id: 1, name: 'John Kipchoge', sport: 'Athletics', score: 95 },
-        { id: 2, name: 'Mary Wanjiku', sport: 'Football', score: 92 },
-        { id: 3, name: 'David Omondi', sport: 'Rugby', score: 90 },
-      ]);
+      console.log('🏆 Loading top performers...');
+      
+      const allAssessments = await getAllAssessments();
+      const kids = await getKidsWithSports();
+      const allSports = await getAllSports();
+      
+      const kidScores = {};
+      
+      for (const kid of kids) {
+        const kidAssessments = allAssessments.filter(a => a.kid_id === kid.id);
+        
+        if (kidAssessments.length > 0) {
+          const latestAssessment = kidAssessments.sort((a, b) => 
+            new Date(b.assessment_date) - new Date(a.assessment_date)
+          )[0];
+          
+          if (latestAssessment.results && latestAssessment.results.length > 0) {
+            const avgScore = latestAssessment.results.reduce((sum, r) => {
+              const value = parseFloat(r.value);
+              return sum + (isNaN(value) ? 0 : value);
+            }, 0) / latestAssessment.results.length;
+            
+            const sport = allSports.find(s => s.id === latestAssessment.sport_id);
+            
+            kidScores[kid.id] = {
+              id: kid.id,
+              name: kid.name,
+              sport: sport?.name || 'General',
+              score: Math.round(avgScore),
+            };
+          }
+        }
+      }
+      
+      const topPerformersArray = Object.values(kidScores)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+      
+      setTopPerformers(topPerformersArray);
+      console.log('✅ Top performers loaded:', topPerformersArray.length);
     } catch (error) {
-      console.log('⚠️ Top performers not yet available');
+      console.error('❌ Error loading top performers:', error);
+      setTopPerformers([]);
     }
   };
 
   const loadRecentActivity = async () => {
     try {
-      setRecentActivity([
-        { id: 1, action: 'Assessment completed', sport: 'Football', time: '2 hours ago', count: 25 },
-        { id: 2, action: 'New kids added', count: 8, time: '1 day ago' },
-        { id: 3, action: 'Report exported', sport: 'Athletics', time: '3 days ago' },
-      ]);
+      console.log('📋 Loading recent activity...');
+      
+      const allAssessments = await getAllAssessments();
+      const allSports = await getAllSports();
+      const kids = await getKidsWithSports();
+      
+      const activities = [];
+      
+      // Recent assessments
+      const recentAssessments = allAssessments
+        .sort((a, b) => new Date(b.assessment_date) - new Date(a.assessment_date))
+        .slice(0, 3);
+      
+      for (const assessment of recentAssessments) {
+        const sport = allSports.find(s => s.id === assessment.sport_id);
+        const daysAgo = Math.floor((new Date() - new Date(assessment.assessment_date)) / (1000 * 60 * 60 * 24));
+        const timeText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
+        
+        activities.push({
+          id: assessment.id,
+          action: 'Assessment completed',
+          sport: sport?.name,
+          time: timeText,
+          count: assessment.results?.length || 0,
+        });
+      }
+      
+      setRecentActivity(activities);
+      console.log('✅ Recent activity loaded:', activities.length);
     } catch (error) {
-      console.log('⚠️ Recent activity not yet available');
+      console.error('❌ Error loading recent activity:', error);
+      setRecentActivity([]);
     }
   };
 
@@ -243,12 +410,8 @@ export default function HomeScreen() {
     return 'Evening';
   };
 
-  const getCurrentTerm = () => {
-    const month = new Date().getMonth() + 1;
-    if (month >= 1 && month <= 3) return 'Q1';
-    if (month >= 4 && month <= 6) return 'Q2';
-    if (month >= 7 && month <= 9) return 'Q3';
-    return 'Q4';
+  const getCurrentTermDisplay = () => {
+    return getTermHelper(new Date());
   };
 
   const getSportIcon = (sportName) => {
@@ -289,7 +452,7 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.termBadgeContainer}>
             <Ionicons name="calendar" size={14} color={COLORS.primary} style={{ marginTop: 1 }} />
-            <Text style={styles.termBadge}>Current Term: {getCurrentTerm()}</Text>
+            <Text style={styles.termBadge}>Current Term: {getCurrentTermDisplay()}</Text>
           </View>
         </View>
 
@@ -309,7 +472,7 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={[styles.statCard, styles.statCardSecondary]}
-              onPress={handleViewKids}
+              onPress={() => navigation.navigate('Kids')}
               activeOpacity={0.8}
             >
               <Ionicons name="people" size={32} color={COLORS.white} />
@@ -329,7 +492,7 @@ export default function HomeScreen() {
 
             <View style={[styles.statCard, styles.statCardWarning]}>
               <Ionicons name="time" size={32} color={COLORS.white} />
-              <Text style={styles.statNumber}>{stats.recentAssessments}</Text>
+              <Text style={styles.statNumber}>{stats.thisWeek}</Text>
               <Text style={styles.statLabel}>This Week</Text>
               <Text style={styles.statSubtext}>Completed</Text>
             </View>
@@ -467,7 +630,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.sportsGrid}>
-            {(SPORTS || []).slice(0, 6).map((sport, index) => (
+            {sports.slice(0, 6).map((sport, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.sportCard}
@@ -476,9 +639,9 @@ export default function HomeScreen() {
               >
                 <View style={styles.sportIconContainer}>
                   <MaterialCommunityIcons 
-                    name={getSportIcon(sport.name)} 
+                    name={sport.icon || 'trophy'} 
                     size={32} 
-                    color={COLORS.primary} 
+                    color={sport.color || COLORS.primary} 
                   />
                 </View>
                 <Text style={styles.sportName}>{sport.name}</Text>
@@ -548,6 +711,13 @@ export default function HomeScreen() {
             Assessment Module tracks fitness metrics, sport-specific skills, and cognitive abilities across multiple sports. Quarterly assessments recommended.
           </Text>
         </View>
+
+        {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading dashboard...</Text>
+        </View>
+      )}
 
         {/* Bottom Padding */}
         <View style={styles.bottomPadding} />
@@ -1004,6 +1174,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  // Loading
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
   // Bottom Padding
   bottomPadding: {
     height: 32,

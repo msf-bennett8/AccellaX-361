@@ -10,21 +10,14 @@ import {
   TouchableOpacity,
   RefreshControl,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
-import { COLORS } from '../../utils/constants';
-import { getAllSports } from '../../database/db';
-
-// House team definitions
-const HOUSE_TEAMS = [
-  { id: 'fire', name: 'Fire Team', icon: 'fire', iconFamily: 'MaterialCommunityIcons', color: '#FF6B6B' },
-  { id: 'ice', name: 'Ice Team', icon: 'snowflake', iconFamily: 'MaterialCommunityIcons', color: '#4ECDC4' },
-  { id: 'water', name: 'Water Team', icon: 'water', iconFamily: 'MaterialCommunityIcons', color: '#45B7D1' },
-  { id: 'wind', name: 'Wind Team', icon: 'weather-windy', iconFamily: 'MaterialCommunityIcons', color: '#96CEB4' },
-  { id: 'earth', name: 'Earth Team', icon: 'earth', iconFamily: 'MaterialCommunityIcons', color: '#FFEAA7' },
-];
+import { COLORS, HOUSE_TEAMS } from '../../utils/constants';
+import { getAllSports, getAllKids, getAllAssessments } from '../../database/db';
+import { calculateCompositeScore } from '../../utils/calculations';
 
 // Age group definitions
 const AGE_GROUPS = [
@@ -37,6 +30,7 @@ const AGE_GROUPS = [
 export default function TeamRankingsScreen() {
   const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState([]);
   const [stats, setStats] = useState({ teams: 0, athletes: 0, assessments: 0 });
   const [showFilter, setShowFilter] = useState(true);
@@ -73,110 +67,254 @@ export default function TeamRankingsScreen() {
 
   const loadTeamRankings = async () => {
     try {
-      // TODO: Replace with actual database query
-      // For now, mock data that respects filters
-      const mockData = [
-        { 
-          id: 1, 
-          name: 'Green Eagles FC', 
-          sport: 'Football',
-          sportId: 'football',
-          houseTeam: 'fire',
-          ageGroup: '10-13',
-          members: 45, 
-          avgScore: 87, 
-          totalAssessments: 180,
-          topPerformer: 'John Kipchoge',
-          recentChange: 5,
-        },
-        { 
-          id: 2, 
-          name: 'Thunder Athletics', 
-          sport: 'Athletics',
-          sportId: 'athletics',
-          houseTeam: 'ice',
-          ageGroup: '7-9',
-          members: 38, 
-          avgScore: 85, 
-          totalAssessments: 152,
-          topPerformer: 'Mary Wanjiku',
-          recentChange: 3,
-        },
-        { 
-          id: 3, 
-          name: 'Lions Rugby Club', 
-          sport: 'Rugby',
-          sportId: 'rugby',
-          houseTeam: 'water',
-          ageGroup: '10-13',
-          members: 32, 
-          avgScore: 82, 
-          totalAssessments: 128,
-          topPerformer: 'David Omondi',
-          recentChange: -2,
-        },
-        { 
-          id: 4, 
-          name: 'Hoops Basketball', 
-          sport: 'Basketball',
-          sportId: 'basketball',
-          houseTeam: 'wind',
-          ageGroup: '13+',
-          members: 28, 
-          avgScore: 80, 
-          totalAssessments: 112,
-          topPerformer: 'Grace Achieng',
-          recentChange: 0,
-        },
-        { 
-          id: 5, 
-          name: 'Swift Strikers', 
-          sport: 'Football',
-          sportId: 'football',
-          houseTeam: 'earth',
-          ageGroup: '7-9',
-          members: 35, 
-          avgScore: 78, 
-          totalAssessments: 140,
-          topPerformer: 'Peter Kamau',
-          recentChange: 4,
-        },
-      ];
+      setLoading(true);
+      console.log('📊 Loading team rankings...');
+
+      // Fetch all data
+      const [allKids, allAssessments] = await Promise.all([
+        getAllKids(),
+        getAllAssessments()
+      ]);
+
+      console.log(`📊 Found ${allKids.length} kids, ${allAssessments.length} assessments`);
+
+      // Filter kids - only active kids with house teams
+      let kidsWithTeams = allKids.filter(k => k.status === 'active' && k.house_team);
+      
+      console.log(`📊 ${kidsWithTeams.length} active kids with house teams`);
+
+      if (kidsWithTeams.length === 0) {
+        console.log('⚠️ No kids with house teams found');
+        setTeams([]);
+        setStats({ teams: 0, athletes: 0, assessments: 0 });
+        setLoading(false);
+        return;
+      }
+
+      // Group kids by: house_team ONLY (Pure House System)
+      const teamGroups = {};
+
+      kidsWithTeams.forEach(kid => {
+        console.log(`👤 Processing kid: ${kid.name} (${kid.id})`);
+        console.log(`   House Team: ${kid.house_team}`);
+        
+        const teamKey = kid.house_team; // Just the house team
+        
+        if (!teamGroups[teamKey]) {
+          teamGroups[teamKey] = {
+            houseTeam: kid.house_team,
+            members: [],
+            sportsBreakdown: {}, // Track which sports team plays
+            ageBreakdown: {}, // Track age distribution
+          };
+        }
+
+        teamGroups[teamKey].members.push(kid);
+        
+        // Track age breakdown
+        const ageGroup = kid.age_group;
+        if (!teamGroups[teamKey].ageBreakdown[ageGroup]) {
+          teamGroups[teamKey].ageBreakdown[ageGroup] = 0;
+        }
+        teamGroups[teamKey].ageBreakdown[ageGroup]++;
+        
+        // Track sports breakdown
+        let kidSports = [];
+        if (kid.sports_enrolled) {
+          // Check if it's already an array or needs parsing
+          if (Array.isArray(kid.sports_enrolled)) {
+            kidSports = kid.sports_enrolled;
+          } else if (typeof kid.sports_enrolled === 'string') {
+            try {
+              kidSports = JSON.parse(kid.sports_enrolled);
+            } catch (e) {
+              kidSports = [];
+            }
+          }
+        }
+        
+        // If no sports_enrolled, get from assessments
+        if (kidSports.length === 0) {
+          const kidAssessments = allAssessments.filter(a => a.kid_id === kid.id);
+          kidSports = [...new Set(kidAssessments.map(a => a.sport_id))];
+        }
+        
+        kidSports.forEach(sportId => {
+          if (!teamGroups[teamKey].sportsBreakdown[sportId]) {
+            teamGroups[teamKey].sportsBreakdown[sportId] = 0;
+          }
+          teamGroups[teamKey].sportsBreakdown[sportId]++;
+        });
+      });
+
+      console.log(`📊 Created ${Object.keys(teamGroups).length} team groups`);
+
+      /// Calculate team scores (ACROSS ALL SPORTS)
+      const rankedTeams = [];
+
+      for (const [teamKey, teamData] of Object.entries(teamGroups)) {
+        const { houseTeam, members, sportsBreakdown, ageBreakdown } = teamData;
+
+        // Get all assessments for this team's members (ALL SPORTS)
+        const teamAssessments = allAssessments.filter(a => 
+          members.some(m => m.id === a.kid_id)
+        );
+
+        if (teamAssessments.length === 0) {
+          console.log(`⚠️ No assessments for ${houseTeam} team`);
+          continue; // Skip teams with no assessments
+        }
+
+        // Calculate average score across ALL team members and ALL sports
+        let totalScore = 0;
+        let scoredAssessments = 0;
+        let topScore = 0;
+        let topPerformer = null;
+
+        members.forEach(kid => {
+          // Get ALL assessments for this kid (all sports)
+          const kidAssessments = teamAssessments
+            .filter(a => a.kid_id === kid.id)
+            .sort((a, b) => new Date(b.assessment_date) - new Date(a.assessment_date));
+
+          // Get latest assessment per sport for this kid
+          const sportIds = [...new Set(kidAssessments.map(a => a.sport_id))];
+          
+          sportIds.forEach(sportId => {
+            const latestForSport = kidAssessments.find(a => a.sport_id === sportId);
+            
+            if (latestForSport && latestForSport.results) {
+              const score = calculateCompositeScore(
+                latestForSport.results,
+                sportId,
+                kid.age_group,
+                kid.gender
+              ).totalScore;
+
+              totalScore += score;
+              scoredAssessments++;
+
+              // Track top performer
+              if (score > topScore) {
+                topScore = score;
+                topPerformer = kid.name;
+              }
+            }
+          });
+        });
+
+        if (scoredAssessments === 0) {
+          console.log(`⚠️ No scored assessments for ${houseTeam} team`);
+          continue; // Skip if no one has scores
+        }
+
+        const avgScore = Math.round(totalScore / scoredAssessments);
+
+        // Create team name (JUST HOUSE NAME)
+        const houseTeamInfo = HOUSE_TEAMS.find(t => t.id === houseTeam);
+        const teamName = houseTeamInfo?.name || houseTeam;
+        
+        // Format sports breakdown (e.g., "Football: 12, Swimming: 8")
+        const sportsText = Object.entries(sportsBreakdown)
+          .map(([sportId, count]) => {
+            const sport = sports.find(s => s.id === sportId);
+            return `${sport?.name || sportId}: ${count}`;
+          })
+          .join(', ');
+        
+        // Format age breakdown (e.g., "4-6: 5, 7-9: 12")
+        const ageText = Object.entries(ageBreakdown)
+          .map(([age, count]) => `${age}: ${count}`)
+          .join(', ');
+
+        rankedTeams.push({
+          id: teamKey,
+          name: teamName,
+          houseTeam: houseTeam,
+          sportsBreakdown: sportsText,
+          ageBreakdown: ageText,
+          members: members.length,
+          avgScore: avgScore,
+          totalAssessments: teamAssessments.length,
+          topPerformer: topPerformer || 'N/A',
+          recentChange: 0, // TODO: Calculate change from previous period
+        });
+      }
+
+      console.log(`✅ Created ${rankedTeams.length} ranked teams`);
 
       // Apply filters
-      let filteredData = mockData;
+      let filteredTeams = rankedTeams;
 
+      // Note: Sport and age group filters don't apply to unified house teams
+      // Only house team filter applies
+      
       if (selectedSports.length > 0) {
-        filteredData = filteredData.filter(team => 
-          selectedSports.includes(team.sportId)
-        );
+        // Filter teams that have at least one member playing the selected sport
+        filteredTeams = filteredTeams.filter(team => {
+          const teamMembers = teamGroups[team.houseTeam]?.members || [];
+          return teamMembers.some(kid => {
+            let kidSports = [];
+            if (kid.sports_enrolled) {
+              // Check if it's already an array or needs parsing
+              if (Array.isArray(kid.sports_enrolled)) {
+                kidSports = kid.sports_enrolled;
+              } else if (typeof kid.sports_enrolled === 'string') {
+                try {
+                  kidSports = JSON.parse(kid.sports_enrolled);
+                } catch (e) {
+                  kidSports = [];
+                }
+              }
+            }
+            if (kidSports.length === 0) {
+              const kidAssessments = allAssessments.filter(a => a.kid_id === kid.id);
+              kidSports = [...new Set(kidAssessments.map(a => a.sport_id))];
+            }
+            return kidSports.some(sportId => selectedSports.includes(sportId));
+          });
+        });
+        console.log(`🔍 Filtered by sport: ${filteredTeams.length} teams remaining`);
       }
 
       if (selectedAgeGroups.length > 0) {
-        filteredData = filteredData.filter(team => 
-          selectedAgeGroups.includes(team.ageGroup)
-        );
+        // Filter teams that have at least one member in the selected age group
+        filteredTeams = filteredTeams.filter(team => {
+          const teamMembers = teamGroups[team.houseTeam]?.members || [];
+          return teamMembers.some(kid => selectedAgeGroups.includes(kid.age_group));
+        });
+        console.log(`🔍 Filtered by age group: ${filteredTeams.length} teams remaining`);
       }
 
       if (selectedTeams.length > 0) {
-        filteredData = filteredData.filter(team => 
+        filteredTeams = filteredTeams.filter(team => 
           selectedTeams.includes(team.houseTeam)
         );
+        console.log(`🔍 Filtered by house team: ${filteredTeams.length} teams remaining`);
       }
 
-      setTeams(filteredData);
+      // Sort by average score (highest first)
+      filteredTeams.sort((a, b) => b.avgScore - a.avgScore);
+
+      setTeams(filteredTeams);
 
       // Calculate stats
-      const totalMembers = filteredData.reduce((sum, team) => sum + team.members, 0);
-      const totalAssessments = filteredData.reduce((sum, team) => sum + team.totalAssessments, 0);
+      const totalMembers = filteredTeams.reduce((sum, team) => sum + team.members, 0);
+      const totalAssessments = filteredTeams.reduce((sum, team) => sum + team.totalAssessments, 0);
       
       setStats({
-        teams: filteredData.length,
+        teams: filteredTeams.length,
         athletes: totalMembers,
         assessments: totalAssessments,
       });
+
+      console.log(`✅ Team rankings loaded: ${filteredTeams.length} teams`);
     } catch (error) {
-      console.error('Error loading team rankings:', error);
+      console.error('❌ Error loading team rankings:', error);
+      setTeams([]);
+      setStats({ teams: 0, athletes: 0, assessments: 0 });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -511,6 +649,13 @@ export default function TeamRankingsScreen() {
           }}
           scrollEventThrottle={16}
         >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading team rankings...</Text>
+          </View>
+        ) : (
+          <>
         {/* Summary Stats */}
         <View style={styles.summaryContainer}>
           <View style={styles.summaryCard}>
@@ -567,26 +712,17 @@ export default function TeamRankingsScreen() {
                 <View style={styles.teamMeta}>
                   <View style={styles.metaItem}>
                     <MaterialCommunityIcons name="trophy" size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.metaText}>{team.sport}</Text>
-                  </View>
-                  <View style={styles.metaDot} />
-                  <View style={styles.metaItem}>
-                    {(() => {
-                      const houseTeam = getHouseTeamInfo(team.houseTeam);
-                      return houseTeam ? (
-                        <>
-                          <MaterialCommunityIcons name={houseTeam.icon} size={14} color={houseTeam.color} />
-                          <Text style={styles.metaText}>{houseTeam.name}</Text>
-                        </>
-                      ) : (
-                        <Text style={styles.metaText}>No Team</Text>
-                      );
-                    })()}
+                    <Text style={styles.metaText}>{team.sportsBreakdown}</Text>
                   </View>
                   <View style={styles.metaDot} />
                   <View style={styles.metaItem}>
                     <Ionicons name="people" size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.metaText}>{team.members} members</Text>
+                    <Text style={styles.metaText}>{team.members} athletes</Text>
+                  </View>
+                  <View style={styles.metaDot} />
+                  <View style={styles.metaItem}>
+                    <MaterialCommunityIcons name="human-child" size={14} color={COLORS.textSecondary} />
+                    <Text style={styles.metaText}>{team.ageBreakdown}</Text>
                   </View>
                 </View>
 
@@ -623,16 +759,18 @@ export default function TeamRankingsScreen() {
         </View>
 
         {/* Empty State */}
-        {teams.length === 0 && (
+        {teams.length === 0 && !loading && (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="account-group-outline" size={64} color={COLORS.textSecondary} />
             <Text style={styles.emptyTitle}>No Teams Found</Text>
             <Text style={styles.emptySubtitle}>
               {hasActiveFilters() 
                 ? 'No teams match your current filters. Try adjusting your selection.'
-                : 'Teams will appear here once assessments are completed'}
+                : 'Teams will appear here once kids are assigned to house teams and assessments are completed'}
             </Text>
           </View>
+        )}
+          </>
         )}
         </ScrollView>
       </View>
@@ -1008,5 +1146,16 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
   },
 });

@@ -159,7 +159,7 @@ const KidsListScreen = () => {
           <View style={styles.sportsContainer}>
             <Text style={styles.sportsLabel}>Sports:</Text>
             <View style={styles.sportsBadges}>
-              {kid.sports_enrolled.map(sportId => {
+              {(kid.sports_enrolled || []).map(sportId => {
                 const sport = SPORTS_CONFIG[sportId];
                 if (!sport) return null;
 

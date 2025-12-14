@@ -16,7 +16,6 @@ const webDB = {
   sessions: [],
   attendance: [],
   notes: [],
-  // ✅ Assessment-specific tables
   sports: [],
   metrics: [],
   assessments: [],
@@ -255,6 +254,17 @@ export const initDatabase = async () => {
     `);
     console.log('✅ Migration: Added sports_enrolled column to kids table');
   } catch (error) {
+    // Add house_team column to kids table
+    try {
+      await db.execAsync(`
+        ALTER TABLE kids ADD COLUMN house_team TEXT;
+      `);
+      console.log('✅ Migration: Added house_team column to kids table');
+    } catch (error) {
+      if (!error.message.includes('duplicate column')) {
+        console.warn('⚠️ Migration warning:', error.message);
+      }
+    }
     if (!error.message.includes('duplicate column')) {
       console.warn('⚠️ Migration warning:', error.message);
     }
@@ -497,7 +507,7 @@ export const updateUserField = async (userId, field, value) => {
 
 // ========== KIDS CRUD (REUSED FROM ATTENDANCE) ==========
 
-export const insertKid = async (userId, name, age, gender, area, ageGroup, sponsorshipType = 'SP', programType = 'ELT', programTypeOther = null, trialNotes = null, skipFirebaseSync = false, providedKidId = null) => {
+export const insertKid = async (userId, name, age, gender, area, ageGroup, sponsorshipType = 'SP', programType = 'ELT', programTypeOther = null, trialNotes = null, skipFirebaseSync = false, providedKidId = null, houseTeam = null) => {
   const FIXED_ACADEMY_ID = 'academy_accellax361_main';
   
    if (isWeb) {
@@ -514,6 +524,7 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
       programTypeOther: programTypeOther || null,
       trialNotes: trialNotes || null,
       status: programType === 'Trial' ? 'trial' : 'active',
+      house_team: houseTeam || null,
       created_at: new Date().toISOString(),
       firebase_synced: 0,
     };
@@ -538,6 +549,7 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
           programTypeOther: kid.programTypeOther || null,
           trialNotes: kid.trialNotes || null,
           status: kid.status,
+          house_team: kid.house_team || null,
           firebase_synced: 1,
           created_at: Timestamp.fromDate(new Date(kid.created_at)),
           created_by: userId,
@@ -577,8 +589,8 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
   }
   
   await db.runAsync(
-    'INSERT INTO kids (id, user_id, name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [uniqueId, userId, name, age, gender, area, ageGroup, sponsorshipType, programType, programTypeOther, trialNotes, programType === 'Trial' ? 'trial' : 'active']
+    'INSERT INTO kids (id, user_id, name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, status, house_team) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [uniqueId, userId, name, age, gender, area, ageGroup, sponsorshipType, programType, programTypeOther, trialNotes, programType === 'Trial' ? 'trial' : 'active', houseTeam]
   );
   
   const kid = {
@@ -638,8 +650,46 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
 
 export const getAllKids = async () => {
   if (isWeb) {
-    return webDB.kids;
+    try {
+      const FIXED_ACADEMY_ID = 'academy_accellax361_main';
+      const { collection, getDocs } = await import('firebase/firestore');
+      const { db: firebaseDb } = await import('../config/firebase');
+      
+      const kidsRef = collection(firebaseDb, `academies/${FIXED_ACADEMY_ID}/kids`);
+      const snapshot = await getDocs(kidsRef);
+      
+      const kids = [];
+      snapshot.forEach(doc => {
+        const kid = doc.data();
+        kids.push({
+          id: kid.id,
+          user_id: kid.user_id || kid.created_by,
+          name: kid.name,
+          age: kid.age,
+          gender: kid.gender,
+          area_of_residence: kid.area_of_residence,
+          age_group: kid.age_group,
+          sponsorshipType: kid.sponsorshipType,
+          programType: kid.programType,
+          programTypeOther: kid.programTypeOther || null,
+          trialNotes: kid.trialNotes || null,
+          status: kid.status || 'active',
+          house_team: kid.house_team || null,  // ← CRITICAL: Include house_team!
+          sports_enrolled: kid.sports_enrolled || null,
+          primary_sport: kid.primary_sport || null,
+          created_at: kid.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+        });
+      });
+      
+      console.log(`✅ [Web] Loaded ${kids.length} kids from Firebase`);
+      return kids.sort((a, b) => a.age_group.localeCompare(b.age_group) || a.name.localeCompare(b.name));
+      
+    } catch (error) {
+      console.error('❌ [Web] Error loading kids from Firebase:', error);
+      return webDB.kids; // Fallback to local storage
+    }
   }
+  
   return await db.getAllAsync('SELECT * FROM kids ORDER BY age_group, name');
 };
 
@@ -731,10 +781,10 @@ export const updateKid = async (id, data) => {
     return;
   }
 
-  const { name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes } = data;
+  const { name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther, trialNotes, house_team } = data;
   await db.runAsync(
-    'UPDATE kids SET name = ?, age = ?, gender = ?, area_of_residence = ?, age_group = ?, sponsorshipType = ?, programType = ?, programTypeOther = ?, trialNotes = ? WHERE id = ?',
-    [name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther || null, trialNotes || null, id]
+    'UPDATE kids SET name = ?, age = ?, gender = ?, area_of_residence = ?, age_group = ?, sponsorshipType = ?, programType = ?, programTypeOther = ?, trialNotes = ?, house_team = ? WHERE id = ?',
+    [name, age, gender, area_of_residence, age_group, sponsorshipType, programType, programTypeOther || null, trialNotes || null, house_team || null, id]
   );
 };
 
@@ -1323,6 +1373,52 @@ export const getAssessmentsByTerm = async (term) => {
     return webDB.assessments.filter(a => a.term === term);
   }
   return await db.getAllAsync('SELECT * FROM assessments WHERE term = ? ORDER BY assessment_date DESC', [term]);
+};
+
+/**
+ * Get all assessments with their results
+ * @returns {Array} All assessments with results attached
+ */
+export const getAllAssessments = async () => {
+  if (isWeb) {
+    // Get all assessments and attach their results
+    const assessmentsWithResults = webDB.assessments.map(assessment => {
+      const results = webDB.assessment_results.filter(r => r.assessment_id === assessment.id);
+      return {
+        ...assessment,
+        results: results.map(r => ({
+          metric_id: r.metric_id,
+          value: r.value,
+          percentile: r.percentile,
+          notes: r.notes,
+        })),
+      };
+    });
+    
+    console.log(`✅ [Web] Loaded ${assessmentsWithResults.length} assessments with results`);
+    return assessmentsWithResults;
+  }
+
+  // Mobile: Join assessments with their results
+  const assessments = await db.getAllAsync('SELECT * FROM assessments ORDER BY assessment_date DESC');
+  
+  // Attach results to each assessment
+  const assessmentsWithResults = await Promise.all(
+    assessments.map(async (assessment) => {
+      const results = await db.getAllAsync(
+        'SELECT metric_id, value, percentile, notes FROM assessment_results WHERE assessment_id = ?',
+        [assessment.id]
+      );
+      
+      return {
+        ...assessment,
+        results,
+      };
+    })
+  );
+  
+  console.log(`✅ [Mobile] Loaded ${assessmentsWithResults.length} assessments with results`);
+  return assessmentsWithResults;
 };
 
 export const getLatestAssessmentByKid = async (kidId, sportId = null) => {

@@ -118,10 +118,25 @@ export const getKidsWithSports = async () => {
     const kids = [];
     snapshot.forEach(doc => {
       const kidData = doc.data();
+      
+      // Parse sports_enrolled if it's a string
+      let sportsEnrolled = kidData.sports_enrolled;
+      if (typeof sportsEnrolled === 'string') {
+        try {
+          sportsEnrolled = JSON.parse(sportsEnrolled);
+          // Handle double-stringified data
+          if (typeof sportsEnrolled === 'string') {
+            sportsEnrolled = JSON.parse(sportsEnrolled);
+          }
+        } catch (e) {
+          console.warn('Failed to parse sports_enrolled:', e);
+          sportsEnrolled = null;
+        }
+      }
+      
       kids.push({
         ...kidData,
-        // Ensure sports_enrolled is array (handle old data without sports)
-        sports_enrolled: kidData.sports_enrolled || null,
+        sports_enrolled: sportsEnrolled || null,
         primary_sport: kidData.primary_sport || null,
         sport_history: kidData.sport_history || null,
       });

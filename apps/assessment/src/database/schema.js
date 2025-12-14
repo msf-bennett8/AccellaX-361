@@ -55,7 +55,8 @@ export const KIDS_TABLE_SCHEMA = `
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     firebase_synced INTEGER DEFAULT 0,
     sports_enrolled TEXT,
-    primary_sport TEXT
+    primary_sport TEXT,
+    house_team TEXT
   );
 `;
 
@@ -306,6 +307,7 @@ export const KIDS_TABLE = {
     status: { type: 'TEXT', default: 'active', values: ['active', 'inactive', 'trial', 'graduated'] },
     sports_enrolled: { type: 'TEXT', nullable: true, description: 'JSON array of sport IDs' },
     primary_sport: { type: 'TEXT', nullable: true, description: 'Primary sport for specialization' },
+    house_team: { type: 'TEXT', nullable: true, values: ['fire', 'ice', 'water', 'wind', 'earth'] },
     created_at: { type: 'DATETIME', default: 'CURRENT_TIMESTAMP' },
     updated_at: { type: 'DATETIME', default: 'CURRENT_TIMESTAMP' },
     firebase_synced: { type: 'INTEGER', default: 0, values: [0, 1] },

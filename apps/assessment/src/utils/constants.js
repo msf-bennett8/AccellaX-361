@@ -89,6 +89,32 @@ export const BADGE_COLORS = {
   Other: '#795548', // Brown - Other
 };
 
+// ========== HOUSE TEAMS ==========
+
+export const HOUSE_TEAMS = [
+  { id: 'fire', name: 'Fire Team', icon: 'fire', color: '#FF6B6B', emoji: '🔥' },
+  { id: 'ice', name: 'Ice Team', icon: 'snowflake', color: '#4ECDC4', emoji: '❄️' },
+  { id: 'water', name: 'Water Team', icon: 'water', color: '#45B7D1', emoji: '💧' },
+  { id: 'wind', name: 'Wind Team', icon: 'weather-windy', color: '#96CEB4', emoji: '🌪️' },
+  { id: 'earth', name: 'Earth Team', icon: 'earth', color: '#FFEAA7', emoji: '🌍' },
+];
+
+export const HOUSE_TEAM_COLORS = {
+  fire: '#FF6B6B',
+  ice: '#4ECDC4',
+  water: '#45B7D1',
+  wind: '#96CEB4',
+  earth: '#FFEAA7',
+};
+
+export const HOUSE_TEAM_LABELS = {
+  fire: 'Fire Team 🔥',
+  ice: 'Ice Team ❄️',
+  water: 'Water Team 💧',
+  wind: 'Wind Team 🌪️',
+  earth: 'Earth Team 🌍',
+};
+
 // ========== ASSESSMENT-SPECIFIC CONSTANTS ==========
 
 // Assessment Terms
@@ -523,6 +549,9 @@ export default {
   FILTER_TYPES,
   FILTER_LABELS,
   BADGE_COLORS,
+  HOUSE_TEAMS,
+  HOUSE_TEAM_COLORS,
+  HOUSE_TEAM_LABELS,
   ASSESSMENT_TERMS,
   TERM_LABELS,
   TERM_MONTHS,
