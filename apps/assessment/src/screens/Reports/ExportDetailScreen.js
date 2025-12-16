@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   Platform,
   Share,
@@ -25,6 +24,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 //import { jsPDF } from 'jspdf';
 //import autoTable from 'jspdf-autotable';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
 import { COLORS, AGE_GROUPS, ASSESSMENT_TERMS } from '../../utils/constants';
 
@@ -1099,7 +1099,7 @@ export default function ExportDetailScreen() {
           activeOpacity={0.8}
         >
           {exporting ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <LoadingSpinner size="small" color={COLORS.white} />
           ) : (
             <Ionicons name="cloud-download" size={32} color={COLORS.white} />
           )}

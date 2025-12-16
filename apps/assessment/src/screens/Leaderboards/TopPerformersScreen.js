@@ -9,12 +9,12 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS, AGE_GROUPS } from '../../utils/constants';
 import { calculateCompositeScore, getBestSportScore } from '../../utils/calculations';
 import { getAgeGroupPercentile } from '../../utils/percentiles';
@@ -132,6 +132,7 @@ export default function TopPerformersScreen() {
             sport: sportId,
             score,
             assessmentDate: assessment?.assessment_date,
+            assessmentId: assessment?.id,
           });
         }
       });
@@ -287,10 +288,11 @@ export default function TopPerformersScreen() {
         { top: showFilter ? (hasActiveFilters ? 240 : 176) : 116 }
       ]}>
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Loading rankings...</Text>
-          </View>
+          <LoadingSpinner 
+            overlay 
+            text="Loading rankings..." 
+            color="#1565C0"
+          />
         ) : performers.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="trophy-outline" size={64} color={COLORS.textSecondary} />
@@ -312,13 +314,13 @@ export default function TopPerformersScreen() {
               const currentScrollY = event.nativeEvent.contentOffset.y;
               const scrollDiff = currentScrollY - lastScrollY;
               
-              // Only trigger hide/show if scroll difference is significant (reduces jitter)
-              if (scrollDiff > 10 && currentScrollY > 50) {
+              // Increased threshold to 20px to reduce jitter/shaking
+              if (scrollDiff > 20 && currentScrollY > 50) {
                 // Scrolling down significantly - hide filter
                 if (showFilter) {
                   setShowFilter(false);
                 }
-              } else if (scrollDiff < -10) {
+              } else if (scrollDiff < -20) {
                 // Scrolling up significantly - show filter
                 if (!showFilter) {
                   setShowFilter(true);
@@ -395,8 +397,13 @@ export default function TopPerformersScreen() {
                   key={performer.id}
                   style={styles.performerCard}
                   onPress={() => {
-                    // TODO: Navigate to kid detail screen
-                    console.log('View kid:', performer.name);
+                    // Navigate to Comparison screen with performer context
+                    navigation.push('Comparison', {
+                      kidId: performer.id,
+                      sportId: performer.sport,
+                      assessmentId: performer.assessmentId,
+                      from: 'TopPerformers',
+                    });
                   }}
                   activeOpacity={0.7}
                 >
@@ -447,6 +454,20 @@ export default function TopPerformersScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* View Full History Button */}
+            <TouchableOpacity
+              style={styles.viewHistoryButton}
+              onPress={() => navigation.navigate('History')}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="history" size={24} color={COLORS.primary} />
+              <View style={styles.viewHistoryTextContainer}>
+                <Text style={styles.viewHistoryTitle}>View Full History</Text>
+                <Text style={styles.viewHistorySubtitle}>See all assessment records</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
           </ScrollView>
         )}
       </View>
@@ -831,6 +852,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textSecondary,
   },
+  viewHistoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    elevation: 3,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  viewHistoryTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  viewHistoryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  viewHistorySubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
   // Modal Styles
   modalOverlay: {
     flex: 1,
@@ -915,16 +967,16 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   modalButtonPrimary: {
-  flex: 1,
-  paddingVertical: 14,
-  borderRadius: 12,
-  backgroundColor: COLORS.primary,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-modalButtonPrimaryText: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: COLORS.white,
-},
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
 });

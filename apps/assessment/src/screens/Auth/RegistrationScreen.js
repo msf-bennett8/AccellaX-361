@@ -11,13 +11,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, APP_NAME, USER_ROLES } from '../../utils/constants';
 import { registerUser } from '../../utils/auth';
 import { initDatabase } from '../../database/db';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const RegistrationScreen = ({ navigation, onAuthComplete }) => {
   const [formData, setFormData] = useState({
@@ -32,6 +34,7 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const updateFormData = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -82,6 +85,11 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Terms agreement validation
+    if (!agreedToTerms) {
+      newErrors.terms = 'You must agree to the Terms of Service and Privacy Policy';
     }
 
     setErrors(newErrors);
@@ -202,7 +210,11 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
           
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>⚽</Text>
+              <Image 
+                source={require('../../../assets/icon.png')} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
           </View>
           
@@ -326,7 +338,11 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
                 onPress={() => setShowPassword(!showPassword)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                <Ionicons 
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                  size={22} 
+                  color={COLORS.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
             {errors.password && (
@@ -360,9 +376,11 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.eyeIcon}>
-                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
+                <Ionicons 
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} 
+                  size={22} 
+                  color={COLORS.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
             {errors.confirmPassword && (
@@ -379,6 +397,32 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
             </View>
           </View>
 
+          {/* Terms and Privacy Checkbox */}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => {
+              setAgreedToTerms(!agreedToTerms);
+              if (errors.terms) {
+                setErrors({ ...errors, terms: null });
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+              {agreedToTerms && (
+                <Ionicons name="checkmark" size={18} color={COLORS.white} />
+              )}
+            </View>
+            <Text style={styles.checkboxText}>
+              I agree to the{' '}
+              <Text style={styles.checkboxLink}>Terms of Service</Text> and{' '}
+              <Text style={styles.checkboxLink}>Privacy Policy</Text>
+            </Text>
+          </TouchableOpacity>
+          {errors.terms && (
+            <Text style={styles.termsErrorText}>{errors.terms}</Text>
+          )}
+
           {/* Register Button */}
           <TouchableOpacity
             style={[styles.registerButton, isLoading && styles.registerButtonDisabled]}
@@ -388,20 +432,13 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
           >
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={COLORS.white} />
+                <LoadingSpinner size="small" color={COLORS.white} />
                 <Text style={styles.loadingText}>Creating Account...</Text>
               </View>
             ) : (
               <Text style={styles.registerButtonText}>Create Account</Text>
             )}
           </TouchableOpacity>
-
-          {/* Terms and Privacy */}
-          <Text style={styles.termsText}>
-            By creating an account, you agree to our{' '}
-            <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
-          </Text>
 
           {/* Divider */}
           <View style={styles.divider}>
@@ -427,9 +464,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    maxHeight: '100vh',
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 32,
   },
   header: {
     backgroundColor: COLORS.primary,
@@ -467,8 +506,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: {
-    fontSize: 35,
+  logoImage: {
+    width: 50,
+    height: 50,
   },
   title: {
     fontSize: 28,
@@ -482,7 +522,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formContainer: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
     paddingBottom: 24,
@@ -510,6 +549,44 @@ const styles = StyleSheet.create({
   },
   required: {
     color: COLORS.error,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    marginRight: 12,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkboxText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  checkboxLink: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  termsErrorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: -16,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   optional: {
     color: COLORS.textSecondary,
@@ -547,9 +624,6 @@ const styles = StyleSheet.create({
     right: 12,
     top: 12,
     padding: 8,
-  },
-  eyeIcon: {
-    fontSize: 20,
   },
   requirementsContainer: {
     backgroundColor: COLORS.backgroundDark,

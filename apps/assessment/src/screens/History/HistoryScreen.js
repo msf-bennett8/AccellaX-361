@@ -8,13 +8,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Modal,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
 import { COLORS } from '../../utils/constants';
 import { getRecentAssessments } from '../../database/queries';
@@ -426,10 +426,11 @@ console.log('🔍 Year filter debug:', {
           leftIcon="☰"
           onLeftPress={() => navigation.openDrawer()}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading history...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Loading history..." 
+          color="#1565C0"
+        />
       </View>
     );
   }

@@ -8,13 +8,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 export default function ProfileScreen({ navigation }) {
   const [userProfile, setUserProfile] = useState(null);
@@ -48,9 +48,11 @@ export default function ProfileScreen({ navigation }) {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <LoadingSpinner 
+        overlay 
+        text="Loading profile..." 
+        color="#1565C0"
+      />
     );
   }
 

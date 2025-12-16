@@ -8,13 +8,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Modal,
   FlatList,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ComparisonChart from '../../components/charts/ComparisonChart';
 import SpiderChart from '../../components/charts/SpiderChart';
 import HeatmapChart from '../../components/charts/HeatmapChart';
@@ -57,6 +57,14 @@ export default function ComparisonScreen() {
   const loadComparisonData = async () => {
     try {
       setLoading(true);
+
+      // Safety check: ensure kidId and sportId exist
+      if (!kidId || !sportId) {
+        console.error('❌ Missing kidId or sportId in navigation params');
+        alert('Unable to load comparison data. Missing parameters.');
+        navigation.goBack();
+        return;
+      }
 
       // Load main kid and sport
       const kidData = await getKidByIdFromFirebase(kidId);  // ✅ Use correct function
@@ -292,10 +300,11 @@ export default function ComparisonScreen() {
           leftIcon="←"
           onLeftPress={() => navigation.goBack()}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading comparison...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Loading comparison..." 
+          color="#1565C0"
+        />
       </View>
     );
   }

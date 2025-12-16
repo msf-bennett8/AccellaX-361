@@ -8,13 +8,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Modal,
   Dimensions,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import LineChart from '../../components/charts/LineChart';
 import RadarChart from '../../components/charts/RadarChart';
 import PercentileChart from '../../components/charts/PercentileChart';
@@ -202,10 +202,11 @@ export default function KidProgressScreen() {
           leftIcon="←"
           onLeftPress={() => navigation.goBack()}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading progress...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Loading progress..." 
+          color="#1565C0"
+        />
       </View>
     );
   }

@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   Alert,
   Platform,
@@ -15,6 +14,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getKidsWithSports, getKidsWithoutSports } from '../../services/kidService';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
 import FilterBar from '../../components/common/FilterBar';
 import Badge from '../../components/common/Badge';
@@ -220,10 +220,11 @@ const KidsListScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={styles.loadingText}>Loading kids...</Text>
-      </View>
+      <LoadingSpinner 
+        overlay 
+        text="Loading kids..." 
+        color="#1565C0"
+      />
     );
   }
 

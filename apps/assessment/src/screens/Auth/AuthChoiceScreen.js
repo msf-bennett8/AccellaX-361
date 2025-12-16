@@ -10,20 +10,56 @@ import {
   Image,
   StatusBar,
   Platform,
+  ScrollView,
 } from 'react-native';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { COLORS, APP_NAME } from '../../utils/constants';
+import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const AuthChoiceScreen = ({ navigation }) => {
+  const [agreedToTerms, setAgreedToTerms] = React.useState(false);
+  const [modalConfig, setModalConfig] = React.useState({
+    visible: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
   const handleCreateAccount = () => {
+    if (!agreedToTerms) {
+      setModalConfig({
+        visible: true,
+        title: 'Terms Required',
+        message: 'Please agree to the Terms of Service and Privacy Policy to continue.',
+        type: 'warning',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
+      return;
+    }
     navigation.navigate('Register');
   };
 
   const handleSignIn = () => {
+    if (!agreedToTerms) {
+      setModalConfig({
+        visible: true,
+        title: 'Terms Required',
+        message: 'Please agree to the Terms of Service and Privacy Policy to continue.',
+        type: 'warning',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
+      return;
+    }
     navigation.navigate('Login');
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      bounces={true}
+    >
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
       {/* Header Section */}
@@ -52,6 +88,24 @@ const AuthChoiceScreen = ({ navigation }) => {
             Professional sports assessment and athlete development platform
           </Text>
         </View>
+
+        {/* Terms and Privacy Checkbox */}
+        <TouchableOpacity
+          style={styles.checkboxContainer}
+          onPress={() => setAgreedToTerms(!agreedToTerms)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+            {agreedToTerms && (
+              <Ionicons name="checkmark" size={18} color={COLORS.white} />
+            )}
+          </View>
+          <Text style={styles.checkboxText}>
+            I agree to the{' '}
+            <Text style={styles.checkboxLink}>Terms of Service</Text> and{' '}
+            <Text style={styles.checkboxLink}>Privacy Policy</Text>
+          </Text>
+        </TouchableOpacity>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
@@ -85,27 +139,37 @@ const AuthChoiceScreen = ({ navigation }) => {
           <Text style={styles.featuresTitle}>What you can do:</Text>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>📊</Text>
+            <View style={styles.featureIconContainer}>
+              <MaterialCommunityIcons name="chart-bar" size={24} color={COLORS.primary} />
+            </View>
             <Text style={styles.featureText}>Track fitness assessments across multiple sports</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>⚽</Text>
+            <View style={styles.featureIconContainer}>
+              <Ionicons name="football" size={24} color={COLORS.primary} />
+            </View>
             <Text style={styles.featureText}>Measure sport-specific skills and performance</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>📈</Text>
+            <View style={styles.featureIconContainer}>
+              <MaterialCommunityIcons name="chart-line" size={24} color={COLORS.primary} />
+            </View>
             <Text style={styles.featureText}>View progress charts and athlete comparisons</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🎯</Text>
+            <View style={styles.featureIconContainer}>
+              <MaterialCommunityIcons name="target" size={24} color={COLORS.primary} />
+            </View>
             <Text style={styles.featureText}>Set goals and track achievement over time</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>☁️</Text>
+            <View style={styles.featureIconContainer}>
+              <Ionicons name="cloud-upload" size={24} color={COLORS.primary} />
+            </View>
             <Text style={styles.featureText}>Cloud sync across all your devices</Text>
           </View>
         </View>
@@ -117,7 +181,15 @@ const AuthChoiceScreen = ({ navigation }) => {
           Works offline • Syncs automatically • Secure & Private
         </Text>
       </View>
-    </View>
+      <ConfirmationModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+      />
+    </ScrollView>
+    
   );
 };
 
@@ -125,6 +197,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    maxHeight: '100vh',
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
     backgroundColor: COLORS.primary,
@@ -175,9 +251,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
+    paddingBottom: 16,
   },
   welcomeSection: {
     marginBottom: 32,
@@ -192,6 +268,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
     lineHeight: 24,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    marginRight: 12,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkboxText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  checkboxLink: {
+    color: COLORS.primary,
+    fontWeight: '600',
   },
   buttonContainer: {
     marginBottom: 32,
@@ -261,10 +369,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  featureIcon: {
-    fontSize: 20,
+  featureIconContainer: {
+    width: 32,
     marginRight: 12,
-    width: 28,
+    alignItems: 'center',
   },
   featureText: {
     fontSize: 14,

@@ -9,13 +9,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { COLORS } from '../../utils/constants';
 import { updateUserProfile } from '../../utils/auth';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 export default function EditProfileScreen({ navigation, route }) {
   const { profile } = route.params;
@@ -187,7 +187,7 @@ export default function EditProfileScreen({ navigation, route }) {
           activeOpacity={0.8}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <LoadingSpinner size="small" color={COLORS.white} />
           ) : (
             <Text style={styles.saveButtonText}>Save Changes</Text>
           )}

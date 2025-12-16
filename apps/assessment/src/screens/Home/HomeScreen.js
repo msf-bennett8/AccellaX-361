@@ -11,13 +11,13 @@ import {
   RefreshControl,
   Dimensions,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS, APP_NAME, AGE_GROUPS, SPORTS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
 import { getAssessmentStats, getAllAssessments } from '../../services/assessmentService';
@@ -63,6 +63,8 @@ export default function HomeScreen() {
       loadDashboardData();
     }, [])
   );
+
+  // Loading spinner is now handled by LoadingSpinner component
 
   const loadDashboardData = async () => {
     try {
@@ -553,7 +555,7 @@ export default function HomeScreen() {
           <View style={styles.redFlagsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Performance Alerts</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('History')}>
                 <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
             </View>
@@ -573,9 +575,19 @@ export default function HomeScreen() {
                     {flag.metric} decreased by {Math.abs(flag.change)}%
                   </Text>
                 </View>
-                <View style={styles.redFlagBadge}>
+                <TouchableOpacity 
+                  style={styles.redFlagBadge}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    // Navigate to Comparison screen with kid context
+                    navigation.navigate('Comparison', { 
+                      kidId: flag.kidId, 
+                      sportId: 'football' // You can enhance this to detect the sport dynamically
+                    });
+                  }}
+                >
                   <Text style={styles.redFlagBadgeText}>View</Text>
-                </View>
+                </TouchableOpacity>
               </TouchableOpacity>
             ))}
           </View>
@@ -586,7 +598,7 @@ export default function HomeScreen() {
           <View style={styles.upcomingSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Upcoming Tests</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Assessment', { screen: 'AssessmentSetup' })}>
                 <Text style={styles.seeAllText}>Manage</Text>
               </TouchableOpacity>
             </View>
@@ -712,16 +724,10 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {loading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading dashboard...</Text>
-        </View>
-      )}
-
         {/* Bottom Padding */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+
       {/* Confirmation Modal */}
         <ConfirmationModal
           visible={modalConfig.visible}
@@ -734,9 +740,18 @@ export default function HomeScreen() {
           onConfirm={modalConfig.onConfirm}
           onCancel={modalConfig.onCancel}
         />
-      </View>
-      );
-      }
+
+      {/* Loading Spinner - Must be AFTER closing View to overlay everything */}
+      {loading && (
+        <LoadingSpinner 
+          overlay 
+          text="Loading dashboard..." 
+          color="#1565C0"
+        />
+      )}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -1174,23 +1189,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Loading
-  loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    zIndex: 1000,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
+  // Loading handled by LoadingSpinner component
   // Bottom Padding
   bottomPadding: {
     height: 32,

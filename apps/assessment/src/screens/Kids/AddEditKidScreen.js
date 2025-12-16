@@ -9,7 +9,6 @@ import {
   Alert,
   TouchableOpacity,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +17,7 @@ import { assignSportsToKid } from '../../services/kidService';
 import { getCurrentUserId, getUserRole } from '../../utils/auth';
 import { getAgeGroup } from '../../utils/helpers';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
@@ -526,10 +526,11 @@ const AddEditKidScreen = () => {
       </View>
 
       {saving && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Saving...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Saving..." 
+          color="#FFFFFF"
+        />
       )}
       </ScrollView>
     </View>

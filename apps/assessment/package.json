@@ -1,6 +1,7 @@
 {
-  "name": "AccellaX 361° | Sports Academy Assessment",
+  "name": "accellax-361-sas",
   "version": "1.0.0",
+  "description": "AccellaX 361° | Sports Academy Assessment",
   "main": "index.js",
   "scripts": {
     "start": "expo start",

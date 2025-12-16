@@ -11,13 +11,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
-  Alert,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, APP_NAME } from '../../utils/constants';
 import { loginUser } from '../../utils/auth';
 import { initDatabase } from '../../database/db';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const LoginScreen = ({ navigation, onAuthComplete }) => {
   const [email, setEmail] = useState('');
@@ -25,6 +27,13 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const validateForm = () => {
     const newErrors = {};
@@ -37,6 +46,10 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
 
     if (!password) {
       newErrors.password = 'Password is required';
+    }
+
+    if (!agreedToTerms) {
+      newErrors.terms = 'You must agree to the Terms of Service and Privacy Policy';
     }
 
     setErrors(newErrors);
@@ -94,15 +107,17 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
         
         // Show welcome message after navigation starts
         setTimeout(() => {
-          Alert.alert(
-            'Welcome Back!',
-            `Hello ${result.userProfile.fullName || 'there'}! ${
+          setModalConfig({
+            visible: true,
+            title: 'Welcome Back!',
+            message: `Hello ${result.userProfile.fullName || 'there'}! ${
               result.migrated 
                 ? 'Your offline account has been successfully synced to the cloud.' 
                 : result.warning || 'Good to see you again!'
             }`,
-            [{ text: 'OK' }]
-          );
+            type: 'success',
+            onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+          });
         }, 500);
       } else {
         console.error('❌ Login failed:', result.error);
@@ -123,11 +138,13 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(
-      'Reset Password',
-      'Password reset functionality will be available soon. Please contact support if you need assistance.',
-      [{ text: 'OK' }]
-    );
+    setModalConfig({
+      visible: true,
+      title: 'Reset Password',
+      message: 'Password reset functionality will be available soon. Please contact support if you need assistance.',
+      type: 'info',
+      onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
   };
 
   const handleCreateAccount = () => {
@@ -156,7 +173,11 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
           
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>⚽</Text>
+              <Image 
+                source={require('../../../assets/icon.png')} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
           </View>
           
@@ -226,7 +247,11 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
                 onPress={() => setShowPassword(!showPassword)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                <Ionicons 
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                  size={22} 
+                  color={COLORS.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
             {errors.password && (
@@ -243,6 +268,32 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
+          {/* Terms and Privacy Checkbox */}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => {
+              setAgreedToTerms(!agreedToTerms);
+              if (errors.terms) {
+                setErrors({ ...errors, terms: null });
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+              {agreedToTerms && (
+                <Ionicons name="checkmark" size={18} color={COLORS.white} />
+              )}
+            </View>
+            <Text style={styles.checkboxText}>
+              I agree to the{' '}
+              <Text style={styles.checkboxLink}>Terms of Service</Text> and{' '}
+              <Text style={styles.checkboxLink}>Privacy Policy</Text>
+            </Text>
+          </TouchableOpacity>
+          {errors.terms && (
+            <Text style={styles.termsErrorText}>{errors.terms}</Text>
+          )}
+
           {/* Login Button */}
           <TouchableOpacity
             style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
@@ -252,7 +303,7 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
           >
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={COLORS.white} />
+                <LoadingSpinner size="small" color={COLORS.white} />
                 <Text style={styles.loadingText}>Signing In...</Text>
               </View>
             ) : (
@@ -262,7 +313,7 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
 
           {/* Offline Mode Info */}
           <View style={styles.infoContainer}>
-            <Text style={styles.infoIcon}>ℹ️</Text>
+            <Ionicons name="information-circle" size={20} color={COLORS.primary} style={styles.infoIcon} />
             <Text style={styles.infoText}>
               Works offline. Your data will sync automatically when online.
             </Text>
@@ -286,6 +337,13 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
             </TouchableOpacity>
           </View>
         </View>
+        <ConfirmationModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+      />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -295,9 +353,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    maxHeight: '100vh',
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 32,
   },
   header: {
     backgroundColor: COLORS.primary,
@@ -335,8 +395,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: {
-    fontSize: 35,
+  logoImage: {
+    width: 50,
+    height: 50,
   },
   title: {
     fontSize: 28,
@@ -350,7 +411,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formContainer: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
     paddingBottom: 24,
@@ -396,6 +456,44 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 4,
   },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    marginRight: 12,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkboxText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  checkboxLink: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  termsErrorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: -16,
+    marginBottom: 16,
+    marginLeft: 4,
+  },
   passwordContainer: {
     position: 'relative',
   },
@@ -407,9 +505,6 @@ const styles = StyleSheet.create({
     right: 12,
     top: 12,
     padding: 8,
-  },
-  eyeIcon: {
-    fontSize: 20,
   },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
@@ -459,7 +554,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoIcon: {
-    fontSize: 18,
     marginRight: 8,
   },
   infoText: {

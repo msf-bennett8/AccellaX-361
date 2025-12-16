@@ -38,20 +38,35 @@ export default function LeaderboardsScreen() {
 
   const loadStats = async () => {
     try {
-      // Load real stats from database
-      const { getKidsCount } = await import('../../database/db');
-      const { getAssessmentStats } = await import('../../services/assessmentService');
-      const { getAllSports } = await import('../../database/db');
+      console.log('📊 Loading leaderboard stats...');
       
-      const kidsCount = await getKidsCount();
-      const assessmentStats = await getAssessmentStats();
+      // Get kids count (same as HomeScreen)
+      const { getKidsWithSports } = await import('../../services/kidService');
+      const kids = await getKidsWithSports();
+      const totalAthletes = kids.length;
+      
+      // Get sports count
+      const { getAllSports } = await import('../../database/db');
       const sports = await getAllSports();
+      const activeSports = sports.length;
+      
+      // Get assessments this month
+      const { getAllAssessments } = await import('../../services/assessmentService');
+      const allAssessments = await getAllAssessments();
+      
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const assessmentsThisMonth = allAssessments.filter(a => 
+        new Date(a.assessment_date) >= firstDayOfMonth
+      ).length;
       
       setStats({
-        totalAthletes: kidsCount || 0,
-        activeSports: sports?.length || 0,
-        assessmentsThisMonth: assessmentStats?.thisMonth || 0,
+        totalAthletes,
+        activeSports,
+        assessmentsThisMonth,
       });
+      
+      console.log('✅ Leaderboard stats loaded:', { totalAthletes, activeSports, assessmentsThisMonth });
     } catch (error) {
       console.error('Error loading stats:', error);
       // Fallback to defaults if services not available

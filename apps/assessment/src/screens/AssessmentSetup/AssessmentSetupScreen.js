@@ -161,6 +161,7 @@ export default function AssessmentSetupScreen() {
         assessorName,
         generalNotes: generalNotes.trim() || null,
         setupDate: new Date().toISOString(),
+        assessmentDate: new Date().toISOString().split('T')[0], // ✅ ADD THIS LINE - Current date in YYYY-MM-DD format
       },
     });
   };

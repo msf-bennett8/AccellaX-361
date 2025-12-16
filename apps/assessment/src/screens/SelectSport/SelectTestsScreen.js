@@ -8,12 +8,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS } from '../../utils/constants';
 import { getMetricsBySport } from '../../config/metrics';
 
@@ -171,10 +171,11 @@ export default function SelectTestsScreen() {
           onLeftPress={() => navigation.goBack()}
           showAvatar={false}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading tests...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Loading tests..." 
+          color="#1565C0"
+        />
       </View>
     );
   }

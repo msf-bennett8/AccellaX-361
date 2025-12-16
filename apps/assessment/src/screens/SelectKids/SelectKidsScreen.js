@@ -8,12 +8,12 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
 import FilterChip from '../../components/common/FilterChip';
 import { COLORS } from '../../utils/constants';
@@ -228,10 +228,11 @@ const SelectKidsScreen = ({ route, navigation }) => {
           onLeftPress={() => navigation.goBack()}
           showAvatar={false}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading kids...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Loading kids..." 
+          color="#1565C0"
+        />
       </View>
     );
   }

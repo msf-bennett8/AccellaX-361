@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     width: '100%',
-    gap: 12,
+    justifyContent: 'space-between',
   },
   button: {
     flex: 1,
@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginRight: 12,
   },
   cancelButtonText: {
     fontSize: 16,

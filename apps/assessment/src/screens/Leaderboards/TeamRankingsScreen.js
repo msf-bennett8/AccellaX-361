@@ -10,11 +10,11 @@ import {
   TouchableOpacity,
   RefreshControl,
   Modal,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS, HOUSE_TEAMS } from '../../utils/constants';
 import { getAllSports, getAllKids, getAllAssessments } from '../../database/db';
 import { calculateCompositeScore } from '../../utils/calculations';
@@ -26,6 +26,46 @@ const AGE_GROUPS = [
   { id: '10-13', name: '10-13 years' },
   { id: '13+', name: '13+ years' },
 ];
+
+/**
+ * Safely parse sports_enrolled from kid data
+ * Handles string, array, and double-stringified JSON
+ */
+const parseSportsEnrolled = (kid, allAssessments) => {
+  let kidSports = [];
+  
+  if (kid.sports_enrolled) {
+    try {
+      let parsed = kid.sports_enrolled;
+      
+      // If it's a string, parse it (handle multiple levels of stringification)
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed);
+        
+        // Keep parsing if still a string (double/triple stringified)
+        while (typeof parsed === 'string') {
+          parsed = JSON.parse(parsed);
+        }
+      }
+      
+      // Ensure result is an array
+      if (Array.isArray(parsed)) {
+        kidSports = parsed;
+      }
+    } catch (e) {
+      console.warn(`⚠️ Failed to parse sports_enrolled for ${kid.name}:`, e.message);
+      kidSports = [];
+    }
+  }
+  
+  // Fallback: If no sports_enrolled, infer from assessments
+  if (kidSports.length === 0 && allAssessments) {
+    const kidAssessments = allAssessments.filter(a => a.kid_id === kid.id);
+    kidSports = [...new Set(kidAssessments.map(a => a.sport_id))];
+  }
+  
+  return kidSports;
+};
 
 export default function TeamRankingsScreen() {
   const navigation = useNavigation();
@@ -119,25 +159,7 @@ export default function TeamRankingsScreen() {
         teamGroups[teamKey].ageBreakdown[ageGroup]++;
         
         // Track sports breakdown
-        let kidSports = [];
-        if (kid.sports_enrolled) {
-          // Check if it's already an array or needs parsing
-          if (Array.isArray(kid.sports_enrolled)) {
-            kidSports = kid.sports_enrolled;
-          } else if (typeof kid.sports_enrolled === 'string') {
-            try {
-              kidSports = JSON.parse(kid.sports_enrolled);
-            } catch (e) {
-              kidSports = [];
-            }
-          }
-        }
-        
-        // If no sports_enrolled, get from assessments
-        if (kidSports.length === 0) {
-          const kidAssessments = allAssessments.filter(a => a.kid_id === kid.id);
-          kidSports = [...new Set(kidAssessments.map(a => a.sport_id))];
-        }
+        const kidSports = parseSportsEnrolled(kid, allAssessments);
         
         kidSports.forEach(sportId => {
           if (!teamGroups[teamKey].sportsBreakdown[sportId]) {
@@ -161,8 +183,31 @@ export default function TeamRankingsScreen() {
         );
 
         if (teamAssessments.length === 0) {
-          console.log(`⚠️ No assessments for ${houseTeam} team`);
-          continue; // Skip teams with no assessments
+          console.log(`⚠️ No assessments for ${houseTeam} team - showing with 0 score`);
+          
+          // Get house team info BEFORE using it
+          const houseTeamInfo = HOUSE_TEAMS.find(t => t.id === houseTeam);
+          
+          // Format age breakdown
+          const ageText = Object.entries(ageBreakdown)
+            .map(([age, count]) => `${age}: ${count}`)
+            .join(', ');
+          
+          // Show team with 0 score and no stats
+          rankedTeams.push({
+            id: teamKey,
+            name: houseTeamInfo?.name || houseTeam,
+            houseTeam: houseTeam,
+            sportsBreakdown: 'No assessments yet',
+            ageBreakdown: ageText,
+            members: members.length,
+            avgScore: 0,
+            totalAssessments: 0,
+            topPerformer: 'N/A',
+            recentChange: 0,
+          });
+          
+          continue; // Skip to next team
         }
 
         // Calculate average score across ALL team members and ALL sports
@@ -214,18 +259,22 @@ export default function TeamRankingsScreen() {
         const houseTeamInfo = HOUSE_TEAMS.find(t => t.id === houseTeam);
         const teamName = houseTeamInfo?.name || houseTeam;
         
-        // Format sports breakdown (e.g., "Football: 12, Swimming: 8")
-        const sportsText = Object.entries(sportsBreakdown)
+        // Format sports breakdown - limit to first 2 sports to prevent overflow
+        const sportsEntries = Object.entries(sportsBreakdown);
+        const sportsText = sportsEntries
+          .slice(0, 2)  // ✅ Only show first 2 sports
           .map(([sportId, count]) => {
             const sport = sports.find(s => s.id === sportId);
             return `${sport?.name || sportId}: ${count}`;
           })
-          .join(', ');
+          .join(', ') + (sportsEntries.length > 2 ? ` +${sportsEntries.length - 2}` : '');
         
-        // Format age breakdown (e.g., "4-6: 5, 7-9: 12")
-        const ageText = Object.entries(ageBreakdown)
+        // Format age breakdown - limit to first 2 age groups
+        const ageEntries = Object.entries(ageBreakdown);
+        const ageText = ageEntries
+          .slice(0, 2)  // ✅ Only show first 2 age groups
           .map(([age, count]) => `${age}: ${count}`)
-          .join(', ');
+          .join(', ') + (ageEntries.length > 2 ? ` +${ageEntries.length - 2}` : '');
 
         rankedTeams.push({
           id: teamKey,
@@ -249,28 +298,12 @@ export default function TeamRankingsScreen() {
       // Note: Sport and age group filters don't apply to unified house teams
       // Only house team filter applies
       
-      if (selectedSports.length > 0) {
+            if (selectedSports.length > 0) {
         // Filter teams that have at least one member playing the selected sport
         filteredTeams = filteredTeams.filter(team => {
           const teamMembers = teamGroups[team.houseTeam]?.members || [];
           return teamMembers.some(kid => {
-            let kidSports = [];
-            if (kid.sports_enrolled) {
-              // Check if it's already an array or needs parsing
-              if (Array.isArray(kid.sports_enrolled)) {
-                kidSports = kid.sports_enrolled;
-              } else if (typeof kid.sports_enrolled === 'string') {
-                try {
-                  kidSports = JSON.parse(kid.sports_enrolled);
-                } catch (e) {
-                  kidSports = [];
-                }
-              }
-            }
-            if (kidSports.length === 0) {
-              const kidAssessments = allAssessments.filter(a => a.kid_id === kid.id);
-              kidSports = [...new Set(kidAssessments.map(a => a.sport_id))];
-            }
+            const kidSports = parseSportsEnrolled(kid, allAssessments);
             return kidSports.some(sportId => selectedSports.includes(sportId));
           });
         });
@@ -649,12 +682,6 @@ export default function TeamRankingsScreen() {
           }}
           scrollEventThrottle={16}
         >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Loading team rankings...</Text>
-          </View>
-        ) : (
           <>
         {/* Summary Stats */}
         <View style={styles.summaryContainer}>
@@ -712,17 +739,17 @@ export default function TeamRankingsScreen() {
                 <View style={styles.teamMeta}>
                   <View style={styles.metaItem}>
                     <MaterialCommunityIcons name="trophy" size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.metaText}>{team.sportsBreakdown}</Text>
+                    <Text style={styles.metaText} numberOfLines={1}>{team.sportsBreakdown}</Text>
                   </View>
-                  <View style={styles.metaDot} />
+                  <Text style={styles.metaSeparator}>|</Text>
                   <View style={styles.metaItem}>
                     <Ionicons name="people" size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.metaText}>{team.members} athletes</Text>
+                    <Text style={styles.metaText} numberOfLines={1}>{team.members} athletes</Text>
                   </View>
-                  <View style={styles.metaDot} />
+                  <Text style={styles.metaSeparator}>|</Text>
                   <View style={styles.metaItem}>
                     <MaterialCommunityIcons name="human-child" size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.metaText}>{team.ageBreakdown}</Text>
+                    <Text style={styles.metaText} numberOfLines={1}>{team.ageBreakdown}</Text>
                   </View>
                 </View>
 
@@ -771,9 +798,17 @@ export default function TeamRankingsScreen() {
           </View>
         )}
           </>
-        )}
         </ScrollView>
       </View>
+
+      {/* Loading Spinner - Positioned at Root Level */}
+      {loading && (
+        <LoadingSpinner 
+          overlay 
+          text="Loading team rankings..." 
+          color="#1565C0"
+        />
+      )}
     </View>
   );
 }
@@ -1057,24 +1092,26 @@ const styles = StyleSheet.create({
   },
   teamMeta: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',  // ✅ Changed from center
     marginBottom: 12,
+    flexWrap: 'wrap',  // ✅ Allow wrapping on small screens
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 1,  // ✅ Allow shrinking
   },
   metaText: {
     fontSize: 12,
     color: COLORS.textSecondary,
+    flexShrink: 1,  // ✅ Allow text to shrink
   },
-  metaDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.textSecondary,
+    metaSeparator: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
     marginHorizontal: 8,
+    fontWeight: '300',
   },
   teamStats: {
     flexDirection: 'row',

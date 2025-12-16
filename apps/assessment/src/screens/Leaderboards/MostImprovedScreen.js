@@ -9,12 +9,12 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS, AGE_GROUPS } from '../../utils/constants';
 import { calculateCompositeScore } from '../../utils/calculations';
 import { getAllAssessments } from '../../services/assessmentService';
@@ -44,6 +44,8 @@ export default function MostImprovedScreen() {
   const [selectedAgeGroups, setSelectedAgeGroups] = useState([]);
   const [improvedAthletes, setImprovedAthletes] = useState([]);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [showFilter, setShowFilter] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const timeframes = [
     { id: 'week', name: 'This Week', days: 7 },
@@ -108,7 +110,10 @@ export default function MostImprovedScreen() {
       const improvements = [];
 
       Object.entries(kidSportMap).forEach(([key, kidSportAssessments]) => {
-        const [kidId, sportId] = key.split('_');
+        // FIX: Extract sport_id from the LAST underscore since kid_id contains underscores
+        const lastUnderscoreIndex = key.lastIndexOf('_');
+        const kidId = key.substring(0, lastUnderscoreIndex);
+        const sportId = key.substring(lastUnderscoreIndex + 1);
         const kid = kids.find(k => k.id === kidId);
         if (!kid) return;
 
@@ -123,37 +128,43 @@ export default function MostImprovedScreen() {
           return;
         }
 
-        console.log(`👤 ${kid.name} (${sportId}): Has ${kidSportAssessments.length} assessments, dates: ${kidSportAssessments.map(a => a.assessment_date).join(', ')}`);
+        console.log(`👤 ${kid.name} (${sportId}): Has ${kidSportAssessments.length} assessments`);
+        console.log(`   Raw dates:`, kidSportAssessments.map(a => a.assessment_date));
 
         // Sort assessments by date (oldest first)
         kidSportAssessments.sort((a, b) => 
           new Date(a.assessment_date) - new Date(b.assessment_date)
         );
 
+        console.log(`   Sorted dates:`, kidSportAssessments.map(a => a.assessment_date));
+
         // Get the two most recent assessments
         const latestAssessment = kidSportAssessments[kidSportAssessments.length - 1];
         const previousAssessment = kidSportAssessments[kidSportAssessments.length - 2];
 
         // Check if EITHER assessment is within the selected timeframe
-        // (We want to show improvement if they had any activity in this period)
         const latestDate = new Date(latestAssessment.assessment_date);
         const previousDate = new Date(previousAssessment.assessment_date);
         
-        console.log(`📅 ${kid.name}: Latest ${latestDate.toISOString().split('T')[0]}, Previous ${previousDate.toISOString().split('T')[0]}, Cutoff ${cutoffDate.toISOString().split('T')[0]}`);
+        console.log(`📅 ${kid.name}: Dates comparison:`);
+        console.log(`   Latest: ${latestDate.toISOString().split('T')[0]} (${latestDate.getTime()})`);
+        console.log(`   Previous: ${previousDate.toISOString().split('T')[0]} (${previousDate.getTime()})`);
+        console.log(`   Cutoff: ${cutoffDate.toISOString().split('T')[0]} (${cutoffDate.getTime()})`);
+        console.log(`   Latest >= Cutoff? ${latestDate >= cutoffDate} (${latestDate.getTime()} >= ${cutoffDate.getTime()})`);
         
-        // Show improvement if latest assessment is recent enough
-        // OR if both assessments span across the timeframe
-        const isRecentEnough = latestDate >= cutoffDate || 
-                              (previousDate < cutoffDate && latestDate > comparisonDate);
+        // Show improvement if the latest assessment is within the selected timeframe
+        const isRecentEnough = latestDate >= cutoffDate;
         
         if (!isRecentEnough) {
-          console.log(`❌ ${kid.name}: Both assessments too old, skipping`);
+          console.log(`❌ ${kid.name}: Latest assessment is BEFORE cutoff, skipping`);
           return;
         }
+        
+        console.log(`✅ ${kid.name}: Latest assessment is within timeframe!`);
 
         // Calculate time between assessments
         const daysBetween = Math.round((latestDate - previousDate) / (1000 * 60 * 60 * 24));
-        console.log(`📈 ${kid.name} (${sportId}): Comparing ${previousAssessment.assessment_date} vs ${latestAssessment.assessment_date} (${daysBetween} days apart)`);
+        console.log(`📈 ${kid.name} (${sportId}): Comparing assessments ${daysBetween} days apart`);
         
         // Skip if assessments are too close together (same day)
         if (daysBetween < 1) {
@@ -256,6 +267,7 @@ export default function MostImprovedScreen() {
       />
 
       {/* Timeframe Filter */}
+      {showFilter && (
       <View style={styles.filterContainer}>
         <ScrollView
           horizontal
@@ -326,13 +338,18 @@ export default function MostImprovedScreen() {
           </View>
         )}
       </View>
+      )}
 
-      <View style={styles.contentWrapper}>
+      <View style={[
+        styles.contentWrapper,
+        { top: showFilter ? (hasActiveFilters ? 240 : 176) : 116 }
+      ]}>
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Calculating improvements...</Text>
-          </View>
+          <LoadingSpinner 
+            overlay 
+            text="Calculating improvements..." 
+            color="#1565C0"
+          />
         ) : improvedAthletes.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="chart-line" size={64} color={COLORS.textSecondary} />
@@ -348,98 +365,140 @@ export default function MostImprovedScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
             showsVerticalScrollIndicator={false}
+            onScroll={(event) => {
+              const currentScrollY = event.nativeEvent.contentOffset.y;
+              const scrollDiff = currentScrollY - lastScrollY;
+              
+              // Increased threshold to 20px to reduce jitter/shaking
+              if (scrollDiff > 20 && currentScrollY > 50) {
+                // Scrolling down significantly - hide filter
+                if (showFilter) {
+                  setShowFilter(false);
+                }
+              } else if (scrollDiff < -20) {
+                // Scrolling up significantly - show filter
+                if (!showFilter) {
+                  setShowFilter(true);
+                }
+              }
+              setLastScrollY(currentScrollY);
+            }}
+            scrollEventThrottle={16}
           >
-            {/* Info Banner */}
-            <View style={styles.infoBanner}>
-              <Ionicons name="trending-up" size={20} color={COLORS.success} />
-              <Text style={styles.infoText}>
-                Showing {improvedAthletes.length} athlete{improvedAthletes.length !== 1 ? 's' : ''} with the highest improvement over {timeframes.find(tf => tf.id === timeframe)?.name.toLowerCase()}
-              </Text>
-            </View>
+          {/* Info Banner */}
+          <View style={styles.infoBanner}>
+            <Ionicons name="trending-up" size={20} color={COLORS.success} />
+            <Text style={styles.infoText}>
+              Showing {improvedAthletes.length} athlete{improvedAthletes.length !== 1 ? 's' : ''} with the highest improvement over {timeframes.find(tf => tf.id === timeframe)?.name.toLowerCase()}
+            </Text>
+          </View>
 
-            {/* Improvements List */}
-            <View style={styles.listContainer}>
-              {improvedAthletes.map((athlete, index) => (
-                <TouchableOpacity
-                  key={athlete.id}
-                  style={styles.athleteCard}
-                  onPress={() => {
-                    // TODO: Navigate to detailed comparison screen
-                    console.log('View improvement details:', athlete.name);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  {/* Rank Badge */}
-                  <View style={styles.rankContainer}>
-                    <View style={[styles.rankBadge, { backgroundColor: getImprovementColor(athlete.improvement) + '20' }]}>
-                      <Text style={[styles.rankNumber, { color: getImprovementColor(athlete.improvement) }]}>
-                        #{index + 1}
+          {/* Improvements List */}
+          <View style={styles.listContainer}>
+            {improvedAthletes.map((athlete, index) => (
+              <TouchableOpacity
+                key={athlete.id}
+                style={styles.athleteCard}
+                onPress={() => {
+                  // Navigate to Comparison screen with athlete context
+                  // Using 'push' instead of 'navigate' to ensure proper back navigation
+                  navigation.push('Comparison', {
+                    kidId: athlete.kidId,
+                    sportId: athlete.sport,
+                    assessmentId: athlete.latestAssessment?.id,
+                    previousAssessmentId: athlete.previousAssessment?.id,
+                    highlightImprovement: true,
+                    // Pass origin for tracking
+                    from: 'MostImproved',
+                  });
+                }}
+                activeOpacity={0.7}
+              >
+                {/* Rank Badge */}
+                <View style={styles.rankContainer}>
+                  <View style={[styles.rankBadge, { backgroundColor: getImprovementColor(athlete.improvement) + '20' }]}>
+                    <Text style={[styles.rankNumber, { color: getImprovementColor(athlete.improvement) }]}>
+                      #{index + 1}
+                    </Text>
+                  </View>
+                  {index < 3 && (
+                    <MaterialCommunityIcons
+                      name="medal"
+                      size={16}
+                      color={getImprovementColor(athlete.improvement)}
+                      style={styles.medalIcon}
+                    />
+                  )}
+                </View>
+
+                {/* Athlete Info */}
+                <View style={styles.athleteInfo}>
+                  <Text style={styles.athleteName}>{athlete.name}</Text>
+                  <View style={styles.athleteMeta}>
+                    <View style={styles.sportTag}>
+                      <SportIcon sportId={athlete.sport} size={14} />
+                      <Text style={styles.athleteSport}>{athlete.sportName}</Text>
+                    </View>
+                    <View style={styles.dotSeparator} />
+                    <Text style={styles.athleteTests}>{athlete.assessmentCount} assessments</Text>
+                  </View>
+
+                  {/* Progress Bar */}
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View
+                        style={[
+                          styles.progressFillPrevious,
+                          {
+                            width: `${athlete.previousScore}%`,
+                          },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.progressFillCurrent,
+                          {
+                            width: `${athlete.currentScore}%`,
+                            backgroundColor: getImprovementColor(athlete.improvement),
+                          },
+                        ]}
+                      />
+                    </View>
+                    <View style={styles.scoreLabels}>
+                      <Text style={styles.scoreLabel}>
+                        {athlete.previousScore}% → {athlete.currentScore}%
                       </Text>
                     </View>
-                    {index < 3 && (
-                      <MaterialCommunityIcons
-                        name="medal"
-                        size={16}
-                        color={getImprovementColor(athlete.improvement)}
-                        style={styles.medalIcon}
-                      />
-                    )}
                   </View>
+                </View>
 
-                  {/* Athlete Info */}
-                  <View style={styles.athleteInfo}>
-                    <Text style={styles.athleteName}>{athlete.name}</Text>
-                    <View style={styles.athleteMeta}>
-                      <View style={styles.sportTag}>
-                        <SportIcon sportId={athlete.sport} size={14} />
-                        <Text style={styles.athleteSport}>{athlete.sportName}</Text>
-                      </View>
-                      <View style={styles.dotSeparator} />
-                      <Text style={styles.athleteTests}>{athlete.assessmentCount} assessments</Text>
-                    </View>
-
-                    {/* Progress Bar */}
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBar}>
-                        <View
-                          style={[
-                            styles.progressFillPrevious,
-                            {
-                              width: `${athlete.previousScore}%`,
-                            },
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.progressFillCurrent,
-                            {
-                              width: `${athlete.currentScore}%`,
-                              backgroundColor: getImprovementColor(athlete.improvement),
-                            },
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.scoreLabels}>
-                        <Text style={styles.scoreLabel}>
-                          {athlete.previousScore}% → {athlete.currentScore}%
-                        </Text>
-                      </View>
-                    </View>
+                {/* Improvement Badge */}
+                <View style={styles.improvementContainer}>
+                  <View style={[styles.improvementBadge, { backgroundColor: getImprovementColor(athlete.improvement) }]}>
+                    <Ionicons name="trending-up" size={20} color={COLORS.white} />
+                    <Text style={styles.improvementText}>+{athlete.improvement}%</Text>
                   </View>
+                </View>
 
-                  {/* Improvement Badge */}
-                  <View style={styles.improvementContainer}>
-                    <View style={[styles.improvementBadge, { backgroundColor: getImprovementColor(athlete.improvement) }]}>
-                      <Ionicons name="trending-up" size={20} color={COLORS.white} />
-                      <Text style={styles.improvementText}>+{athlete.improvement}%</Text>
-                    </View>
-                  </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </View>
 
-                  <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-                </TouchableOpacity>
-              ))}
+          {/* View Full History Button */}
+          <TouchableOpacity
+            style={styles.viewHistoryButton}
+            onPress={() => navigation.navigate('History')}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="history" size={24} color={COLORS.primary} />
+            <View style={styles.viewHistoryTextContainer}>
+              <Text style={styles.viewHistoryTitle}>View Full History</Text>
+              <Text style={styles.viewHistorySubtitle}>See all assessment records</Text>
             </View>
-          </ScrollView>
+            <Ionicons name="chevron-forward" size={24} color={COLORS.primary} />
+          </TouchableOpacity>
+        </ScrollView>
         )}
       </View>
 
@@ -595,17 +654,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   contentWrapper: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 32,
@@ -764,6 +817,37 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 8,
+  },
+  viewHistoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    elevation: 3,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  viewHistoryTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  viewHistoryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  viewHistorySubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
   },
   // Modal Styles
   modalOverlay: {

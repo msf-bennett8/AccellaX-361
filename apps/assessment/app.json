@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AccellaX 361° | Sports Academy Assessment",
+    "name": "AccellaX 361° SAS",
     "slug": "assessment",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.accella.assessment"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +25,9 @@
       "package": "com.accella.assessment"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "AccellaX 361° | Sports Academy Assessment",
+      "shortName": "AccellaX 361° SAS"
     },
     "plugins": [
       "expo-sqlite"

@@ -1,6 +1,7 @@
 {
-  "name": "AccellaX361°",
+  "name": "accellax-361-sat",
   "version": "1.0.4",
+  "description": "AccellaX 361° | Sports Academy Attendance",
   "main": "index.js",
   "scripts": {
     "start": "expo start",

@@ -8,13 +8,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { saveAssessmentResult, getLastAssessmentForKid } from '../../services/assessmentService';
 import MetricInput from '../../components/metrics/MetricInput';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS } from '../../utils/constants';
 
 // Custom Modal Component
@@ -208,8 +208,8 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
         sport_id: sport.id,
         metric_id: currentMetric.id,
         value: value,
-        assessment_date: new Date().toISOString(),
-        metadata: assessmentMetadata, // ✅ Pass metadata
+        assessment_date: assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0], // ✅ USE METADATA DATE
+        metadata: assessmentMetadata,
       });
       console.log('✅ Auto-saved:', { kid: currentKid.name, metric: currentMetric.name, value });
     } catch (error) {
@@ -388,7 +388,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         {saving && (
           <View style={styles.savingBadge}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
+            <LoadingSpinner size="small" color={COLORS.primary} />
             <Text style={styles.savingText}>Saving...</Text>
           </View>
         )}

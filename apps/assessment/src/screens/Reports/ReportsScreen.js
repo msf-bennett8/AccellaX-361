@@ -8,13 +8,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   TextInput,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
 import Dropdown from '../../components/common/Dropdown';
 import { COLORS, AGE_GROUPS, EXPORT_FORMATS, ASSESSMENT_TERMS } from '../../utils/constants';
@@ -402,10 +402,11 @@ export default function ReportsScreen() {
           leftIcon="←"
           onLeftPress={() => navigation.goBack()}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading data...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Loading data..." 
+          color="#1565C0"
+        />
       </View>
     );
   }

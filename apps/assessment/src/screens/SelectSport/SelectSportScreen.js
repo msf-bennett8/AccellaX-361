@@ -8,12 +8,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS, APP_NAME } from '../../utils/constants';
 import { getAllSports } from '../../database/db';
 import { getKidsBySport } from '../../services/kidService';
@@ -115,10 +115,11 @@ export default function SelectSportScreen({ route }) {
           leftIcon="←"
           onLeftPress={() => navigation.goBack()}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading sports...</Text>
-        </View>
+        <LoadingSpinner 
+          overlay 
+          text="Loading sports..." 
+          color="#1565C0"
+        />
       </View>
     );
   }

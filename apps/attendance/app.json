@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AccellaX 361°",
+    "name": "AccellaX 361° SAT",
     "slug": "accellax-361",
     "version": "1.0.4",
     "orientation": "portrait",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nextgen.accellax361"
+      "bundleIdentifier": "com.accella.attendance"
     },
     "android": {
       "package": "com.nextgen.accellax361",
@@ -30,7 +30,9 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "AccellaX 361° | Sports Academy Attendance",
+      "shortName": "AccellaX 361° SAT"
     },
     "plugins": [
       "expo-sqlite"

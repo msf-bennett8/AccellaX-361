@@ -8,11 +8,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS } from '../../utils/constants';
 import { syncAssessmentsToFirebase } from '../../services/assessmentService';
 
@@ -450,7 +450,7 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
         >
           {syncing ? (
             <>
-              <ActivityIndicator color={COLORS.white} size="small" />
+              <LoadingSpinner size="small" color={COLORS.white} />
               <Text style={styles.syncButtonText}>Syncing...</Text>
             </>
           ) : (
