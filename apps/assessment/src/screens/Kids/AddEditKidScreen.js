@@ -93,14 +93,24 @@ const AddEditKidScreen = () => {
     }
   }, [age]);
 
-  // Load existing sports if editing
+  // Load existing kid data if editing
   useEffect(() => {
     if (isEditMode && existingKid) {
+      // Reset all form fields when existingKid changes
+      setName(existingKid.name || '');
+      setAge(existingKid.age?.toString() || '');
+      setGender(existingKid.gender || 'Male');
+      setArea(existingKid.area_of_residence || '');
+      setAgeGroup(existingKid.age_group || '10-13');
+      setSponsorshipType(existingKid.sponsorshipType || 'SP');
+      setProgramType(existingKid.programType || 'ELT');
+      setHouseTeam(existingKid.house_team || null);
+      
       const sports = existingKid.sports_enrolled || [];
       setSelectedSports(sports);
       setPrimarySport(existingKid.primary_sport || (sports.length > 0 ? sports[0] : null));
     }
-  }, []);
+  }, [isEditMode, existingKid?.id]); // ← Add dependency on existingKid.id
 
   // Toggle sport selection
   const toggleSport = (sportId) => {

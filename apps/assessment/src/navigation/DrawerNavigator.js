@@ -1,5 +1,5 @@
 // Location: /apps/assessment/src/navigation/DrawerNavigator.js
-// Drawer navigation for authenticated users
+// Drawer navigation for authenticated users (UPDATED)
 
 import React, { useState, useEffect } from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -10,18 +10,17 @@ import { useFocusEffect } from '@react-navigation/native';
 
 // Import Screens
 import HomeScreen from '../screens/Home/HomeScreen';
-import KidsListScreen from '../screens/Kids/KidsListScreen';
-import AddEditKidScreen from '../screens/Kids/AddEditKidScreen';
+import KidsStackNavigator from './KidsStackNavigator';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import EditProfileScreen from '../screens/Profile/EditProfileScreen';
+import TeamsListScreen from '../screens/Teams/TeamsListScreen';
 
 // Stack Navigators
 import AssessmentStackNavigator from './AssessmentStackNavigator';
 import HistoryStackNavigator from './HistoryStackNavigator';
 import ReportsStackNavigator from './ReportsStackNavigator';
 import LeaderboardsStackNavigator from './LeaderboardsStackNavigator';
-// REMOVED: ComparisonScreen import - now handled inside LeaderboardsStackNavigator
 
 // Drawer Content
 import CustomDrawerContent from './CustomDrawerContent';
@@ -37,6 +36,7 @@ export default function DrawerNavigator({ onLogout }) {
       const pageTitles = {
         Home: 'Home',
         Kids: 'Kids Management',
+        Teams: 'Teams', // ✅ NEW
         AddEditKid: 'Add/Edit Kid',
         History: 'Assessment History',
         Profile: 'Profile',
@@ -137,7 +137,7 @@ export default function DrawerNavigator({ onLogout }) {
       {/* 3. KIDS - Athlete management */}
       <Drawer.Screen
         name="Kids"
-        component={KidsListScreen}
+        component={KidsStackNavigator}
         options={{
           title: 'Kids',
           drawerIcon: ({ color }) => (
@@ -146,7 +146,19 @@ export default function DrawerNavigator({ onLogout }) {
         }}
       />
 
-      {/* 4. HISTORY - Past assessments */}
+      {/* 4. TEAMS - House team management ✅ NEW */}
+      <Drawer.Screen
+        name="Teams"
+        component={TeamsListScreen}
+        options={{
+          title: 'Teams',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="shield-account" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 5. HISTORY - Past assessments */}
       <Drawer.Screen
         name="History"
         component={HistoryStackNavigator}
@@ -158,7 +170,7 @@ export default function DrawerNavigator({ onLogout }) {
         }}
       />
 
-      {/* 5. RANKINGS - Leaderboards (includes Comparison screen in its stack) */}
+      {/* 6. RANKINGS - Leaderboards (includes Comparison screen in its stack) */}
       <Drawer.Screen
         name="Leaderboards"
         component={LeaderboardsStackNavigator}
@@ -170,7 +182,19 @@ export default function DrawerNavigator({ onLogout }) {
         }}
       />
 
-      {/* 6. MY PROFILE - User account */}
+      {/* 7. REPORTS - Data Export */}
+      <Drawer.Screen
+        name="Reports"
+        component={ReportsStackNavigator}
+        options={{
+          title: 'Reports',
+          drawerIcon: ({ color }) => (
+            <Ionicons name="stats-chart" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 8. MY PROFILE - User account */}
       <Drawer.Screen
         name="Profile"
         component={ProfileScreen}
@@ -182,7 +206,7 @@ export default function DrawerNavigator({ onLogout }) {
         }}
       />
 
-      {/* 7. SETTINGS - App configuration */}
+      {/* 9. SETTINGS - App configuration */}
       <Drawer.Screen
         name="Settings"
         options={{
@@ -197,14 +221,6 @@ export default function DrawerNavigator({ onLogout }) {
 
       {/* HIDDEN SCREENS - Not visible in drawer */}
       <Drawer.Screen
-        name="AddEditKid"
-        component={AddEditKidScreen}
-        options={{
-          title: 'Add/Edit Kid',
-          drawerItemStyle: { display: 'none' },
-        }}
-      />
-      <Drawer.Screen
         name="EditProfile"
         component={EditProfileScreen}
         options={{
@@ -212,16 +228,7 @@ export default function DrawerNavigator({ onLogout }) {
           drawerItemStyle: { display: 'none' },
         }}
       />
-      <Drawer.Screen
-        name="Reports"
-        component={ReportsStackNavigator}
-        options={{
-          title: 'Export Data',
-          drawerItemStyle: { display: 'none' },
-        }}
-      />
-      {/* REMOVED: Comparison screen - now handled in LeaderboardsStackNavigator */}
-    </Drawer.Navigator>
+      </Drawer.Navigator>
   );
 }
 

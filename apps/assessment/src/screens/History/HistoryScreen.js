@@ -493,16 +493,23 @@ console.log('🔍 Year filter debug:', {
 
         {/* Search Bar */}
         {showControls && (
-          <View style={styles.searchContainer}>
-            <SearchBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by kid or sport..."
-              showClearButton={true}
-              showSearchIcon={true}
-              containerStyle={styles.searchBarContainer}
-            />
-          </View>
+        <View style={styles.searchContainer}>
+          <SearchBar
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search by kid or sport..."
+            showClearButton={true}
+            showSearchIcon={false}
+            containerStyle={styles.searchBarContainer}
+          />
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={() => console.log('Search triggered:', searchQuery)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.searchButtonText}>Search</Text>
+          </TouchableOpacity>
+        </View>
         )}
 
         {/* Controls Row: Grid/List + View Full Report + Filters */}
@@ -535,7 +542,7 @@ console.log('🔍 Year filter debug:', {
             {/* View Full Report Button */}
             <TouchableOpacity
               style={styles.reportButton}
-              onPress={() => navigation.navigate('Reports')}
+              onPress={() => navigation.navigate('Reports', { screen: 'ReportsMain' })}
             >
               <Ionicons name="stats-chart-outline" size={18} color="#2196F3" />
               <Text style={styles.reportButtonText}>View Full Report</Text>
@@ -767,7 +774,7 @@ console.log('🔍 Year filter debug:', {
       {filteredAssessments.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => navigation.navigate('Reports')}
+          onPress={() => navigation.navigate('Reports', { screen: 'ReportsMain' })}
           activeOpacity={0.8}
         >
           <Ionicons name="share-outline" size={28} color={COLORS.white} />
@@ -865,12 +872,30 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, color: COLORS.textSecondary },
   
   searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: COLORS.white,
+    gap: 8,
   },
   searchBarContainer: {
     flex: 1,
+    marginHorizontal: 0,
+  },
+  searchButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  searchButtonText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
   controlsContainer: { 
     flexDirection: 'row', 

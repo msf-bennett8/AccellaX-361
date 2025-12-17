@@ -171,8 +171,8 @@ export default function AssessmentSetupScreen() {
       <Header
         title="Assessment Setup"
         subtitle="Configure assessment details"
-        leftIcon="←"
-        onLeftPress={() => navigation.goBack()}
+        leftIcon="☰"
+        onLeftPress={() => navigation.openDrawer()}
       />
       
       <View style={styles.contentWrapper}>

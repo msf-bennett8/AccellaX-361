@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,8 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
-import Dropdown from '../../components/common/Dropdown';
-import { COLORS, AGE_GROUPS, EXPORT_FORMATS, ASSESSMENT_TERMS } from '../../utils/constants';
+import { COLORS, AGE_GROUPS, ASSESSMENT_TERMS } from '../../utils/constants';
 import { getAllKids } from '../../database/db';
 import { getAssessmentsByDateRange } from '../../database/queries';
 
@@ -71,8 +69,11 @@ export default function ReportsScreen() {
   const loadData = async () => {
     setLoading(true);
     try {
+      console.log('🔄 REPORTS: Starting data load...');
+      
       // Load kids
       const allKids = await getAllKids();
+      console.log('✅ REPORTS: Kids loaded:', allKids.length);
       setKids(allKids.filter(k => k.status === 'active'));
 
       // Load sports (from constants for now - can be fetched from DB)
@@ -86,36 +87,29 @@ export default function ReportsScreen() {
         { id: 'basketball', name: 'Basketball' },
       ];
       setSports(sportsData);
+      console.log('✅ REPORTS: Sports loaded:', sportsData.length);
 
       // Load assessments (last 2 years)
       const currentYear = new Date().getFullYear();
       const startDate = `${currentYear - 2}-01-01`;
       const endDate = `${currentYear + 1}-12-31`;
-      console.log('🔄 Loading assessments from', startDate, 'to', endDate);
+      console.log('🔄 REPORTS: Loading assessments from', startDate, 'to', endDate);
       const allAssessments = await getAssessmentsByDateRange(startDate, endDate);
-      console.log('📊 Loaded assessments:', allAssessments.length);
-      
-      // Log sample assessment structure
-      if (allAssessments.length > 0) {
-        console.log('📋 Sample assessment structure from DB:', JSON.stringify(allAssessments[0], null, 2));
-      }
+      console.log('✅ REPORTS: Assessments loaded:', allAssessments.length);
       
       setAssessments(allAssessments);
 
       // Generate year options dynamically from actual assessment data
       const assessmentYears = new Set();
       allAssessments.forEach(a => {
-        // Use the saved year field if available, otherwise derive from assessment_date
         if (a.year && a.year !== 'null' && a.year !== null) {
           assessmentYears.add(a.year);
         } else {
-          // Fallback: generate from assessment_date
           const assessmentYear = new Date(a.assessment_date).getFullYear();
           assessmentYears.add(`${assessmentYear}/${assessmentYear + 1}`);
         }
       });
       
-      // Sort years in descending order (most recent first)
       const sortedYears = Array.from(assessmentYears).sort((a, b) => {
         const yearA = parseInt(a.split('/')[0]);
         const yearB = parseInt(b.split('/')[0]);
@@ -128,11 +122,13 @@ export default function ReportsScreen() {
       }));
       
       setYearOptions([{ value: 'all', label: 'All Years' }, ...dynamicYearOptions]);
+      console.log('✅ REPORTS: Data load complete');
 
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Error', 'Failed to load data');
+      console.error('❌ REPORTS: Error loading data:', error);
+      Alert.alert('Error', 'Failed to load data: ' + error.message);
     } finally {
+      console.log('🏁 REPORTS: Setting loading to false');
       setLoading(false);
     }
   };
@@ -151,10 +147,6 @@ export default function ReportsScreen() {
   };
 
   const applyFilters = async () => {
-    console.log('🔍 ===== APPLY FILTERS START =====');
-    console.log('📊 Total kids loaded:', kids.length);
-    console.log('📊 Total assessments loaded:', assessments.length);
-    
     let filtered = [...kids];
 
     // Search filter
@@ -162,79 +154,51 @@ export default function ReportsScreen() {
       filtered = filtered.filter(kid =>
         kid.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      console.log('🔎 After search filter:', filtered.length, 'kids');
     }
 
     // Age group filter
     if (selectedAgeGroup !== 'all') {
       filtered = filtered.filter(kid => kid.age_group === selectedAgeGroup);
-      console.log('👶 After age group filter:', filtered.length, 'kids');
     }
 
     // Get assessments for filtered kids
     let relevantAssessments = assessments.filter(a =>
       filtered.some(k => k.id === a.kid_id)
     );
-    console.log('📋 Relevant assessments before filters:', relevantAssessments.length);
 
-    // Year filter - Use saved year field (prioritize metadata over date calculation)
+    // Year filter
     if (selectedYear !== 'all') {
-      console.log('📅 Filtering by year:', selectedYear);
-      const beforeYearFilter = relevantAssessments.length;
       relevantAssessments = relevantAssessments.filter(a => {
-        // Use the saved year field if available
         if (a.year && a.year !== 'null' && a.year !== null) {
           return a.year === selectedYear;
         }
-        
-        // Fallback: Use calendar year matching if no year field exists
         const assessmentYear = new Date(a.assessment_date).getFullYear();
         const [startYear] = selectedYear.split('/');
         return assessmentYear.toString() === startYear;
       });
-      console.log(`📅 After year filter: ${relevantAssessments.length} (removed ${beforeYearFilter - relevantAssessments.length})`);
     }
 
     // Term filter
     if (selectedTerm !== 'all') {
-      console.log('📆 Filtering by term:', selectedTerm);
-      const beforeTermFilter = relevantAssessments.length;
       relevantAssessments = relevantAssessments.filter(a => a.term === selectedTerm);
-      console.log(`📆 After term filter: ${relevantAssessments.length} (removed ${beforeTermFilter - relevantAssessments.length})`);
     }
 
     // Sport filter
     if (selectedSport !== 'all') {
-      console.log('⚽ Filtering by sport:', selectedSport);
-      const beforeSportFilter = relevantAssessments.length;
       relevantAssessments = relevantAssessments.filter(a => a.sport_id === selectedSport);
-      console.log(`⚽ After sport filter: ${relevantAssessments.length} (removed ${beforeSportFilter - relevantAssessments.length})`);
-      
-      // Log sample assessment structure
-      if (relevantAssessments.length > 0) {
-        console.log('📋 Sample assessment structure:', JSON.stringify(relevantAssessments[0], null, 2));
-      }
     }
 
-    // ✅ NEW: Get metrics for the selected sport
+    // Get metrics for the selected sport
     const { getMetricsBySport } = await import('../../config/metrics');
     const sportMetrics = selectedSport !== 'all' 
       ? getMetricsBySport(selectedSport)
       : [];
-    
-    console.log('📊 Sport metrics loaded:', sportMetrics.length);
-    if (sportMetrics.length > 0) {
-      console.log('📊 Metrics:', sportMetrics.map(m => m.id).join(', '));
-    }
 
     // Combine kids with their LATEST assessment per kid
     const dataWithLatestValues = filtered.map(kid => {
       const kidAssessments = relevantAssessments.filter(a => a.kid_id === kid.id);
       
-      console.log(`👤 Kid: ${kid.name} (${kid.id}) - Found ${kidAssessments.length} assessments`);
-      
       if (kidAssessments.length === 0) {
-        console.log(`⚠️ No assessments found for ${kid.name}`);
         return null;
       }
 
@@ -243,44 +207,30 @@ export default function ReportsScreen() {
         new Date(b.assessment_date) - new Date(a.assessment_date)
       )[0];
 
-      console.log(`📅 Latest assessment for ${kid.name}:`, latestAssessment.assessment_date);
-      console.log(`📋 Has results?`, !!latestAssessment.results, 'Count:', latestAssessment.results?.length || 0);
-
       // Extract metric values from latest assessment
       const metricValues = {};
       if (latestAssessment.results) {
         latestAssessment.results.forEach(result => {
           metricValues[result.metric_id] = result.value;
-          console.log(`  ✅ ${kid.name} - ${result.metric_id}: ${result.value}`);
         });
-      } else {
-        console.log(`  ❌ ${kid.name} - NO RESULTS ARRAY!`);
       }
-
-      console.log(`📊 Final metricValues for ${kid.name}:`, Object.keys(metricValues).length, 'metrics');
 
       return {
         ...kid,
         latestAssessment,
         metricValues,
       };
-    }).filter(Boolean); // Remove nulls
+    }).filter(Boolean);
 
     // Apply sorting
     let sortedData = dataWithLatestValues;
     if (selectedSort !== 'none') {
       sortedData = applySorting(dataWithLatestValues, selectedSort);
-      console.log('🔀 Applied sorting:', selectedSort);
     }
-
-    console.log('✅ Final filtered data:', sortedData.length, 'kids');
-    console.log('✅ Metrics to display:', sportMetrics.length);
-    console.log('🔍 ===== APPLY FILTERS END =====\n');
 
     setFilteredData({ kids: sortedData, metrics: sportMetrics });
   };
 
-  // Apply sorting logic
   const applySorting = (data, sortType) => {
     const sorted = [...data];
     
@@ -325,21 +275,19 @@ export default function ReportsScreen() {
     performExport();
   };
 
-    const performExport = () => {
+  const performExport = () => {
     const kidsToExport = selectedRecords.length > 0 
       ? filteredData.kids.filter(k => selectedRecords.includes(k.id))
       : filteredData.kids;
     
-    // Build the data to pass to ExportDetailScreen
     const exportPayload = kidsToExport.map(kid => ({
       ...kid,
-      assessments: [kid.latestAssessment], // Include latest assessment
-      metricValues: kid.metricValues, // Include metric values
+      assessments: [kid.latestAssessment],
+      metricValues: kid.metricValues,
     }));
     
     console.log('✅ Navigating to ExportDetailScreen with:', exportPayload.length, 'records');
     
-    // Navigate to ExportDetailScreen
     navigation.navigate('ExportDetail', {
       filteredData: exportPayload,
       filters: {
@@ -350,7 +298,7 @@ export default function ReportsScreen() {
       },
       format: selectedFormat,
       sports: sports,
-      metrics: filteredData.metrics || [], // ✅ Pass sport-specific metrics
+      metrics: filteredData.metrics || [],
     });
   };
 
@@ -394,30 +342,13 @@ export default function ReportsScreen() {
     { value: 'z_a', label: 'Z-A' },
   ];
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Header
-          title="Export Data"
-          leftIcon="←"
-          onLeftPress={() => navigation.goBack()}
-        />
-        <LoadingSpinner 
-          overlay 
-          text="Loading data..." 
-          color="#1565C0"
-        />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <Header
         title="Export Data"
-        subtitle={`${filteredData.length} records found`}
-        leftIcon="←"
-        onLeftPress={() => navigation.goBack()}
+        subtitle={`${filteredData.kids?.length || 0} records found`}
+        leftIcon="☰"
+        onLeftPress={() => navigation.openDrawer()}
       />
 
       <View style={styles.contentWrapper}>
@@ -428,16 +359,12 @@ export default function ReportsScreen() {
             const currentScrollY = e.nativeEvent.contentOffset.y;
             const scrollDifference = currentScrollY - scrollY;
             
-            // Update scroll position
             setScrollY(currentScrollY);
             
-            // Only trigger state change if scroll difference is significant (more than 30px)
             if (Math.abs(scrollDifference) > 30) {
               if (scrollDifference > 0 && currentScrollY > 50) {
-                // Scrolling down - hide filters, show export button
                 setShowFilters(false);
               } else if (scrollDifference < 0) {
-                // Scrolling up - show filters, hide export button
                 setShowFilters(true);
               }
             }
@@ -686,11 +613,11 @@ export default function ReportsScreen() {
               <>
                 <TouchableOpacity onPress={selectAll} style={styles.selectAllButton}>
                   <Text style={styles.selectAllText}>
-                    {selectedRecords.length === filteredData.length ? 'Deselect All' : 'Select All'}
+                    {selectedRecords.length === filteredData.kids.length ? 'Deselect All' : 'Select All'}
                   </Text>
                 </TouchableOpacity>
                 <Text style={styles.selectedCount}>
-                  {selectedRecords.length} of {filteredData.length} selected
+                  {selectedRecords.length} of {filteredData.kids.length} selected
                 </Text>
                 <TouchableOpacity 
                   onPress={() => {
@@ -738,7 +665,7 @@ export default function ReportsScreen() {
                       Age
                     </Text>
                     
-                    {/* ✅ DYNAMIC METRIC COLUMNS - Show if sport is selected */}
+                    {/* DYNAMIC METRIC COLUMNS */}
                     {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 0 ? (
                       filteredData.metrics.slice(0, 8).map((metric) => (
                         <View key={metric.id} style={[styles.tableCell, styles.tableHeader, styles.metricColumn]}>
@@ -769,7 +696,6 @@ export default function ReportsScreen() {
                   {filteredData.kids.map((kid, index) => {
                     const isSelected = selectedRecords.includes(kid.id);
                     
-                    // Format metric value helper
                     const formatMetricValue = (metric, value) => {
                       if (!value) return '--';
                       
@@ -812,7 +738,7 @@ export default function ReportsScreen() {
                           {kid.age}
                         </Text>
                         
-                        {/* ✅ DYNAMIC METRIC VALUES - Show if sport is selected */}
+                        {/* DYNAMIC METRIC VALUES */}
                         {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 0 ? (
                           filteredData.metrics.slice(0, 8).map((metric) => (
                             <Text key={metric.id} style={[styles.tableCell, styles.metricColumn]}>
@@ -838,7 +764,7 @@ export default function ReportsScreen() {
                 </View>
               </ScrollView>
 
-              {/* ✅ Metrics Note - Show if more than 8 metrics */}
+              {/* Metrics Note */}
               {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 8 && (
                 <View style={styles.metricsNote}>
                   <Ionicons name="information-circle" size={16} color="#FF9800" />
@@ -855,7 +781,7 @@ export default function ReportsScreen() {
         </ScrollView>
       </View>
 
-      {/* Floating Action Button - Always visible */}
+      {/* Floating Action Button */}
       {filteredData.kids && filteredData.kids.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
@@ -957,7 +883,7 @@ export default function ReportsScreen() {
               
               <View style={[styles.summaryRow, styles.summaryRowHighlight]}>
                 <Text style={styles.summaryLabel}>Total Records:</Text>
-                <Text style={styles.summaryValueHighlight}>{filteredData.length}</Text>
+                <Text style={styles.summaryValueHighlight}>{filteredData.kids.length}</Text>
               </View>
             </View>
 
@@ -986,6 +912,16 @@ export default function ReportsScreen() {
           </View>
         </View>
       )}
+
+      {/* Loading Overlay - Shows on top of content */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <LoadingSpinner 
+            text="Loading data..." 
+            color="#1565C0"
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -994,16 +930,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.textSecondary,
   },
   contentWrapper: {
     position: 'absolute',
@@ -1403,5 +1329,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#F57C00',
     flex: 1,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 99999,
   },
 });

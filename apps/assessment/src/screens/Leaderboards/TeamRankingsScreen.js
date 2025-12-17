@@ -710,6 +710,14 @@ export default function TeamRankingsScreen() {
               key={team.id}
               style={styles.teamCard}
               activeOpacity={0.7}
+              onPress={() => {
+                // Navigate to TeamDetail screen
+                navigation.navigate('TeamDetail', {
+                  teamId: team.houseTeam,
+                  teamName: team.name,
+                  teamColor: HOUSE_TEAMS.find(t => t.id === team.houseTeam)?.color || COLORS.primary,
+                });
+              }}
             >
               {/* Rank Badge */}
               <View style={[styles.rankBadge, { backgroundColor: getRankColor(index + 1) + '20' }]}>

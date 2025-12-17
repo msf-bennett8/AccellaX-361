@@ -351,7 +351,7 @@ export default function HomeScreen() {
   };
 
   const handleViewReports = () => {
-    navigation.navigate('Reports');
+    navigation.navigate('Reports', { screen: 'ReportsMain' });
   };
 
   const handleViewKids = () => {

@@ -120,8 +120,8 @@ export default function LeaderboardsScreen() {
       <Header
         title="Rankings & Leaderboards"
         subtitle="Performance comparisons"
-        showBackButton={true}
-        onLeftPress={() => navigation.goBack()}
+        leftIcon="☰"
+        onLeftPress={() => navigation.openDrawer()}
       />
 
       <View style={styles.contentWrapper}>

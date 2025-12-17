@@ -15,8 +15,8 @@ export default function ReportsStackNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false, // Using custom headers in screens
-        cardStyle: { backgroundColor: COLORS.background },
+        headerShown: false,
+        cardStyle: { flex: 1, backgroundColor: COLORS.background },
       }}
     >
       <Stack.Screen

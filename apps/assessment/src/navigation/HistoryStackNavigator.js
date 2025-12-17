@@ -1,5 +1,5 @@
 // Location: /apps/assessment/src/navigation/HistoryStackNavigator.js
-// Stack navigator for History screens (History → KidProgress → Comparison)
+// Stack navigator for History screens (History → KidProgress → Comparison → Reports)
 
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -9,6 +9,7 @@ import { COLORS } from '../utils/constants';
 import HistoryScreen from '../screens/History/HistoryScreen';
 import KidProgressScreen from '../screens/KidProgress/KidProgressScreen';
 import ComparisonScreen from '../screens/Comparison/ComparisonScreen';
+import ReportsStackNavigator from './ReportsStackNavigator';
 
 const Stack = createStackNavigator();
 
@@ -17,7 +18,7 @@ export default function HistoryStackNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false, // Using custom headers in screens
-        cardStyle: { backgroundColor: COLORS.background },
+        cardStyle: { flex: 1, backgroundColor: COLORS.background }, // ← CRITICAL for scrolling
       }}
     >
       <Stack.Screen
