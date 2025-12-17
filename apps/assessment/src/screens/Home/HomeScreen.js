@@ -23,6 +23,7 @@ import { getCurrentUser } from '../../utils/auth';
 import { getAssessmentStats, getAllAssessments } from '../../services/assessmentService';
 import { getKidsWithSports } from '../../services/kidService';
 import { getAllSports } from '../../database/db';
+import { getAllSportsWithFitness } from '../../services/sportService';
 import { getStartOfWeek, getEndOfWeek, isThisWeek, getCurrentTerm as getTermHelper } from '../../utils/dateUtils';
 
 const { width } = Dimensions.get('window');
@@ -55,7 +56,17 @@ export default function HomeScreen() {
 
   // Load data on mount and when screen focused
   useEffect(() => {
-    loadDashboardData();
+    const initialize = async () => {
+      // Ensure Basketball exists in database
+      const { ensureBasketballExists } = await import('../../services/sportService');
+      const user = await getCurrentUser();
+      await ensureBasketballExists(user?.id || 'system');
+      
+      // Load dashboard
+      await loadDashboardData();
+    };
+    
+    initialize();
   }, []);
 
   useFocusEffect(
@@ -124,28 +135,33 @@ export default function HomeScreen() {
 
   const loadSports = async () => {
     try {
-      console.log('🏃 Loading sports...');
-      const allSports = await getAllSports();
+      console.log('🏃 [HomeScreen] Loading sports...');
+      
+      const allSports = await getAllSportsWithFitness();
+      console.log('📊 [HomeScreen] Loaded sports:', allSports.length);
+      console.log('📋 [HomeScreen] Sport names:', allSports.map(s => s.name).join(', '));
       
       const SPORTS_CONFIG = {
+        fitness: { icon: 'heart-pulse', color: '#E74C3C' },
         football: { icon: 'soccer', color: '#4CAF50' },
-        athletics: { icon: 'run-fast', color: '#2196F3' },
-        rugby: { icon: 'rugby', color: '#FF9800' },
-        swimming: { icon: 'swim', color: '#00BCD4' },
-        tennis: { icon: 'tennis', color: '#9C27B0' },
+        athletics: { icon: 'run-fast', color: '#FF9800' },
+        rugby: { icon: 'rugby', color: '#795548' },
+        swimming: { icon: 'swim', color: '#2196F3' },
+        tennis: { icon: 'tennis', color: '#FFEB3B' },
         basketball: { icon: 'basketball', color: '#FF5722' },
       };
       
       const mappedSports = allSports.map(sport => ({
-        id: sport.id,
-        name: sport.name,
-        icon: SPORTS_CONFIG[sport.id]?.icon || 'trophy',
-        color: SPORTS_CONFIG[sport.id]?.color || COLORS.primary,
-        isActive: sport.is_active === 1,
-      }));
-      
-      setSports(mappedSports);
-      console.log('✅ Sports loaded:', mappedSports.length);
+  id: sport.id,
+  name: sport.name,
+  icon: SPORTS_CONFIG[sport.id]?.icon || 'trophy',
+  color: sport.color || SPORTS_CONFIG[sport.id]?.color || COLORS.primary,
+  isActive: sport.is_active === 1,
+}));
+
+console.log('🎨 [HomeScreen] Mapped sports:', mappedSports);
+setSports(mappedSports);
+console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
     } catch (error) {
       console.error('❌ Error loading sports:', error);
       setSports([]);
@@ -342,8 +358,59 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const handleNewAssessment = () => {
-    navigation.navigate('Assessment', { screen: 'AssessmentSetup' });
+  const handleNewAssessment = async () => {
+    // Check for pending assessment session
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const sessionKeys = keys.filter(key => key.startsWith('assessment_session_'));
+      
+      if (sessionKeys.length > 0) {
+        // Found pending session
+        const sessionKey = sessionKeys[0];
+        const sessionData = await AsyncStorage.getItem(sessionKey);
+        const session = JSON.parse(sessionData);
+        
+        setModalConfig({
+          visible: true,
+          title: 'Resume Assessment?',
+          message: `You have an incomplete assessment:\n\n${session.sport?.name || 'Sport'} • ${session.kids?.length || 0} kids\n${Object.keys(session.assessmentData || {}).length} of ${(session.kids?.length || 0) * (session.selectedTests?.length || 0)} tests completed\n\nLast updated: ${new Date(session.lastUpdated).toLocaleString()}`,
+          type: 'info',
+          showCancel: true,
+          confirmText: 'Resume',
+          cancelText: 'Start New',
+          onConfirm: () => {
+            setModalConfig({ ...modalConfig, visible: false });
+            // Resume assessment
+            navigation.navigate('Assessment', { 
+              screen: 'AssessmentEntry',
+              params: {
+                sessionId: session.sessionId,
+                sport: session.sport,
+                kids: session.kids,
+                mode: session.mode,
+                selectedTests: session.selectedTests,
+                assessmentMetadata: session.assessmentMetadata,
+                initialKidIndex: session.currentKidIndex,
+                initialTestIndex: session.currentTestIndex,
+                existingAssessmentData: session.assessmentData,
+              }
+            });
+          },
+          onCancel: async () => {
+            // Clear pending session and start new
+            await AsyncStorage.removeItem(sessionKey);
+            setModalConfig({ ...modalConfig, visible: false });
+            navigation.navigate('Assessment', { screen: 'AssessmentSetup' });
+          },
+        });
+      } else {
+        // No pending session, start new
+        navigation.navigate('Assessment', { screen: 'AssessmentSetup' });
+      }
+    } catch (error) {
+      console.error('Error checking for pending session:', error);
+      navigation.navigate('Assessment', { screen: 'AssessmentSetup' });
+    }
   };
 
   const handleViewHistory = () => {
@@ -368,13 +435,16 @@ export default function HomeScreen() {
     navigation.navigate('Leaderboards');
   };
 
-  const handleSportPress = (sportName) => {
-    setModalConfig({
-      visible: true,
-      title: sportName,
-      message: `View ${sportName} assessments - Coming soon!`,
-      type: 'info',
-      onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+  const handleSportPress = (sportName, sportId) => {
+    console.log('🎯 [HomeScreen] Sport pressed:', sportName, '| ID:', sportId);
+    
+    // Navigate to sport-specific report screen
+    navigation.navigate('Reports', {
+      screen: 'SportReport',
+      params: {
+        sportId: sportId,
+        sportName: sportName,
+      }
     });
   };
 
@@ -642,27 +712,64 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.sportsGrid}>
-            {sports.slice(0, 6).map((sport, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.sportCard}
-                onPress={() => handleSportPress(sport.name)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.sportIconContainer}>
-                  <MaterialCommunityIcons 
-                    name={sport.icon || 'trophy'} 
-                    size={32} 
-                    color={sport.color || COLORS.primary} 
-                  />
-                </View>
-                <Text style={styles.sportName}>{sport.name}</Text>
-                <View style={styles.sportBadge}>
-                  <Ionicons name="checkmark-circle" size={10} color={COLORS.success} />
-                  <Text style={styles.sportBadgeText}>Active</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {/* Display all loaded sports (Fitness + default sports) */}
+            {sports.map((sport, index) => {
+              console.log(`🎨 Rendering sport card: ${sport.name} (${sport.icon})`);
+              
+              return (
+                <TouchableOpacity
+                  key={sport.id}
+                  style={styles.sportCard}
+                  onPress={() => handleSportPress(sport.name, sport.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[
+                    styles.sportIconContainer,
+                    { backgroundColor: (sport.color || COLORS.primary) + '20' }
+                  ]}>
+                    <MaterialCommunityIcons 
+                      name={sport.icon || 'trophy'} 
+                      size={32} 
+                      color={sport.color || COLORS.primary} 
+                    />
+                  </View>
+                  <Text style={styles.sportName}>{sport.name}</Text>
+                  <View style={styles.sportBadge}>
+                    <Ionicons name="checkmark-circle" size={10} color={COLORS.success} />
+                    <Text style={styles.sportBadgeText}>Active</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Add Sport Card */}
+            <TouchableOpacity
+              style={[styles.sportCard, styles.addSportCard]}
+              onPress={() => {
+                // TODO: Implement add sport functionality
+                // This will open a modal or navigate to add sport screen
+                setModalConfig({
+                  visible: true,
+                  title: 'Add Sport',
+                  message: 'Add a new sport module - Coming soon!',
+                  type: 'info',
+                  onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+                });
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.sportIconContainer, styles.addSportIconContainer]}>
+                <Ionicons 
+                  name="add" 
+                  size={32} 
+                  color={COLORS.primary} 
+                />
+              </View>
+              <Text style={styles.sportName}>Add Sport</Text>
+              <View style={[styles.sportBadge, styles.addSportBadge]}>
+                <Text style={styles.addSportBadgeText}>New</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -1029,9 +1136,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 8,
   },
   sportCard: {
-    width: (width - 56) / 3,
+    width: '48%',
     backgroundColor: COLORS.white,
     padding: 16,
     borderRadius: 12,
@@ -1072,6 +1180,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: COLORS.success,
+  },
+  addSportCard: {
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderStyle: 'solid',
+    backgroundColor: COLORS.primaryLight + '20',
+  },
+  addSportIconContainer: {
+    backgroundColor: COLORS.primaryLight + '40',
+  },
+  addSportBadge: {
+    backgroundColor: COLORS.primary + '20',
+  },
+  addSportBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.primary,
   },
 
   // Top Performers

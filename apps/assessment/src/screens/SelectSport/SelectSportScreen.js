@@ -15,7 +15,7 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS, APP_NAME } from '../../utils/constants';
-import { getAllSports } from '../../database/db';
+import { getAllSportsWithFitness } from '../../services/sportService';
 import { getKidsBySport } from '../../services/kidService';
 
 const { width } = Dimensions.get('window');
@@ -42,22 +42,38 @@ export default function SelectSportScreen({ route }) {
     try {
       setLoading(true);
       
-      // Get all active sports
-      const allSports = await getAllSports();
-      const activeSports = allSports.filter(s => s.is_active === 1);
+      console.log('🏃 [SelectSport] Loading sports...');
+      
+      // Get all active sports (includes Fitness)
+      const allSports = await getAllSportsWithFitness();
+      console.log('📊 [SelectSport] Loaded sports:', allSports.map(s => s.name).join(', '));
+
+      const activeSports = allSports.filter(s => s.is_active === 1 || s.isActive);
+      console.log('✅ [SelectSport] Active sports:', activeSports.length);
       
       // Get kid counts per sport
       const counts = {};
       for (const sport of activeSports) {
-        const kids = await getKidsBySport(sport.id);
-        counts[sport.id] = kids.length;
+        // For 'fitness', count all kids
+        if (sport.id === 'fitness') {
+          const { getAllKids } = await import('../../database/db');
+          const allKids = await getAllKids();
+          counts[sport.id] = allKids.length;
+          console.log(`👥 [SelectSport] Fitness: ${allKids.length} kids (all)`);
+        } else {
+          const kids = await getKidsBySport(sport.id);
+          counts[sport.id] = kids.length;
+          console.log(`👥 [SelectSport] ${sport.name}: ${kids.length} kids`);
+        }
       }
       
       setSports(activeSports);
       setSportKidCounts(counts);
       setLoading(false);
+      
+      console.log('✅ [SelectSport] Sports loaded successfully');
     } catch (error) {
-      console.error('❌ Error loading sports:', error);
+      console.error('❌ [SelectSport] Error loading sports:', error);
       setLoading(false);
     }
   };
@@ -65,46 +81,43 @@ export default function SelectSportScreen({ route }) {
   const handleSportSelect = (sport) => {
     const kidCount = sportKidCounts[sport.id] || 0;
     
+    console.log('🎯 [SelectSport] Sport selected:', sport.name, '| ID:', sport.id, '| Kids:', kidCount);
+    
     if (kidCount === 0) {
       alert(`No kids enrolled in ${sport.name}. Please assign kids to this sport first.`);
       return;
     }
     
-    console.log('🔍 SelectSport - Passing metadata to AssessmentMode:', assessmentMetadata);
+    console.log('🔍 [SelectSport] Passing metadata to AssessmentMode:', assessmentMetadata);
     
     // Navigate to Assessment Mode selection
     navigation.navigate('AssessmentMode', { 
       sport: sport,
       kidCount: kidCount,
-      assessmentMetadata: assessmentMetadata, // ✅ Pass metadata forward
+      assessmentMetadata: assessmentMetadata,
     });
   };
 
-  // Map sport names to icon names
-  const getSportIconName = (sportName) => {
+  // Map sport IDs to icon names
+  const getSportIconName = (sportId) => {
     const iconMap = {
-      'soccer': 'soccer',
-      'football': 'trophy',
+      'fitness': 'heart-pulse',
+      'football': 'soccer',
       'basketball': 'basketball',
       'tennis': 'tennis',
       'baseball': 'baseball',
       'volleyball': 'volleyball',
       'swimming': 'swim',
-      'running': 'run-fast',
       'athletics': 'run-fast',
-      'cycling': 'bike',
-      'hockey': 'hockey-sticks',
       'rugby': 'rugby',
       'cricket': 'cricket',
       'badminton': 'badminton',
       'boxing': 'boxing-glove',
-      'martial arts': 'karate',
       'gymnastics': 'gymnastics',
       'default': 'trophy'
     };
     
-    const name = sportName.toLowerCase();
-    return iconMap[name] || iconMap['default'];
+    return iconMap[sportId] || iconMap['default'];
   };
 
   if (loading) {
@@ -153,7 +166,8 @@ export default function SelectSportScreen({ route }) {
             {sports.map((sport) => {
               const kidCount = sportKidCounts[sport.id] || 0;
               const hasKids = kidCount > 0;
-              const iconName = getSportIconName(sport.name);
+              const iconName = getSportIconName(sport.id);
+              const sportColor = sport.color || COLORS.primary;
               
               return (
                 <TouchableOpacity
@@ -169,12 +183,12 @@ export default function SelectSportScreen({ route }) {
                   {/* Sport Icon */}
                   <View style={[
                     styles.sportIconContainer,
-                    { backgroundColor: sport.color || COLORS.primary + '20' }
+                    { backgroundColor: sportColor + '20' }
                   ]}>
                     <MaterialCommunityIcons 
                       name={iconName} 
                       size={40} 
-                      color={sport.color || COLORS.primary} 
+                      color={sportColor} 
                     />
                   </View>
 
@@ -196,7 +210,10 @@ export default function SelectSportScreen({ route }) {
                       styles.kidCountText,
                       !hasKids && styles.kidCountTextEmpty
                     ]}>
-                      {kidCount} {kidCount === 1 ? 'kid' : 'kids'}
+                      {sport.id === 'fitness' 
+                        ? 'All kids' 
+                        : `${kidCount} ${kidCount === 1 ? 'kid' : 'kids'}`
+                      }
                     </Text>
                   </View>
 
@@ -217,6 +234,35 @@ export default function SelectSportScreen({ route }) {
                 </TouchableOpacity>
               );
             })}
+
+            {/* Add Sport Card */}
+            <TouchableOpacity
+              style={[styles.sportCard, styles.addSportCard]}
+              onPress={() => {
+                alert('Add new sport - Coming soon!');
+              }}
+              activeOpacity={0.7}
+            >
+              {/* Add Icon */}
+              <View style={[
+                styles.sportIconContainer,
+                styles.addSportIconContainer
+              ]}>
+                <Ionicons 
+                  name="add" 
+                  size={40} 
+                  color={COLORS.primary} 
+                />
+              </View>
+
+              {/* Sport Name */}
+              <Text style={styles.sportName}>Add Sport</Text>
+
+              {/* New Badge */}
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>New</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Empty State */}
@@ -257,16 +303,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 32,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
   
   // Instructions
   instructionsCard: {
@@ -295,9 +331,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 8,
   },
   sportCard: {
-    width: (width - 56) / 2,
+    width: '48%',
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 20,
@@ -377,6 +414,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: COLORS.error,
+  },
+  addSportCard: {
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderStyle: 'solid',
+    backgroundColor: COLORS.primaryLight + '20',
+  },
+  addSportIconContainer: {
+    backgroundColor: COLORS.primaryLight + '40',
+  },
+  newBadge: {
+    backgroundColor: COLORS.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  newBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.primary,
   },
   
   // Empty State

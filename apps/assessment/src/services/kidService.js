@@ -7,6 +7,7 @@ import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, Timestamp, collection, getDocs, query, where } from 'firebase/firestore';
 import {
   getAllKids,
+  getKidsByAgeGroup,
   getKidById,
   updateKid,
   insertKid,
@@ -151,18 +152,99 @@ export const getKidsWithSports = async () => {
   }
 };
 
+// REPLACE the getKidsBySport function in kidService.js with this:
+
 /**
  * Get kids enrolled in a specific sport
+ * SPECIAL CASE: 'fitness' returns ALL active kids
  */
 export const getKidsBySport = async (sportId) => {
   try {
-    const kidsWithSports = await getKidsWithSports();
+    console.log(`👥 [KidService] Getting kids for sport: ${sportId}`);
     
-    return kidsWithSports.filter(kid => 
-      kid.sports_enrolled && kid.sports_enrolled.includes(sportId)
-    );
+    // SPECIAL CASE: Fitness = general fitness testing for ALL kids
+    if (sportId === 'fitness' || sportId === 'general') {
+      console.log('🏃 [KidService] Fitness selected - returning ALL active kids');
+      const allKids = await getAllKids();
+      const activeKids = allKids.filter(k => k.status === 'active' || !k.status);
+      console.log(`✅ [KidService] Fitness: ${activeKids.length} active kids (all)`);
+      return activeKids;
+    }
+    
+    // Regular sport: Get kids enrolled in this specific sport
+    const allKids = await getAllKids();
+    console.log(`📊 [KidService] Total kids loaded: ${allKids.length}`);
+    
+    const enrolledKids = allKids.filter(kid => {
+      // Skip inactive kids
+      if (kid.status !== 'active' && kid.status) {
+        return false;
+      }
+      
+      // Check if kid is enrolled in this sport
+      if (kid.sports_enrolled) {
+        try {
+          let sports = kid.sports_enrolled;
+          
+          // Handle different data formats
+          // Case 1: Already an array
+          if (Array.isArray(sports)) {
+            const isEnrolled = sports.includes(sportId);
+            if (isEnrolled) {
+              console.log(`  ✅ ${kid.name} - enrolled (array format)`);
+            }
+            return isEnrolled;
+          }
+          
+          // Case 2: String that needs parsing
+          if (typeof sports === 'string') {
+            sports = JSON.parse(sports);
+            
+            // Handle double-stringified data
+            if (typeof sports === 'string') {
+              sports = JSON.parse(sports);
+            }
+            
+            if (Array.isArray(sports)) {
+              const isEnrolled = sports.includes(sportId);
+              if (isEnrolled) {
+                console.log(`  ✅ ${kid.name} - enrolled (parsed string)`);
+              }
+              return isEnrolled;
+            }
+          }
+          
+          console.warn(`  ⚠️ ${kid.name} - Invalid sports_enrolled format:`, typeof sports);
+          return false;
+          
+        } catch (e) {
+          console.warn(`  ❌ ${kid.name} - Parse error:`, e.message);
+          return false;
+        }
+      }
+      
+      // Fallback: Check if primary sport matches
+      if (kid.primary_sport === sportId) {
+        console.log(`  ✅ ${kid.name} - enrolled (primary sport)`);
+        return true;
+      }
+      
+      return false;
+    });
+    
+    console.log(`✅ [KidService] ${sportId}: ${enrolledKids.length} enrolled kids`);
+    
+    // Show which kids are enrolled (first 5)
+    if (enrolledKids.length > 0) {
+      console.log(`📋 [KidService] Enrolled kids (first 5):`);
+      enrolledKids.slice(0, 5).forEach(kid => {
+        console.log(`  - ${kid.name}`);
+      });
+    }
+    
+    return enrolledKids;
   } catch (error) {
-    console.error('❌ Error getting kids by sport:', error);
+    console.error(`❌ [KidService] Error getting kids for sport ${sportId}:`, error);
     return [];
   }
 };

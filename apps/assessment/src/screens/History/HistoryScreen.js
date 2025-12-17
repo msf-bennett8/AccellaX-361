@@ -542,7 +542,16 @@ console.log('🔍 Year filter debug:', {
             {/* View Full Report Button */}
             <TouchableOpacity
               style={styles.reportButton}
-              onPress={() => navigation.navigate('Reports', { screen: 'ReportsMain' })}
+              onPress={() => navigation.navigate('HistoryReport', {
+                filteredAssessments,
+                filters: {
+                  year: selectedYear,
+                  term: selectedTerm,
+                  sport: selectedSport,
+                  ageGroup: selectedAgeGroup,
+                  sort: selectedSort,
+                },
+              })}
             >
               <Ionicons name="stats-chart-outline" size={18} color="#2196F3" />
               <Text style={styles.reportButtonText}>View Full Report</Text>
@@ -774,7 +783,16 @@ console.log('🔍 Year filter debug:', {
       {filteredAssessments.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => navigation.navigate('Reports', { screen: 'ReportsMain' })}
+          onPress={() => navigation.navigate('HistoryReport', {
+            filteredAssessments,
+            filters: {
+              year: selectedYear,
+              term: selectedTerm,
+              sport: selectedSport,
+              ageGroup: selectedAgeGroup,
+              sort: selectedSort,
+            },
+          })}
           activeOpacity={0.8}
         >
           <Ionicons name="share-outline" size={28} color={COLORS.white} />

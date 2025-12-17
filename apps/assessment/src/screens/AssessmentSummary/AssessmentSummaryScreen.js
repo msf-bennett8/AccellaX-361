@@ -588,7 +588,12 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
           { 
             text: 'Exit Without Sync', 
             style: 'destructive',
-            onPress: () => {
+            onPress: async () => {
+              // Clear any remaining session state
+              const sessionId = route.params?.sessionId;
+              if (sessionId) {
+                await AsyncStorage.removeItem(`assessment_session_${sessionId}`);
+              }
               setDoneConfirmModal(false);
               navigation.navigate('Home');
             }
@@ -600,9 +605,14 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
           },
           { 
             text: 'Sync Now', 
-            onPress: () => {
+            onPress: async () => {
               setDoneConfirmModal(false);
-              handleSync();
+              await handleSync();
+              // Clear session state after sync
+              const sessionId = route.params?.sessionId;
+              if (sessionId) {
+                await AsyncStorage.removeItem(`assessment_session_${sessionId}`);
+              }
             }
           }
         ]}

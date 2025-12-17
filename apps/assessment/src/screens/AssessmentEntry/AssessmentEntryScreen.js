@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { saveAssessmentResult, getLastAssessmentForKid } from '../../services/assessmentService';
 import MetricInput from '../../components/metrics/MetricInput';
@@ -74,6 +75,11 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     initialTestIndex = 0,
     existingAssessmentData = {}
   } = route?.params || {};
+  
+  // Generate unique assessment session ID
+  const sessionId = React.useRef(
+    route.params?.sessionId || `assessment_${Date.now()}`
+  ).current;
   
   console.log('🔍 AssessmentEntry - Received metadata:', assessmentMetadata);
   
@@ -203,14 +209,32 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
 
     try {
       setSaving(true);
+      
+      // Save to local database
       await saveAssessmentResult({
         kid_id: currentKid.id,
         sport_id: sport.id,
         metric_id: currentMetric.id,
         value: value,
-        assessment_date: assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0], // ✅ USE METADATA DATE
+        assessment_date: assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0],
         metadata: assessmentMetadata,
       });
+      
+      // Save session state to AsyncStorage for recovery
+      const sessionState = {
+        sessionId,
+        sport,
+        kids,
+        mode,
+        selectedTests,
+        assessmentMetadata,
+        assessmentData: newData,
+        currentKidIndex,
+        currentTestIndex,
+        lastUpdated: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(`assessment_session_${sessionId}`, JSON.stringify(sessionState));
+      
       console.log('✅ Auto-saved:', { kid: currentKid.name, metric: currentMetric.name, value });
     } catch (error) {
       console.error('❌ Error auto-saving:', error);
@@ -240,28 +264,58 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
       return;
     }
 
+    // Determine next indices
+    let nextKidIndex = currentKidIndex;
+    let nextTestIndex = currentTestIndex;
+    let isComplete = false;
+
     if (isBatchMode) {
       if (isLastKid) {
         if (isLastTest) {
-          handleComplete();
+          isComplete = true;
         } else {
-          setCurrentTestIndex(prev => prev + 1);
-          setCurrentKidIndex(0);
+          nextTestIndex = currentTestIndex + 1;
+          nextKidIndex = 0;
         }
       } else {
-        setCurrentKidIndex(prev => prev + 1);
+        nextKidIndex = currentKidIndex + 1;
       }
     } else {
       if (isLastTest) {
         if (isLastKid) {
-          handleComplete();
+          isComplete = true;
         } else {
-          setCurrentKidIndex(prev => prev + 1);
-          setCurrentTestIndex(0);
+          nextKidIndex = currentKidIndex + 1;
+          nextTestIndex = 0;
         }
       } else {
-        setCurrentTestIndex(prev => prev + 1);
+        nextTestIndex = currentTestIndex + 1;
       }
+    }
+
+    if (isComplete) {
+      // Clear session state
+      await AsyncStorage.removeItem(`assessment_session_${sessionId}`);
+      handleComplete();
+    } else {
+      // Update indices and save state
+      setCurrentKidIndex(nextKidIndex);
+      setCurrentTestIndex(nextTestIndex);
+      
+      // Save updated session state
+      const sessionState = {
+        sessionId,
+        sport,
+        kids,
+        mode,
+        selectedTests,
+        assessmentMetadata,
+        assessmentData,
+        currentKidIndex: nextKidIndex,
+        currentTestIndex: nextTestIndex,
+        lastUpdated: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(`assessment_session_${sessionId}`, JSON.stringify(sessionState));
     }
   };
 
@@ -481,7 +535,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
       <CustomModal
         visible={exitModal}
         title="Exit Assessment?"
-        message="Progress is auto-saved. You can resume later."
+        message={`Progress saved: ${Object.keys(assessmentData).length} of ${kids.length * selectedTests.length} tests completed.\n\nYou can resume from where you left off.`}
         icon="exit-outline"
         iconColor={COLORS.warning}
         buttons={[
@@ -491,10 +545,24 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
             onPress: () => setExitModal(false)
           },
           { 
-            text: 'Exit', 
-            onPress: () => {
+            text: 'Save & Exit', 
+            onPress: async () => {
+              // Save current session state before exiting
+              const sessionState = {
+                sessionId,
+                sport,
+                kids,
+                mode,
+                selectedTests,
+                assessmentMetadata,
+                assessmentData,
+                currentKidIndex,
+                currentTestIndex,
+                lastUpdated: new Date().toISOString(),
+              };
+              await AsyncStorage.setItem(`assessment_session_${sessionId}`, JSON.stringify(sessionState));
               setExitModal(false);
-              navigation.goBack();
+              navigation.navigate('Home');
             }
           }
         ]}
@@ -541,7 +609,9 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
           { 
             text: 'Done', 
             style: 'cancel',
-            onPress: () => {
+            onPress: async () => {
+              // Clear session state
+              await AsyncStorage.removeItem(`assessment_session_${sessionId}`);
               setCompleteModal(false);
               navigation.reset({
                 index: 0,
@@ -551,7 +621,9 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
           },
           { 
             text: 'View Summary', 
-            onPress: () => {
+            onPress: async () => {
+              // Clear session state
+              await AsyncStorage.removeItem(`assessment_session_${sessionId}`);
               setCompleteModal(false);
               // Use replace to swap current screen with summary
               navigation.replace('AssessmentSummary', { 
@@ -559,7 +631,8 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
                 sport, 
                 kids, 
                 selectedTests,
-                assessmentMetadata: assessmentMetadata, // ✅ Pass metadata forward
+                assessmentMetadata: assessmentMetadata,
+                sessionId, // Pass sessionId for tracking
               });
             }
           }
