@@ -16,34 +16,38 @@ import { Audio } from 'expo-av';
 import { COLORS } from '../../utils/constants';
 
 // Beep Test Protocol - Official Multi-Stage Fitness Test
+// Format: level, shuttlesInLevel, cumulativeShuttles, speed
 const BEEP_TEST_LEVELS = [
-  { level: 1, shuttles: 7, speed: 8.5, interval: 9.0 },
-  { level: 2, shuttles: 8, speed: 9.0, interval: 8.0 },
-  { level: 3, shuttles: 8, speed: 9.5, interval: 7.58 },
-  { level: 4, shuttles: 9, speed: 10.0, interval: 7.2 },
-  { level: 5, shuttles: 9, speed: 10.5, interval: 6.86 },
-  { level: 6, shuttles: 10, speed: 11.0, interval: 6.55 },
-  { level: 7, shuttles: 10, speed: 11.5, interval: 6.26 },
-  { level: 8, shuttles: 11, speed: 12.0, interval: 6.0 },
-  { level: 9, shuttles: 11, speed: 12.5, interval: 5.76 },
-  { level: 10, shuttles: 11, speed: 13.0, interval: 5.54 },
-  { level: 11, shuttles: 12, speed: 13.5, interval: 5.33 },
-  { level: 12, shuttles: 12, speed: 14.0, interval: 5.14 },
-  { level: 13, shuttles: 13, speed: 14.5, interval: 4.97 },
-  { level: 14, shuttles: 13, speed: 15.0, interval: 4.8 },
-  { level: 15, shuttles: 13, speed: 15.5, interval: 4.65 },
-  { level: 16, shuttles: 14, speed: 16.0, interval: 4.5 },
-  { level: 17, shuttles: 14, speed: 16.5, interval: 4.36 },
-  { level: 18, shuttles: 15, speed: 17.0, interval: 4.24 },
-  { level: 19, shuttles: 15, speed: 17.5, interval: 4.11 },
-  { level: 20, shuttles: 16, speed: 18.0, interval: 4.0 },
-  { level: 21, shuttles: 16, speed: 18.5, interval: 3.89 },
+  { level: 1, shuttlesInLevel: 7, cumulativeShuttles: 7, speed: 8.5 },
+  { level: 2, shuttlesInLevel: 8, cumulativeShuttles: 15, speed: 9.0 },
+  { level: 3, shuttlesInLevel: 8, cumulativeShuttles: 23, speed: 9.5 },
+  { level: 4, shuttlesInLevel: 9, cumulativeShuttles: 32, speed: 10.0 },
+  { level: 5, shuttlesInLevel: 9, cumulativeShuttles: 41, speed: 10.5 },
+  { level: 6, shuttlesInLevel: 10, cumulativeShuttles: 51, speed: 11.0 },
+  { level: 7, shuttlesInLevel: 10, cumulativeShuttles: 61, speed: 11.5 },
+  { level: 8, shuttlesInLevel: 11, cumulativeShuttles: 72, speed: 12.0 },
+  { level: 9, shuttlesInLevel: 11, cumulativeShuttles: 83, speed: 12.5 },
+  { level: 10, shuttlesInLevel: 11, cumulativeShuttles: 94, speed: 13.0 },
+  { level: 11, shuttlesInLevel: 12, cumulativeShuttles: 106, speed: 13.5 },
+  { level: 12, shuttlesInLevel: 12, cumulativeShuttles: 118, speed: 14.0 },
+  { level: 13, shuttlesInLevel: 13, cumulativeShuttles: 131, speed: 14.5 },
+  { level: 14, shuttlesInLevel: 13, cumulativeShuttles: 144, speed: 15.0 },
+  { level: 15, shuttlesInLevel: 13, cumulativeShuttles: 157, speed: 15.5 },
+  { level: 16, shuttlesInLevel: 14, cumulativeShuttles: 171, speed: 16.0 },
+  { level: 17, shuttlesInLevel: 14, cumulativeShuttles: 185, speed: 16.5 },
+  { level: 18, shuttlesInLevel: 15, cumulativeShuttles: 200, speed: 17.0 },
+  { level: 19, shuttlesInLevel: 15, cumulativeShuttles: 215, speed: 17.5 },
+  { level: 20, shuttlesInLevel: 16, cumulativeShuttles: 231, speed: 18.0 },
+  { level: 21, shuttlesInLevel: 16, cumulativeShuttles: 247, speed: 18.5 },
 ];
 
 const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   const [isRunning, setIsRunning] = useState(false);
+  const [isCountdown, setIsCountdown] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(10);
   const [currentLevel, setCurrentLevel] = useState(1);
   const [currentShuttle, setCurrentShuttle] = useState(1);
+  const [audioStartDelay, setAudioStartDelay] = useState(0); // Adjustable delay in milliseconds
   const [kidResults, setKidResults] = useState({});
   const [activeKids, setActiveKids] = useState([]);
   const [sound, setSound] = useState(null);
@@ -52,7 +56,52 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   
   const intervalRef = useRef(null);
-  const levelData = BEEP_TEST_LEVELS[currentLevel - 1];
+  const countdownRef = useRef(null);
+  // Recalculate on every render when level/shuttle changes
+  const levelData = BEEP_TEST_LEVELS[currentLevel - 1] || BEEP_TEST_LEVELS[0];
+  
+  // Calculate cumulative shuttle count
+  const getCumulativeShuttle = (level, shuttle) => {
+    if (level === 1) {
+      return shuttle;
+    }
+    const previousLevels = BEEP_TEST_LEVELS.slice(0, level - 1);
+    const cumulativeFromPrevious = previousLevels.reduce((sum, lvl) => sum + lvl.shuttlesInLevel, 0);
+    return cumulativeFromPrevious + shuttle;
+  };
+  
+  const cumulativeShuttle = getCumulativeShuttle(currentLevel, currentShuttle);
+
+  // Debug: Log when level/shuttle changes
+  useEffect(() => {
+    if (isRunning) {
+      console.log(`📍 Display updated: Level ${currentLevel}, Shuttle ${currentShuttle}, Cumulative ${cumulativeShuttle}`);
+    }
+  }, [currentLevel, currentShuttle, isRunning]);
+
+  // Auto-advance levels and shuttles based on beep test timing
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const currentLevelData = BEEP_TEST_LEVELS[currentLevel - 1];
+    if (!currentLevelData) return;
+
+    // Calculate interval for current level (time between beeps in seconds)
+    const getIntervalForLevel = (level) => {
+      const speed = BEEP_TEST_LEVELS[level - 1].speed;
+      // 20m distance, speed in km/h -> convert to seconds
+      // time = distance / speed = 20m / (speed * 1000/3600) = 72 / speed
+      return (72 / speed) * 1000; // Convert to milliseconds
+    };
+
+    const interval = getIntervalForLevel(currentLevel);
+    
+    const autoAdvanceTimer = setTimeout(() => {
+      handleManualLevelAdvance();
+    }, interval);
+
+    return () => clearTimeout(autoAdvanceTimer);
+  }, [isRunning, currentLevel, currentShuttle]);
 
   // Initialize kid results
   useEffect(() => {
@@ -75,58 +124,146 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     setActiveKids(initialActive);
   }, [kids]);
 
-  // Load beep sound
+  // Load official beep test audio
   useEffect(() => {
-    loadBeepSound();
+    loadBeepTestAudio();
     return () => {
+      // Clean up audio on unmount
       if (sound) {
-        sound.unloadAsync();
+        sound.stopAsync().then(() => {
+          sound.unloadAsync();
+          console.log('🧹 Audio cleaned up');
+        }).catch(err => {
+          console.error('Error cleaning up audio:', err);
+        });
       }
     };
   }, []);
 
-  const loadBeepSound = async () => {
+  const loadBeepTestAudio = async () => {
     try {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
       });
       
-      // Use a simple beep tone (you can replace with actual beep test audio file)
-      const { sound: beepSound } = await Audio.Sound.createAsync(
-        require('../../assets/sounds/beep.mp3'), // You'll need to add this file
+      // Load official beep test audio (complete track with announcements)
+      const { sound: beepTestSound } = await Audio.Sound.createAsync(
+        require('../../../assets/sounds/beep.mp3'), // Official beep test audio
         { shouldPlay: false }
       );
-      setSound(beepSound);
+      setSound(beepTestSound);
+      
+      console.log('✅ Official beep test audio loaded');
     } catch (error) {
-      console.error('Error loading beep sound:', error);
+      console.error('❌ Error loading beep test audio:', error);
+      // Audio error will be shown when trying to play
     }
   };
 
-  const playBeep = async () => {
+  const playBeepTestAudio = async (startPosition = 0) => {
     if (sound) {
       try {
-        await sound.replayAsync();
+        await sound.setPositionAsync(startPosition + audioStartDelay);
+        await sound.playAsync();
+        console.log(`▶️ Playing beep test audio from ${startPosition + audioStartDelay}ms`);
       } catch (error) {
-        console.error('Error playing beep:', error);
+        console.error('Error playing beep test audio:', error);
       }
     }
   };
 
-  // Start the test
-  const handleStart = () => {
-    setIsRunning(true);
-    setCurrentLevel(1);
-    setCurrentShuttle(1);
-    startBeepInterval();
+  const pauseBeepTestAudio = async () => {
+    if (sound) {
+      try {
+        await sound.pauseAsync();
+        console.log('⏸️ Paused beep test audio');
+      } catch (error) {
+        console.error('Error pausing beep test audio:', error);
+      }
+    }
   };
 
-  // Stop the test
+  const stopBeepTestAudio = async () => {
+    if (sound) {
+      try {
+        await sound.pauseAsync();
+        await sound.setPositionAsync(0);
+        console.log('⏹️ Stopped beep test audio');
+      } catch (error) {
+        console.error('Error stopping beep test audio:', error);
+      }
+    }
+  };
+
+  const resumeBeepTestAudio = async () => {
+    if (sound) {
+      try {
+        await sound.playAsync();
+        console.log('▶️ Resumed beep test audio');
+      } catch (error) {
+        console.error('Error resuming beep test audio:', error);
+      }
+    }
+  };
+
+  // Start the test with countdown
+  const handleStart = () => {
+    setIsCountdown(true);
+    setCountdownValue(10);
+    
+    // Start audio immediately - it has built-in introduction
+    playBeepTestAudio();
+    console.log('🎵 Audio started - introduction playing');
+    
+    // Start countdown from 10 to 1 (syncs with audio)
+    countdownRef.current = setInterval(() => {
+      setCountdownValue((prev) => {
+        if (prev <= 1) {
+          // Don't clear yet - let it count down to 0
+          return prev - 1;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Transition to test mode at exactly 12 seconds (12000ms)
+    // First beep is at 12.35s, so we transition at 12s
+    setTimeout(() => {
+      clearInterval(countdownRef.current);
+      
+      // Flicker "START" at 11 seconds (between 11.00 and 11.99)
+      setCountdownValue('START');
+      
+      // Then switch to Level 1 display at 12 seconds (when first beep hits)
+      setTimeout(() => {
+        setIsCountdown(false);
+        setIsRunning(true);
+        setCurrentLevel(1);
+        setCurrentShuttle(1);
+        console.log('✅ Test started - Level 1, Shuttle 1 at 12s');
+      }, 1000); // 1 second after "START" flicker
+      
+    }, 11000); // 11 seconds from start
+  };
+
+  // Stop/Pause the test
   const handleStop = () => {
     setIsRunning(false);
+    setIsCountdown(false);
+    
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+    
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    
+    // Pause audio (can be resumed)
+    pauseBeepTestAudio();
   };
 
   // Reset the test
@@ -135,9 +272,22 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   };
 
   const confirmReset = () => {
-    handleStop();
+    setIsRunning(false);
+    setIsCountdown(false);
+    setCountdownValue(10);
     setCurrentLevel(1);
     setCurrentShuttle(1);
+    
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    
+    // Fully stop and reset audio
+    stopBeepTestAudio();
     
     const resetResults = {};
     const resetActive = [];
@@ -157,49 +307,36 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     setShowResetModal(false);
   };
 
-  // Beep interval logic
-  const startBeepInterval = () => {
-    const levelInfo = BEEP_TEST_LEVELS[0];
-    const interval = levelInfo.interval * 1000; // Convert to milliseconds
+  // Audio will handle all timing - we just track manually or via audio position
+  // Coach manually advances levels/shuttles or we sync with audio position
+  
+  // Resume the test
+  const handleResume = () => {
+    setIsRunning(true);
+    resumeBeepTestAudio();
+  };
+
+  const handleManualLevelAdvance = () => {
+    const currentLevelData = BEEP_TEST_LEVELS[currentLevel - 1];
     
-    playBeep();
+    console.log(`📊 Current: Level ${currentLevel}, Shuttle ${currentShuttle}/${currentLevelData.shuttlesInLevel}`);
     
-    intervalRef.current = setInterval(() => {
-      playBeep();
-      
-      setCurrentShuttle((prevShuttle) => {
-        const currentLevelInfo = BEEP_TEST_LEVELS[currentLevel - 1];
-        
-        if (prevShuttle >= currentLevelInfo.shuttles) {
-          // Move to next level
-          setCurrentLevel((prevLevel) => {
-            const nextLevel = prevLevel + 1;
-            
-            if (nextLevel > BEEP_TEST_LEVELS.length) {
-              // Test complete
-              handleStop();
-              return prevLevel;
-            }
-            
-            // Update interval for new level
-            clearInterval(intervalRef.current);
-            const newLevelInfo = BEEP_TEST_LEVELS[nextLevel - 1];
-            const newInterval = newLevelInfo.interval * 1000;
-            
-            intervalRef.current = setInterval(() => {
-              playBeep();
-              setCurrentShuttle((s) => s + 1);
-            }, newInterval);
-            
-            return nextLevel;
-          });
-          
-          return 1; // Reset shuttle count
-        }
-        
-        return prevShuttle + 1;
-      });
-    }, interval);
+    if (currentShuttle >= currentLevelData.shuttlesInLevel) {
+      // Move to next level
+      if (currentLevel < BEEP_TEST_LEVELS.length) {
+        const newLevel = currentLevel + 1;
+        setCurrentLevel(newLevel);
+        setCurrentShuttle(1);
+        console.log(`➡️ Advanced to Level ${newLevel}, Shuttle 1`);
+      } else {
+        // Test complete
+        handleStop();
+        console.log('🏁 Test complete - all levels finished');
+      }
+    } else {
+      setCurrentShuttle(prev => prev + 1);
+      console.log(`➡️ Advanced to Level ${currentLevel}, Shuttle ${currentShuttle + 1}`);
+    }
   };
 
   // Mark kid as dropped out
@@ -215,11 +352,13 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       },
     }));
     
-    setActiveKids((prev) => prev.filter((id) => id !== kidId));
+    const updatedActiveKids = activeKids.filter((id) => id !== kidId);
+    setActiveKids(updatedActiveKids);
     
     // Auto-stop if all kids are done
-    if (activeKids.length === 1) {
+    if (updatedActiveKids.length === 0) {
       handleStop();
+      console.log('✅ All participants completed - test stopped');
     }
   };
 
@@ -293,60 +432,89 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     earth: 'leaf',
   };
 
-  const renderKidCard = (kid) => {
+  // Sort kids: Active first, completed last
+  const getSortedKids = (teamKids) => {
+    return teamKids.sort((a, b) => {
+      const aResult = kidResults[a.id];
+      const bResult = kidResults[b.id];
+      const aActive = activeKids.includes(a.id);
+      const bActive = activeKids.includes(b.id);
+      
+      // Active kids first
+      if (aActive && !bActive) return -1;
+      if (!aActive && bActive) return 1;
+      
+      // Within same status, maintain original order
+      return 0;
+    });
+  };
+
+  const renderKidCard = (kid, index, sortedKids) => {
     const result = kidResults[kid.id];
     if (!result) return null;
     
     const isActive = activeKids.includes(kid.id);
     const isCompleted = result.status === 'completed';
     
+    // Check if this is the first completed kid (add separator)
+    const isFirstCompleted = isCompleted && 
+      (index === 0 || activeKids.includes(sortedKids[index - 1].id));
+    
     return (
-      <TouchableOpacity
-        key={kid.id}
-        style={[
-          styles.kidCard,
-          isCompleted && styles.kidCardCompleted,
-          !isActive && !isCompleted && styles.kidCardInactive,
-        ]}
-        onPress={() => {
-          if (isRunning && isActive) {
-            handleKidDrop(kid.id);
-          }
-        }}
-        activeOpacity={isRunning && isActive ? 0.7 : 1}
-      >
-        <View style={styles.kidCardLeft}>
-          <Text style={[styles.kidCardName, !isActive && styles.kidCardNameInactive]}>
-            {kid.name}
-          </Text>
-          {isCompleted && result.level && (
-            <Text style={styles.kidCardResult}>
-              Level {result.level}.{result.shuttle}
+      <React.Fragment key={kid.id}>
+        {isFirstCompleted && (
+          <View style={styles.completedSeparator}>
+            <View style={styles.separatorLine} />
+            <Text style={styles.separatorText}>COMPLETED</Text>
+            <View style={styles.separatorLine} />
+          </View>
+        )}
+        <TouchableOpacity
+          style={[
+            styles.kidCard,
+            isCompleted && styles.kidCardCompleted,
+            !isActive && !isCompleted && styles.kidCardInactive,
+          ]}
+          onPress={() => {
+            if (isRunning && isActive) {
+              handleKidDrop(kid.id);
+            }
+          }}
+          activeOpacity={isRunning && isActive ? 0.7 : 1}
+        >
+          <View style={styles.kidCardLeft}>
+            <Text style={[styles.kidCardName, !isActive && styles.kidCardNameInactive]}>
+              {kid.name}
             </Text>
-          )}
-          {!isActive && !isCompleted && (
-            <Text style={styles.kidCardInactiveText}>Not participating</Text>
-          )}
-        </View>
-        
-        <View style={styles.kidCardRight}>
-          {isActive && isRunning && (
-            <View style={styles.activeIndicator}>
-              <View style={styles.activeDot} />
-              <Text style={styles.activeText}>Active</Text>
-            </View>
-          )}
+            {isCompleted && result.level && (
+              <Text style={styles.kidCardResult}>
+                Level {result.level}.{result.shuttle}
+              </Text>
+            )}
+            {!isActive && !isCompleted && (
+              <Text style={styles.kidCardInactiveText}>Not participating</Text>
+            )}
+          </View>
           
-          {isCompleted && (
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={() => handleKidReset(kid.id)}
-            >
-              <Ionicons name="refresh" size={18} color={COLORS.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </TouchableOpacity>
+          <View style={styles.kidCardRight}>
+            {isActive && isRunning && (
+              <View style={styles.activeIndicator}>
+                <View style={styles.activeDot} />
+                <Text style={styles.activeText}>Active</Text>
+              </View>
+            )}
+            
+            {isCompleted && (
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={() => handleKidReset(kid.id)}
+              >
+                <Ionicons name="refresh" size={18} color={COLORS.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+      </React.Fragment>
     );
   };
 
@@ -363,54 +531,107 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
         </Text>
       </View>
 
-      {/* Current Level Display */}
-      <View style={styles.levelDisplay}>
-        <View style={styles.levelMainContainer}>
-          <Text style={styles.levelLabel}>LEVEL</Text>
-          <Text style={[styles.levelNumber, isRunning && styles.levelNumberActive]}>
-            {currentLevel}
+      {/* Countdown or Level Display */}
+      {isCountdown ? (
+        <View style={styles.countdownDisplay}>
+          <View style={styles.audioPlayingBadge}>
+            <Ionicons name="volume-high" size={16} color={COLORS.white} />
+            <Text style={styles.audioPlayingText}>AUDIO PLAYING</Text>
+          </View>
+          <Text style={styles.countdownLabel}>
+            {countdownValue === 'START' ? 'GET READY!' : 'TEST STARTING IN'}
           </Text>
-          <Text style={styles.levelSpeed}>{levelData?.speed} km/h</Text>
-        </View>
-        
-        <View style={styles.levelDivider} />
-        
-        <View style={styles.levelMainContainer}>
-          <Text style={styles.levelLabel}>SHUTTLE</Text>
-          <Text style={[styles.levelNumber, isRunning && styles.levelNumberActive]}>
-            {currentShuttle}
+          <Text style={[
+            styles.countdownNumber,
+            countdownValue === 'START' && styles.countdownStart
+          ]}>
+            {countdownValue}
           </Text>
-          <Text style={styles.levelSpeed}>of {levelData?.shuttles}</Text>
+          <Text style={styles.countdownHint}>
+            {countdownValue === 'START' ? 'First beep coming...' : 'Listen to instructions...'}
+          </Text>
         </View>
-      </View>
+      ) : (
+        <View style={styles.levelDisplay}>
+          {/* Level */}
+          <View style={styles.levelMainContainer}>
+            <Text style={styles.levelLabel}>LEVEL</Text>
+            <Text style={[styles.levelNumber, isRunning && styles.levelNumberActive]}>
+              {currentLevel}
+            </Text>
+            <Text style={styles.levelSpeed}>{levelData?.speed} km/h</Text>
+          </View>
+        
+          <View style={styles.levelDivider} />
+        
+          {/* Shuttle in Level */}
+          <View style={styles.levelMainContainer}>
+            <Text style={styles.levelLabel}>SHUTTLE</Text>
+            <Text style={[styles.levelNumber, isRunning && styles.levelNumberActive]}>
+              {currentShuttle}
+            </Text>
+            <Text style={styles.levelSpeed}>of {levelData?.shuttlesInLevel}</Text>
+          </View>
+          
+          <View style={styles.levelDivider} />
+          
+          {/* Cumulative Shuttles */}
+          <View style={styles.levelMainContainer}>
+            <Text style={styles.levelLabel}>TOTAL</Text>
+            <Text style={[styles.levelNumberSmall, isRunning && styles.levelNumberActive]}>
+              {cumulativeShuttle}
+            </Text>
+            <Text style={styles.levelSpeed}>shuttles</Text>
+          </View>
+        </View>
+      )}
 
       {/* Control Buttons */}
       <View style={styles.controls}>
-        {!isRunning && currentLevel === 1 && currentShuttle === 1 && (
+        {isCountdown && (
+          <View style={styles.countdownInfo}>
+            <Ionicons name="headset" size={24} color={COLORS.primary} />
+            <Text style={styles.countdownInfoText}>
+              Listen carefully - audio contains instructions and countdown
+            </Text>
+          </View>
+        )}
+        
+        {!isRunning && !isCountdown && currentLevel === 1 && currentShuttle === 1 && (
           <TouchableOpacity
             style={[styles.button, styles.startButton]}
             onPress={handleStart}
           >
             <Ionicons name="play" size={24} color={COLORS.white} />
-            <Text style={styles.buttonText}>Start Test</Text>
+            <Text style={styles.buttonText}>Start Test & Audio</Text>
           </TouchableOpacity>
         )}
 
         {isRunning && (
-          <TouchableOpacity
-            style={[styles.button, styles.stopButton]}
-            onPress={handleStop}
-          >
-            <Ionicons name="pause" size={24} color={COLORS.white} />
-            <Text style={styles.buttonText}>Pause Test</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.button, styles.stopButton]}
+              onPress={handleStop}
+            >
+              <Ionicons name="pause" size={24} color={COLORS.white} />
+              <Text style={styles.buttonText}>Stop Test</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.button, styles.advanceButton]}
+              onPress={handleManualLevelAdvance}
+            >
+              <Ionicons name="skip-forward" size={20} color={COLORS.white} />
+              <Text style={styles.buttonText}>Skip to Next</Text>
+            </TouchableOpacity>
+          </>
         )}
 
-        {!isRunning && (currentLevel > 1 || currentShuttle > 1 || completedCount > 0) && (
+        {!isRunning && !isCountdown && (currentLevel > 1 || currentShuttle > 1 || completedCount > 0) && (
           <View style={styles.controlRow}>
             <TouchableOpacity
               style={[styles.button, styles.resumeButton]}
-              onPress={handleStart}
+              onPress={handleResume}
             >
               <Ionicons name="play" size={20} color={COLORS.white} />
               <Text style={styles.buttonText}>Resume</Text>
@@ -442,11 +663,72 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       {/* Instructions */}
       {isRunning && (
         <View style={styles.instructionBanner}>
-          <Ionicons name="information-circle" size={20} color={COLORS.primary} />
+          <View style={styles.audioIndicator}>
+            <Ionicons name="volume-high" size={16} color={COLORS.success} />
+            <View style={styles.audioWave} />
+          </View>
           <Text style={styles.instructionText}>
-            Tap on a kid's name when they drop out to record their level
+            Auto-tracking • Tap kids when they drop out
           </Text>
         </View>
+      )}
+      
+      {/* Audio Timing Adjustment - Only show when not running */}
+      {!isRunning && !isCountdown && (
+        <View style={styles.timingAdjustment}>
+          <View style={styles.timingHeader}>
+            <Ionicons name="time-outline" size={20} color={COLORS.textSecondary} />
+            <Text style={styles.timingTitle}>Audio Timing Adjustment</Text>
+          </View>
+          <Text style={styles.timingDescription}>
+            Fine-tune if audio and countdown are not synced
+          </Text>
+          <View style={styles.timingControls}>
+            <TouchableOpacity
+              style={styles.timingButton}
+              onPress={() => setAudioStartDelay(Math.max(0, audioStartDelay - 100))}
+            >
+              <Ionicons name="remove" size={20} color={COLORS.primary} />
+              <Text style={styles.timingButtonText}>-100ms</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.timingDisplay}>
+              <Text style={styles.timingValue}>{audioStartDelay}ms</Text>
+              <Text style={styles.timingLabel}>offset</Text>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.timingButton}
+              onPress={() => setAudioStartDelay(audioStartDelay + 100)}
+            >
+              <Ionicons name="add" size={20} color={COLORS.primary} />
+              <Text style={styles.timingButtonText}>+100ms</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={styles.resetTimingButton}
+            onPress={() => setAudioStartDelay(0)}
+          >
+            <Text style={styles.resetTimingText}>Reset to 0ms</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
+      {!isRunning && !isCountdown && (
+        <>
+          <View style={styles.infoBanner}>
+            <Ionicons name="fitness" size={20} color={COLORS.textSecondary} />
+            <Text style={styles.infoText}>
+              Score format: Level.Shuttle (e.g., 10.4 = Level 10, Shuttle 4)
+            </Text>
+          </View>
+          <View style={styles.infoBanner}>
+            <Ionicons name="sync" size={20} color={COLORS.primary} />
+            <Text style={styles.infoText}>
+              Levels/shuttles auto-advance with audio • Just tap kids when they drop out
+            </Text>
+          </View>
+        </>
       )}
 
       {/* Kids List by Team */}
@@ -454,6 +736,10 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
         {Object.keys(kidsByTeam).map(teamId => {
           const teamKids = kidsByTeam[teamId];
           if (teamKids.length === 0) return null;
+          
+          const sortedKids = getSortedKids(teamKids);
+          const activeCount = sortedKids.filter(kid => activeKids.includes(kid.id)).length;
+          const completedCount = sortedKids.filter(kid => kidResults[kid.id]?.status === 'completed').length;
           
           const teamName = teamId === 'no_team' ? 'No Team' : `${teamId.charAt(0).toUpperCase() + teamId.slice(1)} Team`;
           const teamColor = teamColors[teamId] || '#9E9E9E';
@@ -468,10 +754,15 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
                     {teamName}
                   </Text>
                 </View>
-                <Text style={styles.teamHeaderCount}>{teamKids.length}</Text>
+                <View style={styles.teamHeaderRight}>
+                  <Text style={styles.teamHeaderActive}>{activeCount} active</Text>
+                  {completedCount > 0 && (
+                    <Text style={styles.teamHeaderCompleted}> • {completedCount} out</Text>
+                  )}
+                </View>
               </View>
               
-              {teamKids.map(kid => renderKidCard(kid))}
+              {sortedKids.map((kid, index) => renderKidCard(kid, index, sortedKids))}
             </View>
           );
         })}
@@ -618,6 +909,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.text,
   },
+  levelNumberSmall: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
   levelNumberActive: {
     color: COLORS.primary,
   },
@@ -630,6 +926,73 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: COLORS.border,
     marginHorizontal: 20,
+  },
+  
+  // Countdown Display
+  countdownDisplay: {
+    alignItems: 'center',
+    backgroundColor: COLORS.warning + '20',
+    borderRadius: 16,
+    paddingVertical: 32,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderWidth: 3,
+    borderColor: COLORS.warning,
+  },
+  countdownLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.warning,
+    marginBottom: 12,
+    letterSpacing: 1,
+  },
+  countdownNumber: {
+    fontSize: 72,
+    fontWeight: 'bold',
+    color: COLORS.warning,
+    fontVariant: ['tabular-nums'],
+  },
+  countdownStart: {
+    color: COLORS.success,
+    fontSize: 56,
+  },
+  countdownHint: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 8,
+  },
+  audioPlayingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.success,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 12,
+    gap: 6,
+  },
+  audioPlayingText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    letterSpacing: 0.5,
+  },
+  countdownInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary + '20',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  countdownInfoText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  advanceButton: {
+    backgroundColor: COLORS.warning,
   },
   
   // Controls
@@ -691,6 +1054,109 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     lineHeight: 18,
   },
+  audioIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+    gap: 4,
+  },
+  audioWave: {
+    width: 3,
+    height: 12,
+    backgroundColor: COLORS.success,
+    borderRadius: 2,
+  },
+  
+  // Timing Adjustment
+  timingAdjustment: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  timingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  timingTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  timingDescription: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  timingControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  timingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryLight + '20',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  timingButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  timingDisplay: {
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundDark,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  timingValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  timingLabel: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  resetTimingButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  resetTimingText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundDark,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
   
   // Kids List
   kidsList: {
@@ -717,8 +1183,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  teamHeaderCount: {
-    fontSize: 14,
+  teamHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  teamHeaderActive: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.success,
+  },
+  teamHeaderCompleted: {
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.textSecondary,
   },
   
@@ -782,6 +1258,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.success,
+  },
+  
+  // Completed Separator
+  completedSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+    marginHorizontal: 8,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  separatorText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.textSecondary,
+    marginHorizontal: 12,
+    letterSpacing: 1,
   },
   
   // Cancel Button
