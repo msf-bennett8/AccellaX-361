@@ -21,7 +21,7 @@ const BeepTestLiveTrackerScreen = ({ route }) => {
 
   const handleSave = async (results) => {
     try {
-      console.log('💾 Saving beep test results:', results.length);
+      // Saving results
       
       // Save each kid's result
       for (const result of results) {
@@ -35,11 +35,11 @@ const BeepTestLiveTrackerScreen = ({ route }) => {
         });
       }
       
-      console.log('✅ All beep test results saved');
+      // Results saved
       setSavedResultsCount(results.length);
       setShowSuccessModal(true);
     } catch (error) {
-      console.error('❌ Error saving beep test results:', error);
+      console.error('Error saving beep test results:', error);
       setErrorMessage(error.message);
       setShowErrorModal(true);
     }
@@ -156,6 +156,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    // Ensure full height for scrolling
+    overflow: 'hidden', // Screen should clip, ScrollView should scroll
   },
   
   // Modal Styles

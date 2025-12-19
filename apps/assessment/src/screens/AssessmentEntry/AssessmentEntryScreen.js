@@ -528,45 +528,50 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
         showAvatar={false}
       />
 
-      {/* Progress Header */}
-      <View style={styles.progressHeader}>
-        <View style={styles.progressInfo}>
-          <Text style={styles.progressText}>
-            {isBatchMode 
-              ? `${currentMetric.name} • Kid ${currentKidIndex + 1}/${kids.length}`
-              : `${currentKid.name} • Test ${currentTestIndex + 1}/${selectedTests.length}`
-            }
-          </Text>
-          <View style={styles.progressBadge}>
-            <Ionicons name="checkmark-done" size={14} color={COLORS.primary} />
-            <Text style={styles.progressPercentage}>{calculateProgress()}%</Text>
-          </View>
-        </View>
-        <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBarFill, { width: `${calculateProgress()}%` }]} />
-        </View>
-      </View>
-
-      {/* Prefill Toggle - FIXED */}
-      <View style={styles.prefillContainer}>
-        <TouchableOpacity
-          style={styles.prefillToggle}
-          onPress={handlePrefillToggle}
+      {/* Scrollable Content Area - Everything scrolls together */}
+      <View style={styles.scrollableContent}>
+        <ScrollView 
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={true}
         >
-          <View style={[styles.toggleCircle, prefillEnabled && styles.toggleActive]}>
-            {prefillEnabled && <Ionicons name="checkmark" size={14} color={COLORS.white} />}
+          {/* Progress Header */}
+          <View style={styles.progressHeader}>
+            <View style={styles.progressInfo}>
+              <Text style={styles.progressText}>
+                {isBatchMode 
+                  ? `${currentMetric.name} • Kid ${currentKidIndex + 1}/${kids.length}`
+                  : `${currentKid.name} • Test ${currentTestIndex + 1}/${selectedTests.length}`
+                }
+              </Text>
+              <View style={styles.progressBadge}>
+                <Ionicons name="checkmark-done" size={14} color={COLORS.primary} />
+                <Text style={styles.progressPercentage}>{calculateProgress()}%</Text>
+              </View>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBarFill, { width: `${calculateProgress()}%` }]} />
+            </View>
           </View>
-          <Text style={styles.prefillText}>Use Previous Values</Text>
-        </TouchableOpacity>
-        {saving && (
-          <View style={styles.savingBadge}>
-            <LoadingSpinner size="small" color={COLORS.primary} />
-            <Text style={styles.savingText}>Saving...</Text>
-          </View>
-        )}
-      </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          {/* Prefill Toggle */}
+          <View style={styles.prefillContainer}>
+            <TouchableOpacity
+              style={styles.prefillToggle}
+              onPress={handlePrefillToggle}
+            >
+              <View style={[styles.toggleCircle, prefillEnabled && styles.toggleActive]}>
+                {prefillEnabled && <Ionicons name="checkmark" size={14} color={COLORS.white} />}
+              </View>
+              <Text style={styles.prefillText}>Use Previous Values</Text>
+            </TouchableOpacity>
+            {saving && (
+              <View style={styles.savingBadge}>
+                <LoadingSpinner size="small" color={COLORS.primary} />
+                <Text style={styles.savingText}>Saving...</Text>
+              </View>
+            )}
+          </View>
         {/* Kid Info Card */}
         <View style={styles.kidInfoCard}>
           <View style={styles.kidInfoHeader}>
@@ -724,6 +729,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
           </View>
         )}
       </ScrollView>
+      </View>
 
       {/* Navigation Buttons */}
       <View style={styles.navigationContainer}>
@@ -998,8 +1004,7 @@ const styles = StyleSheet.create({
   progressHeader: { 
     backgroundColor: COLORS.white, 
     padding: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: COLORS.border 
+    marginBottom: 0,
   },
   progressInfo: { 
     flexDirection: 'row', 
@@ -1046,8 +1051,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     padding: 16, 
     backgroundColor: COLORS.white, 
-    borderBottomWidth: 1, 
-    borderBottomColor: COLORS.border 
+    marginBottom: 16,
   },
   prefillToggle: { 
     flexDirection: 'row', 
@@ -1081,16 +1085,28 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary 
   },
   
-  // Content
-  content: { flex: 1 },
-  contentContainer: { padding: 16 },
+  // Scrollable Content Area
+  scrollableContent: {
+    position: 'absolute',
+    top: 126, // Header height (~88-90px)
+    left: 0,
+    right: 0,
+    bottom: 82, // Navigation container height (81px) + border (1px)
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  contentContainer: { 
+    paddingBottom: 20,
+  },
   
   // Kid Info
   kidInfoCard: { 
     backgroundColor: COLORS.white, 
     padding: 16, 
     borderRadius: 12, 
-    marginBottom: 12, 
+    marginBottom: 12,
+    marginHorizontal: 16,
     elevation: 2, 
     shadowColor: COLORS.shadow, 
     shadowOffset: { width: 0, height: 1 }, 
@@ -1121,7 +1137,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white, 
     padding: 16, 
     borderRadius: 12, 
-    marginBottom: 16, 
+    marginBottom: 16,
+    marginHorizontal: 16,
     elevation: 2, 
     shadowColor: COLORS.shadow, 
     shadowOffset: { width: 0, height: 1 }, 
@@ -1160,7 +1177,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight + '20', 
     padding: 12, 
     borderRadius: 8, 
-    marginTop: 16, 
+    marginTop: 16,
+    marginHorizontal: 16,
     gap: 8 
   },
   previousValueContent: { flex: 1 },
@@ -1177,12 +1195,21 @@ const styles = StyleSheet.create({
   
   // Navigation
   navigationContainer: { 
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row', 
     padding: 16, 
     backgroundColor: COLORS.white, 
     borderTopWidth: 1, 
     borderTopColor: COLORS.border, 
-    gap: 12 
+    gap: 12,
+    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   navButton: { 
     flex: 1, 
@@ -1213,6 +1240,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 16,
     elevation: 2,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 1 },

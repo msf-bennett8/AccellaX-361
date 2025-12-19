@@ -21,7 +21,7 @@ const CooperTestLiveTrackerScreen = ({ route }) => {
 
   const handleSave = async (results) => {
     try {
-      console.log('💾 Saving Cooper test results:', results.length);
+      // Saving Cooper test results
       
       // Save each kid's result
       for (const result of results) {
@@ -35,11 +35,11 @@ const CooperTestLiveTrackerScreen = ({ route }) => {
         });
       }
       
-      console.log('✅ All Cooper test results saved');
+      // Results saved successfully
       setSavedResultsCount(results.length);
       setShowSuccessModal(true);
     } catch (error) {
-      console.error('❌ Error saving Cooper test results:', error);
+      console.error('Error saving Cooper test results:', error);
       setErrorMessage(error.message);
       setShowErrorModal(true);
     }

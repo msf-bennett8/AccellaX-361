@@ -57,6 +57,17 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   
   const intervalRef = useRef(null);
   const countdownRef = useRef(null);
+  
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.stopAsync().catch(() => {});
+        sound.unloadAsync().catch(() => {});
+      }
+    };
+  }, [sound]);
+  
   // Recalculate on every render when level/shuttle changes
   const levelData = BEEP_TEST_LEVELS[currentLevel - 1] || BEEP_TEST_LEVELS[0];
   
@@ -71,13 +82,6 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   };
   
   const cumulativeShuttle = getCumulativeShuttle(currentLevel, currentShuttle);
-
-  // Debug: Log when level/shuttle changes
-  useEffect(() => {
-    if (isRunning) {
-      console.log(`📍 Display updated: Level ${currentLevel}, Shuttle ${currentShuttle}, Cumulative ${cumulativeShuttle}`);
-    }
-  }, [currentLevel, currentShuttle, isRunning]);
 
   // Auto-advance levels and shuttles based on beep test timing
   useEffect(() => {
@@ -156,9 +160,9 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       );
       setSound(beepTestSound);
       
-      console.log('✅ Official beep test audio loaded');
+      // Audio loaded successfully
     } catch (error) {
-      console.error('❌ Error loading beep test audio:', error);
+      console.error('Error loading beep test audio:', error);
       // Audio error will be shown when trying to play
     }
   };
@@ -168,7 +172,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       try {
         await sound.setPositionAsync(startPosition + audioStartDelay);
         await sound.playAsync();
-        console.log(`▶️ Playing beep test audio from ${startPosition + audioStartDelay}ms`);
+        // Playing audio
       } catch (error) {
         console.error('Error playing beep test audio:', error);
       }
@@ -179,7 +183,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     if (sound) {
       try {
         await sound.pauseAsync();
-        console.log('⏸️ Paused beep test audio');
+        // Audio paused
       } catch (error) {
         console.error('Error pausing beep test audio:', error);
       }
@@ -191,7 +195,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       try {
         await sound.pauseAsync();
         await sound.setPositionAsync(0);
-        console.log('⏹️ Stopped beep test audio');
+        // Audio stopped
       } catch (error) {
         console.error('Error stopping beep test audio:', error);
       }
@@ -202,7 +206,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     if (sound) {
       try {
         await sound.playAsync();
-        console.log('▶️ Resumed beep test audio');
+        // Audio resumed
       } catch (error) {
         console.error('Error resuming beep test audio:', error);
       }
@@ -216,7 +220,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     
     // Start audio immediately - it has built-in introduction
     playBeepTestAudio();
-    console.log('🎵 Audio started - introduction playing');
+    // Audio started
     
     // Start countdown from 10 to 1 (syncs with audio)
     countdownRef.current = setInterval(() => {
@@ -243,7 +247,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
         setIsRunning(true);
         setCurrentLevel(1);
         setCurrentShuttle(1);
-        console.log('✅ Test started - Level 1, Shuttle 1 at 12s');
+        // Test started
       }, 1000); // 1 second after "START" flicker
       
     }, 11000); // 11 seconds from start
@@ -319,7 +323,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   const handleManualLevelAdvance = () => {
     const currentLevelData = BEEP_TEST_LEVELS[currentLevel - 1];
     
-    console.log(`📊 Current: Level ${currentLevel}, Shuttle ${currentShuttle}/${currentLevelData.shuttlesInLevel}`);
+    // Advancing level/shuttle
     
     if (currentShuttle >= currentLevelData.shuttlesInLevel) {
       // Move to next level
@@ -327,15 +331,15 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
         const newLevel = currentLevel + 1;
         setCurrentLevel(newLevel);
         setCurrentShuttle(1);
-        console.log(`➡️ Advanced to Level ${newLevel}, Shuttle 1`);
+        // Advanced to next level
       } else {
         // Test complete
         handleStop();
-        console.log('🏁 Test complete - all levels finished');
+        // Test complete
       }
     } else {
       setCurrentShuttle(prev => prev + 1);
-      console.log(`➡️ Advanced to Level ${currentLevel}, Shuttle ${currentShuttle + 1}`);
+      // Advanced to next shuttle
     }
   };
 
@@ -358,7 +362,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     // Auto-stop if all kids are done
     if (updatedActiveKids.length === 0) {
       handleStop();
-      console.log('✅ All participants completed - test stopped');
+      // All participants completed
     }
   };
 
@@ -523,17 +527,51 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Fixed Header - Outside ScrollView */}
+      <View 
+        style={styles.header}
+      >
         <Text style={styles.title}>Beep Test - Live Tracker</Text>
         <Text style={styles.subtitle}>
           {kids.length} participant{kids.length !== 1 ? 's' : ''}
         </Text>
       </View>
 
+      {/* Scrollable Content Area - Absolutely Positioned */}
+      <View style={styles.scrollableContent}>
+        <ScrollView 
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+          onLayout={(event) => {
+            const { height, width } = event.nativeEvent.layout;
+            console.log('🔍 [SCROLL] ScrollView Layout:', { height, width });
+          }}
+          onContentSizeChange={(width, height) => {
+            console.log('🔍 [SCROLL] Content Size Changed:', { width, height });
+          }}
+          onScroll={(event) => {
+            const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+            console.log('🔍 [SCROLL] Scroll Event:', {
+              scrollY: contentOffset.y.toFixed(2),
+              contentHeight: contentSize.height.toFixed(2),
+              viewportHeight: layoutMeasurement.height.toFixed(2),
+              scrollableDistance: (contentSize.height - layoutMeasurement.height).toFixed(2),
+              canScroll: contentSize.height > layoutMeasurement.height,
+            });
+          }}
+          scrollEventThrottle={100}
+        >
+
       {/* Countdown or Level Display */}
       {isCountdown ? (
-        <View style={styles.countdownDisplay}>
+        <View 
+          style={styles.countdownDisplay}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            console.log('📐 [BeepTestLiveTracker] Countdown display height:', height);
+          }}
+        >
           <View style={styles.audioPlayingBadge}>
             <Ionicons name="volume-high" size={16} color={COLORS.white} />
             <Text style={styles.audioPlayingText}>AUDIO PLAYING</Text>
@@ -552,7 +590,13 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
           </Text>
         </View>
       ) : (
-        <View style={styles.levelDisplay}>
+        <View 
+          style={styles.levelDisplay}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            console.log('📐 [BeepTestLiveTracker] Level display height:', height);
+          }}
+        >
           {/* Level */}
           <View style={styles.levelMainContainer}>
             <Text style={styles.levelLabel}>LEVEL</Text>
@@ -587,7 +631,13 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       )}
 
       {/* Control Buttons */}
-      <View style={styles.controls}>
+      <View 
+        style={styles.controls}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          console.log('📐 [BeepTestLiveTracker] Controls height:', height);
+        }}
+      >
         {isCountdown && (
           <View style={styles.countdownInfo}>
             <Ionicons name="headset" size={24} color={COLORS.primary} />
@@ -732,7 +782,13 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       )}
 
       {/* Kids List by Team */}
-      <ScrollView style={styles.kidsList} showsVerticalScrollIndicator={false}>
+      <View 
+        style={styles.kidsList}
+        onLayout={(event) => {
+          const { height, width } = event.nativeEvent.layout;
+          console.log('📐 [BeepTestLiveTracker] Kids list View layout:', { height, width });
+        }}
+      >
         {Object.keys(kidsByTeam).map(teamId => {
           const teamKids = kidsByTeam[teamId];
           if (teamKids.length === 0) return null;
@@ -766,15 +822,21 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
             </View>
           );
         })}
-      </ScrollView>
+      </View>
 
       {/* Cancel Button */}
       <TouchableOpacity
         style={styles.cancelButton}
         onPress={onCancel}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          console.log('📐 [BeepTestLiveTracker] Cancel button height:', height);
+        }}
       >
         <Text style={styles.cancelButtonText}>Cancel</Text>
       </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       {/* Reset Modal */}
       <Modal visible={showResetModal} transparent animationType="fade">
@@ -859,7 +921,7 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+    container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
@@ -868,6 +930,20 @@ const styles = StyleSheet.create({
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    zIndex: 10,
+  },
+  scrollableContent: {
+    position: 'absolute',
+    top: 89, // Header height
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   title: {
     fontSize: 24,
@@ -1159,9 +1235,10 @@ const styles = StyleSheet.create({
   },
   
   // Kids List
+  // Kids List
   kidsList: {
-    flex: 1,
     paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   teamSection: {
     marginBottom: 16,
@@ -1286,6 +1363,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     padding: 16,
+    marginTop: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 12,
   },
   cancelButtonText: {
     fontSize: 16,

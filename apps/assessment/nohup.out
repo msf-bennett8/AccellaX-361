@@ -71,3 +71,37 @@ Created TensorFlow Lite XNNPACK delegate for CPU.
 [5209:5209:1206/064450.515209:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 585406161706 project: 2
 [5209:5209:1206/064456.185689:ERROR:chrome/browser/policy/cloud/fm_registration_token_uploader.cc:265] Upload failed for kUser scope, 245350905893 project: 2
 Gdk-Message: 06:46:46.355: Lost connection to Wayland compositor.
+Created TensorFlow Lite XNNPACK delegate for CPU.
+[6641:6668:1219/131545.611015:ERROR:google_apis/gcm/engine/registration_request.cc:292] Registration response error message: QUOTA_EXCEEDED
+[6641:6668:1219/131547.487024:ERROR:google_apis/gcm/engine/registration_request.cc:292] Registration response error message: QUOTA_EXCEEDED
+[6641:6668:1219/143056.866355:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[6641:6668:1219/143613.480571:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:434] Failed to connect to MCS endpoint with error -105
+[6641:6668:1219/144750.364207:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[6641:6641:1219/144757.098410:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144758.892784:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144803.040163:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144803.041331:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144803.045690:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144803.365508:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144803.619461:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144803.631863:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[6641:6641:1219/144804.028489:ERROR:content/browser/network_service_instance_impl.cc:613] Network service crashed or was terminated, restarting service.
+[6641:6641:1219/144804.761020:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[1219/144808.932904:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found
+[1219/144809.215881:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found
+[1219/144809.699235:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found
+[1219/144812.450819:ERROR:third_party/crashpad/crashpad/util/file/directory_reader_posix.cc:43] opendir /home/msf_bennett/.config/google-chrome/Crash Reports/attachments/a5370c44-52c8-444c-9db7-c3e88edd6ab2: No such file or directory (2)
+[6641:6641:1219/144805.744488:ERROR:chrome/browser/ui/browser_tabstrip.cc:118] NOTREACHED hit. CloseWebContents called for tab not in our strip
+[6641:6641:1219/144812.598361:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144814.187019:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144814.962792:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144815.112629:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144815.119431:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144815.122281:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144815.124209:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144815.172145:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144815.177774:ERROR:content/browser/gpu/gpu_process_host.cc:999] GPU process launch failed: error_code=1002
+[6641:6641:1219/144815.177851:FATAL:content/browser/gpu/gpu_data_manager_impl_private.cc:415] GPU process isn't usable. Goodbye.
+[1219/144815.197402:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found
+[1219/144815.198509:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found
+[1219/144815.199229:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found

@@ -21,7 +21,7 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
 
   const handleSave = async (results) => {
     try {
-      console.log('💾 Saving paired assessment results:', results.length);
+      // Saving paired assessment results
       
       // Save each result
       for (const result of results) {
@@ -35,11 +35,11 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
         });
       }
       
-      console.log('✅ All paired assessment results saved');
+      // Results saved successfully
       setSavedPairsCount(Math.floor(results.length / 2));
       setShowSuccessModal(true);
     } catch (error) {
-      console.error('❌ Error saving paired assessment results:', error);
+      console.error('Error saving paired assessment results:', error);
       setErrorMessage(error.message);
       setShowErrorModal(true);
     }

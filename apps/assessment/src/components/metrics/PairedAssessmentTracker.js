@@ -84,9 +84,8 @@ const PairedAssessmentTracker = ({
 
     setPairs(generatedPairs);
     setAssessedKids(assessed);
-    console.log('📋 Generated pairs:', generatedPairs.length);
   };
-
+  
   const currentPair = pairs[currentPairIndex];
   const isLastPair = currentPairIndex === pairs.length - 1;
 
@@ -207,22 +206,27 @@ const PairedAssessmentTracker = ({
         </Animated.View>
       )}
 
-      {/* Progress Header */}
-      <View style={styles.progressHeader}>
-        <Text style={styles.progressText}>
-          Pair {currentPairIndex + 1} of {pairs.length}
-        </Text>
-        <View style={styles.progressBarContainer}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { width: `${((currentPairIndex + 1) / pairs.length) * 100}%` },
-            ]}
-          />
-        </View>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Scrollable Content Area */}
+      <View style={styles.scrollableContent}>
+        <ScrollView 
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+        >
+          {/* Progress Header */}
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressText}>
+              Pair {currentPairIndex + 1} of {pairs.length}
+            </Text>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${((currentPairIndex + 1) / pairs.length) * 100}%` },
+                ]}
+              />
+            </View>
+          </View>
         {/* Pair Info Card */}
         <View style={styles.pairCard}>
           <Text style={styles.pairTitle}>Current Pair</Text>
@@ -249,7 +253,7 @@ const PairedAssessmentTracker = ({
 
             {/* Receiver */}
             <View style={styles.kidBox}>
-              <View style={[styles.roleadge, styles.receiverBadge]}>
+              <View style={[styles.roleBadge, styles.receiverBadge]}>
                 <Ionicons name="hand-left" size={16} color={COLORS.white} />
                 <Text style={styles.roleBadgeText}>RECEIVER</Text>
               </View>
@@ -337,7 +341,8 @@ const PairedAssessmentTracker = ({
             ))}
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Navigation Controls */}
       <View style={styles.navigationContainer}>
@@ -367,7 +372,8 @@ const PairedAssessmentTracker = ({
           style={[
             styles.navButton,
             styles.nextButton,
-            (!pairResults[passerKey] || !pairResults[receiverKey]) && styles.disabledButton,
+            (pairResults[passerKey] && pairResults[receiverKey]) && styles.nextButtonEnabled,
+            (!pairResults[passerKey] || !pairResults[receiverKey]) && styles.nextButtonDisabled,
           ]}
           onPress={() => handleSavePair(pairResults[passerKey], pairResults[receiverKey])}
           disabled={!pairResults[passerKey] || !pairResults[receiverKey]}
@@ -463,6 +469,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  progressHeader: {
+    backgroundColor: COLORS.white,
+    padding: 16,
+    marginBottom: 0,
+  },
+  scrollableContent: {
+    position: 'absolute',
+    top: 8, // Just Header (89px)
+    left: 0,
+    right: 0,
+    bottom: 179, // Navigation container (~130px) + Cancel button (~49px) = 179px
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
   
   // Next Pair Notification
   nextPairNotification: {
@@ -500,13 +525,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   
-  // Progress Header
-  progressHeader: {
-    backgroundColor: COLORS.white,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
   progressText: {
     fontSize: 14,
     fontWeight: '600',
@@ -523,12 +541,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.primary,
     borderRadius: 3,
-  },
-  
-  // Content
-  content: {
-    flex: 1,
-    padding: 16,
   },
   
   // Pair Card
@@ -693,11 +705,20 @@ const styles = StyleSheet.create({
   
   // Navigation
   navigationContainer: {
+    position: 'absolute',
+    bottom: 49, // Cancel button height
+    left: 0,
+    right: 0,
     backgroundColor: COLORS.white,
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     gap: 8,
+    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   navRow: {
     flexDirection: 'row',
@@ -721,10 +742,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.warning,
   },
   nextButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primary, // Blue by default
   },
-  disabledButton: {
-    backgroundColor: COLORS.border,
+  nextButtonEnabled: {
+    backgroundColor: COLORS.success, // Green when both scores entered
+  },
+  nextButtonDisabled: {
+    backgroundColor: COLORS.primary,
     opacity: 0.5,
   },
   navButtonText: {
@@ -735,16 +759,26 @@ const styles = StyleSheet.create({
   
   // Cancel Button
   cancelButton: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopWidth: 2,
+    borderTopColor: COLORS.error + '30',
     padding: 16,
+    elevation: 4,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.error,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   
   // Empty State

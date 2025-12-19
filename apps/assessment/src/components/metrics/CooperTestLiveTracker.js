@@ -81,7 +81,7 @@ const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       });
       
       const { sound: beepSound } = await Audio.Sound.createAsync(
-        require('../../assets/sounds/beep.mp3'),
+        require('../../../assets/sounds/beep.mp3'),
         { shouldPlay: false }
       );
       setSound(beepSound);
@@ -394,7 +394,7 @@ const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       {/* Main Content */}
       {!showTrackSetup && (
         <>
-          {/* Header */}
+          {/* Fixed Header - Outside ScrollView */}
           <View style={styles.header}>
             <Text style={styles.title}>Cooper Test (12-min run)</Text>
             <TouchableOpacity
@@ -405,6 +405,14 @@ const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
               <Text style={styles.editTrackText}>Edit Track</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Scrollable Content Area */}
+          <View style={styles.scrollableContent}>
+            <ScrollView 
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={true}
+            >
 
           {/* Timer Display */}
           <View style={styles.timerContainer}>
@@ -555,6 +563,8 @@ const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
               );
             })}
           </ScrollView>
+            </ScrollView>
+          </View>
 
           {/* Cancel Button */}
           <TouchableOpacity
@@ -848,6 +858,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    zIndex: 10,
+  },
+  scrollableContent: {
+    position: 'absolute',
+    top: 89, // Header height
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
   
   // Modal Container
   modalContainer: {
@@ -959,16 +992,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   
-  // Main Content
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
