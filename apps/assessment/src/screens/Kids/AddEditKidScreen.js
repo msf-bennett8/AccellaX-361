@@ -6,7 +6,7 @@ import {
   TextInput,
   ScrollView,
   StyleSheet,
-  Alert,
+  Modal,
   TouchableOpacity,
   Platform,
 } from 'react-native';
@@ -69,6 +69,14 @@ const AddEditKidScreen = () => {
 
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
+  const [showNoSportsModal, setShowNoSportsModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalMessage, setErrorModalMessage] = useState('');
 
   // Check user role
   useEffect(() => {
@@ -145,30 +153,26 @@ const AddEditKidScreen = () => {
   // Validate form
   const validateForm = () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter kid name');
+      setValidationMessage('Please enter kid name');
+      setShowValidationModal(true);
       return false;
     }
 
     const ageNum = parseInt(age);
     if (!age || isNaN(ageNum) || ageNum < 1 || ageNum > 20) {
-      Alert.alert('Validation Error', 'Please enter a valid age (1-20)');
+      setValidationMessage('Please enter a valid age (1-20)');
+      setShowValidationModal(true);
       return false;
     }
 
     if (selectedSports.length === 0) {
-      Alert.alert(
-        'No Sports Selected',
-        'Kids should have at least one sport assigned. Do you want to continue without assigning sports?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Continue Anyway', onPress: () => handleSave(true) },
-        ]
-      );
+      setShowNoSportsModal(true);
       return false;
     }
 
     if (selectedSports.length > 0 && !primarySport) {
-      Alert.alert('Validation Error', 'Please select a primary sport');
+      setValidationMessage('Please select a primary sport');
+      setShowValidationModal(true);
       return false;
     }
 
@@ -186,7 +190,8 @@ const AddEditKidScreen = () => {
     try {
       const userId = await AsyncStorage.getItem('currentUserId');
       if (!userId) {
-        Alert.alert('Error', 'User not logged in');
+        setErrorModalMessage('User not logged in');
+        setShowErrorModal(true);
         return;
       }
 
@@ -210,9 +215,8 @@ const AddEditKidScreen = () => {
           await assignSportsToKid(existingKid.id, selectedSports, primarySport);
         }
 
-        Alert.alert('Success', 'Kid updated successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
+        setSuccessMessage('Kid updated successfully');
+        setShowSuccessModal(true);
       } else {
         // Create new kid
         const newKid = await insertKid(
@@ -236,13 +240,13 @@ const AddEditKidScreen = () => {
           await assignSportsToKid(newKid.id, selectedSports, primarySport);
         }
 
-        Alert.alert('Success', 'Kid added successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
+        setSuccessMessage('Kid added successfully');
+        setShowSuccessModal(true);
       }
     } catch (error) {
       console.error('❌ Error saving kid:', error);
-      Alert.alert('Error', error.message || 'Failed to save kid. Please try again.');
+      setErrorModalMessage(error.message || 'Failed to save kid. Please try again.');
+      setShowErrorModal(true);
     } finally {
       setSaving(false);
     }
@@ -542,6 +546,98 @@ const AddEditKidScreen = () => {
           color="#FFFFFF"
         />
       )}
+
+      {/* Validation Modal */}
+      <Modal visible={showValidationModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color="#FF9800" />
+            </View>
+            <Text style={styles.modalTitle}>Validation Error</Text>
+            <Text style={styles.modalMessage}>{validationMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowValidationModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* No Sports Modal */}
+      <Modal visible={showNoSportsModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color="#FF9800" />
+            </View>
+            <Text style={styles.modalTitle}>No Sports Selected</Text>
+            <Text style={styles.modalMessage}>
+              Kids should have at least one sport assigned. Do you want to continue without assigning sports?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => setShowNoSportsModal(false)}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton]}
+                onPress={() => {
+                  setShowNoSportsModal(false);
+                  handleSave(true);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Continue Anyway</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+            </View>
+            <Text style={styles.modalTitle}>Success</Text>
+            <Text style={styles.modalMessage}>{successMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => {
+                setShowSuccessModal(false);
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal visible={showErrorModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="close-circle" size={48} color="#F44336" />
+            </View>
+            <Text style={styles.modalTitle}>Error</Text>
+            <Text style={styles.modalMessage}>{errorModalMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       </ScrollView>
     </View>
   );
@@ -792,6 +888,74 @@ sportCard: {
   },
   selectedHouseTeamText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#212121',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#212121',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#757575',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#2196F3',
+  },
+  modalButtonSecondary: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalButtonTextSecondary: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#212121',
   },

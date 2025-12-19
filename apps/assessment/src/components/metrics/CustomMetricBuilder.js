@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
-  Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -42,7 +42,7 @@ const CustomMetricBuilder = ({
   });
 
   const [errors, setErrors] = useState({});
-
+  const [showValidationModal, setShowValidationModal] = useState(false);
   // Metric type options
   const metricTypes = [
     { id: 'numeric', name: 'Numeric', icon: '123', description: 'Height, weight, distance' },
@@ -108,11 +108,7 @@ const CustomMetricBuilder = ({
   // Handle save
   const handleSave = () => {
     if (!validate()) {
-      if (Platform.OS === 'web') {
-        alert('Please fix the errors before saving');
-      } else {
-        Alert.alert('Validation Error', 'Please fix the errors before saving');
-      }
+      setShowValidationModal(true);
       return;
     }
 
@@ -336,6 +332,25 @@ const CustomMetricBuilder = ({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Validation Modal */}
+      <Modal visible={showValidationModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color="#FF9800" />
+            </View>
+            <Text style={styles.modalTitle}>Validation Error</Text>
+            <Text style={styles.modalMessage}>Please fix the errors before saving</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowValidationModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -505,6 +520,59 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
     marginLeft: 8,
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#2196F3',
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

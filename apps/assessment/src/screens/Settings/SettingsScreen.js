@@ -155,7 +155,13 @@ export default function SettingsScreen({ onLogout }) {
       console.log('✅ Settings saved');
     } catch (error) {
       console.error('Error saving settings:', error);
-      Alert.alert('Error', 'Failed to save settings. Please try again.');
+      setModalConfig({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to save settings. Please try again.',
+        type: 'error',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
     }
   };
 

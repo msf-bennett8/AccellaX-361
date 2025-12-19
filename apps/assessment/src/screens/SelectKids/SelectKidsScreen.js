@@ -8,7 +8,7 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
+  Modal,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +36,15 @@ const AGE_GROUPS = [
   { value: '13+', label: '13+ yrs' },
 ];
 
+// Team configuration with icons and colors
+const TEAMS = [
+  { id: 'fire', name: 'Fire Team', icon: 'flame', color: '#FF5722' },
+  { id: 'ice', name: 'Ice Team', icon: 'snow', color: '#2196F3' },
+  { id: 'water', name: 'Water Team', icon: 'water', color: '#00BCD4' },
+  { id: 'wind', name: 'Wind Team', icon: 'fitness', color: '#9E9E9E' },
+  { id: 'earth', name: 'Earth Team', icon: 'leaf', color: '#8BC34A' },
+];
+
 const SelectKidsScreen = ({ route, navigation }) => {
   const { sport, assessmentMode, selectedTests = [], kidCount, assessmentMetadata } = route.params || {};
    console.log('🔍 SelectTests - Received metadata:', assessmentMetadata);
@@ -51,6 +60,12 @@ const SelectKidsScreen = ({ route, navigation }) => {
   const [showFilters, setShowFilters] = useState(true);
   const [scrollY, setScrollY] = useState(0);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [collapsedTeams, setCollapsedTeams] = useState({});
+  const [groupByTeam, setGroupByTeam] = useState(true);
+  const [showInvalidSportModal, setShowInvalidSportModal] = useState(false);
+  const [showLoadErrorModal, setShowLoadErrorModal] = useState(false);
+  const [showNoKidsModal, setShowNoKidsModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Determine if we're in test-by-test or kid-by-kid mode
   const isTestByTestMode = assessmentMode === 'test_by_test';
@@ -66,7 +81,7 @@ const SelectKidsScreen = ({ route, navigation }) => {
       
       if (!sport || !sport.id) {
         console.error('❌ Sport object is invalid:', sport);
-        Alert.alert('Error', 'Invalid sport selection');
+        setShowInvalidSportModal(true);
         setKids([]);
         setLoading(false);
         return;
@@ -89,7 +104,8 @@ const SelectKidsScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('❌ Error loading kids:', error);
-      Alert.alert('Error', 'Failed to load kids: ' + error.message);
+      setErrorMessage(error.message);
+      setShowLoadErrorModal(true);
       setKids([]);
     } finally {
       setLoading(false);
@@ -114,8 +130,8 @@ const SelectKidsScreen = ({ route, navigation }) => {
       );
     }
 
-    // Apply age group filter
-    if (filterBy === 'age_group' && selectedAgeFilter) {
+    // Apply age group filter (works with team grouping)
+    if (selectedAgeFilter) {
       result = result.filter(kid => {
         if (selectedAgeFilter === '4-6') return kid.age >= 4 && kid.age <= 6;
         if (selectedAgeFilter === '7-9') return kid.age >= 7 && kid.age <= 9;
@@ -127,6 +143,51 @@ const SelectKidsScreen = ({ route, navigation }) => {
 
     setFilteredKids(result);
   }, [searchQuery, filterBy, selectedSportFilter, selectedAgeFilter, kids]);
+
+  // Group kids by team
+  const getKidsByTeam = () => {
+    const grouped = {};
+    
+    TEAMS.forEach(team => {
+      grouped[team.id] = filteredKids.filter(kid => kid.house_team === team.id);
+    });
+    
+    // Kids without team assignment
+    grouped['no_team'] = filteredKids.filter(kid => !kid.house_team);
+    
+    return grouped;
+  };
+
+  // Toggle team collapse
+  const toggleTeamCollapse = (teamId) => {
+    setCollapsedTeams(prev => ({
+      ...prev,
+      [teamId]: !prev[teamId]
+    }));
+  };
+
+  // Select/deselect all kids in a team
+  const toggleTeamSelection = (teamId) => {
+    const teamKids = getKidsByTeam()[teamId] || [];
+    const teamKidIds = teamKids.map(k => k.id);
+    const allSelected = teamKidIds.every(id => selectedKids.includes(id));
+    
+    if (allSelected) {
+      // Deselect all team members
+      setSelectedKids(prev => prev.filter(id => !teamKidIds.includes(id)));
+    } else {
+      // Select all team members
+      setSelectedKids(prev => {
+        const newSelected = [...prev];
+        teamKidIds.forEach(id => {
+          if (!newSelected.includes(id)) {
+            newSelected.push(id);
+          }
+        });
+        return newSelected;
+      });
+    }
+  };
 
   const toggleKidSelection = (kidId) => {
     setSelectedKids(prev => 
@@ -142,7 +203,7 @@ const SelectKidsScreen = ({ route, navigation }) => {
 
   const handleContinue = () => {
     if (selectedKids.length === 0) {
-      Alert.alert('No Kids Selected', 'Please select at least one kid to assess');
+      setShowNoKidsModal(true);
       return;
     }
 
@@ -216,6 +277,99 @@ const SelectKidsScreen = ({ route, navigation }) => {
           )}
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  // Render team section with header
+  const renderTeamSection = (team) => {
+    const teamKids = getKidsByTeam()[team.id] || [];
+    
+    if (teamKids.length === 0) return null;
+    
+    const isCollapsed = collapsedTeams[team.id];
+    const teamKidIds = teamKids.map(k => k.id);
+    const selectedCount = teamKidIds.filter(id => selectedKids.includes(id)).length;
+    const allSelected = teamKidIds.length > 0 && teamKidIds.every(id => selectedKids.includes(id));
+    
+    return (
+      <View key={team.id} style={styles.teamSection}>
+        {/* Team Header */}
+        <TouchableOpacity
+          style={[styles.teamHeader, allSelected && styles.teamHeaderSelected]}
+          onPress={() => toggleTeamSelection(team.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.teamHeaderLeft}>
+            <TouchableOpacity
+              onPress={() => toggleTeamCollapse(team.id)}
+              style={styles.collapseButton}
+            >
+              <Ionicons 
+                name={isCollapsed ? 'chevron-forward' : 'chevron-down'} 
+                size={20} 
+                color={COLORS.text} 
+              />
+            </TouchableOpacity>
+            
+            <View style={[styles.teamIconContainer, { backgroundColor: team.color + '20' }]}>
+              <Ionicons name={team.icon} size={20} color={team.color} />
+            </View>
+            
+            <View style={styles.teamInfo}>
+              <Text style={styles.teamName}>{team.name}</Text>
+              <Text style={styles.teamCount}>
+                {selectedCount}/{teamKids.length} selected
+              </Text>
+            </View>
+          </View>
+          
+          <View style={[styles.teamCheckbox, allSelected && styles.teamCheckboxSelected]}>
+            {allSelected && <Ionicons name="checkmark" size={16} color={COLORS.white} />}
+          </View>
+        </TouchableOpacity>
+        
+        {/* Team Kids */}
+        {!isCollapsed && (
+          <View style={styles.teamKids}>
+            {teamKids.map(kid => (
+              <View key={kid.id}>
+                {renderKidItem({ item: kid })}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Render kids without teams
+  const renderNoTeamSection = () => {
+    const noTeamKids = getKidsByTeam()['no_team'] || [];
+    
+    if (noTeamKids.length === 0) return null;
+    
+    return (
+      <View style={styles.teamSection}>
+        <View style={styles.teamHeader}>
+          <View style={styles.teamHeaderLeft}>
+            <View style={[styles.teamIconContainer, { backgroundColor: '#9E9E9E20' }]}>
+              <Ionicons name="people-outline" size={20} color="#9E9E9E" />
+            </View>
+            <View style={styles.teamInfo}>
+              <Text style={styles.teamName}>No Team Assigned</Text>
+              <Text style={styles.teamCount}>{noTeamKids.length} kids</Text>
+            </View>
+          </View>
+        </View>
+        
+        <View style={styles.teamKids}>
+          {noTeamKids.map(kid => (
+            <View key={kid.id}>
+              {renderKidItem({ item: kid })}
+            </View>
+          ))}
+        </View>
+      </View>
     );
   };
 
@@ -310,13 +464,21 @@ const SelectKidsScreen = ({ route, navigation }) => {
                 style={styles.horizontalFilterScroll}
               >
                 {Object.keys(SPORTS_CONFIG).map(sportId => (
-                  <FilterChip
+                  <TouchableOpacity
                     key={sportId}
-                    label={SPORTS_CONFIG[sportId].name}
-                    selected={selectedSportFilter === sportId}
+                    style={[
+                      styles.sportFilterChip,
+                      selectedSportFilter === sportId && styles.sportFilterChipActive
+                    ]}
                     onPress={() => setSelectedSportFilter(selectedSportFilter === sportId ? null : sportId)}
-                    backgroundColor="#4CAF50"
-                  />
+                  >
+                    <Text style={[
+                      styles.sportFilterText,
+                      selectedSportFilter === sportId && styles.sportFilterTextActive
+                    ]}>
+                      {SPORTS_CONFIG[sportId].name}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
@@ -329,13 +491,21 @@ const SelectKidsScreen = ({ route, navigation }) => {
                 style={styles.horizontalFilterScroll}
               >
                 {AGE_GROUPS.map(group => (
-                  <FilterChip
+                  <TouchableOpacity
                     key={group.value}
-                    label={group.label}
-                    selected={selectedAgeFilter === group.value}
+                    style={[
+                      styles.ageFilterChip,
+                      selectedAgeFilter === group.value && styles.ageFilterChipActive
+                    ]}
                     onPress={() => setSelectedAgeFilter(selectedAgeFilter === group.value ? null : group.value)}
-                    backgroundColor="#4CAF50"
-                  />
+                  >
+                    <Text style={[
+                      styles.ageFilterText,
+                      selectedAgeFilter === group.value && styles.ageFilterTextActive
+                    ]}>
+                      {group.label}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
@@ -431,24 +601,20 @@ const SelectKidsScreen = ({ route, navigation }) => {
       <View style={[styles.content, { 
         top: showFilters ? (filterBy === 'sport' || filterBy === 'age_group' ? 280 : 230) : 180
       }]}>
-        <FlatList
-          data={filteredKids}
-          renderItem={renderKidItem}
-          keyExtractor={item => item.id?.toString() || Math.random().toString()}
+        <ScrollView
           contentContainerStyle={styles.listContainer}
           onScroll={(e) => {
             const currentScrollY = e.nativeEvent.contentOffset.y;
             if (currentScrollY > scrollY && currentScrollY > 50) {
-              // Scrolling down
               setShowFilters(false);
             } else if (currentScrollY < scrollY) {
-              // Scrolling up
               setShowFilters(true);
             }
             setScrollY(currentScrollY);
           }}
           scrollEventThrottle={16}
-          ListEmptyComponent={
+        >
+          {filteredKids.length === 0 ? (
             <View style={styles.emptyFilterState}>
               <Ionicons name="search-outline" size={48} color={COLORS.textSecondary} />
               <Text style={styles.emptyFilterText}>No kids found</Text>
@@ -459,9 +625,80 @@ const SelectKidsScreen = ({ route, navigation }) => {
                 }
               </Text>
             </View>
-          }
-        />
+          ) : groupByTeam ? (
+            <>
+              {TEAMS.map(team => renderTeamSection(team))}
+              {renderNoTeamSection()}
+            </>
+          ) : (
+            filteredKids.map(kid => (
+              <View key={kid.id}>
+                {renderKidItem({ item: kid })}
+              </View>
+            ))
+          )}
+        </ScrollView>
       </View>
+      
+      {/* Invalid Sport Modal */}
+      <Modal visible={showInvalidSportModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color={COLORS.error} />
+            </View>
+            <Text style={styles.modalTitle}>Error</Text>
+            <Text style={styles.modalMessage}>Invalid sport selection</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => {
+                setShowInvalidSportModal(false);
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Load Error Modal */}
+      <Modal visible={showLoadErrorModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color={COLORS.error} />
+            </View>
+            <Text style={styles.modalTitle}>Error</Text>
+            <Text style={styles.modalMessage}>Failed to load kids: {errorMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowLoadErrorModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* No Kids Selected Modal */}
+      <Modal visible={showNoKidsModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color={COLORS.warning} />
+            </View>
+            <Text style={styles.modalTitle}>No Kids Selected</Text>
+            <Text style={styles.modalMessage}>Please select at least one kid to assess</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowNoKidsModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.bottomContainer}>
         <TouchableOpacity
@@ -664,6 +901,167 @@ const styles = StyleSheet.create({
   },
   disabledButton: { backgroundColor: '#BDBDBD' },
   startButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  
+  // Team Section Styles
+  teamSection: { marginBottom: 16 },
+  teamHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+  },
+  teamHeaderSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#F1F8F4',
+  },
+  teamHeaderLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    flex: 1,
+  },
+  collapseButton: {
+    padding: 4,
+    marginRight: 8,
+  },
+  teamIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  teamInfo: { flex: 1 },
+  teamName: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    color: '#333',
+    marginBottom: 2,
+  },
+  teamCount: { 
+    fontSize: 12, 
+    color: '#666',
+  },
+  teamCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  teamCheckboxSelected: {
+    backgroundColor: '#4CAF50',
+  },
+  teamKids: { 
+    paddingLeft: 12,
+  },
+  
+  // Age Group Filter Chip Styles
+  ageFilterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    marginRight: 8,
+  },
+  ageFilterChipActive: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  ageFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  ageFilterTextActive: {
+    color: '#FFF',
+  },
+  
+  // Sport Filter Chip Styles
+  sportFilterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    marginRight: 8,
+  },
+  sportFilterChipActive: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  sportFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  sportFilterTextActive: {
+    color: '#FFF',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
 });
 
 export default SelectKidsScreen;

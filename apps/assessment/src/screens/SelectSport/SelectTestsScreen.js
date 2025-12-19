@@ -6,9 +6,10 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   TouchableOpacity,
+  Modal,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -27,6 +28,12 @@ export default function SelectTestsScreen() {
   const [selectedTests, setSelectedTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [filterBy, setFilterBy] = useState('all');
+  const [showPairedDeselectModal, setShowPairedDeselectModal] = useState(false);
+  const [showPairedSelectModal, setShowPairedSelectModal] = useState(false);
+  const [showNoTestsModal, setShowNoTestsModal] = useState(false);
+  const [pendingMetric, setPendingMetric] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
 
   // Determine mode
   const isTestByTestMode = assessmentMode === 'test_by_test';
@@ -41,7 +48,15 @@ export default function SelectTestsScreen() {
       setLoading(true);
       console.log('📊 Loading metrics for sport:', sport?.id);
       const sportMetrics = getMetricsBySport(sport.id);
-      console.log('✅ Loaded metrics:', sportMetrics.length);
+      console.log('✅ Loaded metrics:', sportMetrics.length, '| Sport:', sport?.name);
+      
+      // Log what type of metrics were loaded
+      if (sport?.id === 'fitness' || sport?.id === 'general') {
+        console.log('🏃 Loaded ONLY fitness tests (no sport-specific)');
+      } else {
+        console.log('⚽ Loaded sport-specific + IQ tests (fitness excluded)');
+      }
+      
       setMetrics(sportMetrics);
       setLoading(false);
     } catch (error) {
@@ -51,10 +66,31 @@ export default function SelectTestsScreen() {
   };
 
   const toggleTest = (metricId) => {
+    const metric = metrics.find(m => m.id === metricId);
+    
     if (selectedTests.includes(metricId)) {
-      setSelectedTests(selectedTests.filter(id => id !== metricId));
+      // Deselecting - also deselect paired metric if selected
+      let newSelected = selectedTests.filter(id => id !== metricId);
+      
+      if (metric?.pairedWith && selectedTests.includes(metric.pairedWith)) {
+        setPendingMetric(metric);
+        setPendingAction('deselect');
+        setShowPairedDeselectModal(true);
+      } else {
+        setSelectedTests(newSelected);
+      }
     } else {
-      setSelectedTests([...selectedTests, metricId]);
+      // Selecting - also select paired metric if not selected
+      let newSelected = [...selectedTests, metricId];
+      
+      if (metric?.pairedWith && !selectedTests.includes(metric.pairedWith)) {
+        const pairedMetric = metrics.find(m => m.id === metric.pairedWith);
+        setPendingMetric(metric);
+        setPendingAction('select');
+        setShowPairedSelectModal(true);
+      } else {
+        setSelectedTests(newSelected);
+      }
     }
   };
 
@@ -69,7 +105,7 @@ export default function SelectTestsScreen() {
 
   const handleContinue = () => {
     if (selectedTests.length === 0) {
-      Alert.alert('No Tests Selected', 'Please select at least one test');
+      setShowNoTestsModal(true);
       return;
     }
 
@@ -232,50 +268,58 @@ export default function SelectTestsScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.filterChip, filter === 'general_fitness' && styles.filterChipActive]}
-            onPress={() => setFilter('general_fitness')}
-          >
-            <MaterialCommunityIcons 
-              name="run-fast" 
-              size={16} 
-              color={filter === 'general_fitness' ? COLORS.white : '#FF6B35'} 
-              style={styles.filterIconImg}
-            />
-            <Text style={[styles.filterText, filter === 'general_fitness' && styles.filterTextActive]}>
-              Fitness ({getCategoryCount('general_fitness')})
-            </Text>
-          </TouchableOpacity>
+          {/* Show Fitness filter ONLY for Fitness sport */}
+          {(sport.id === 'fitness' || sport.id === 'general') && (
+            <TouchableOpacity
+              style={[styles.filterChip, filter === 'general_fitness' && styles.filterChipActive]}
+              onPress={() => setFilter('general_fitness')}
+            >
+              <MaterialCommunityIcons 
+                name="run-fast" 
+                size={16} 
+                color={filter === 'general_fitness' ? COLORS.white : '#FF6B35'} 
+                style={styles.filterIconImg}
+              />
+              <Text style={[styles.filterText, filter === 'general_fitness' && styles.filterTextActive]}>
+                Fitness ({getCategoryCount('general_fitness')})
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={[styles.filterChip, filter === 'sport_specific' && styles.filterChipActive]}
-            onPress={() => setFilter('sport_specific')}
-          >
-            <MaterialCommunityIcons 
-              name="soccer" 
-              size={16} 
-              color={filter === 'sport_specific' ? COLORS.white : '#4ECDC4'} 
-              style={styles.filterIconImg}
-            />
-            <Text style={[styles.filterText, filter === 'sport_specific' && styles.filterTextActive]}>
-              Skills ({getCategoryCount('sport_specific')})
-            </Text>
-          </TouchableOpacity>
+          {/* Show Skills + Cognitive filters ONLY for non-Fitness sports */}
+          {sport.id !== 'fitness' && sport.id !== 'general' && (
+            <>
+              <TouchableOpacity
+                style={[styles.filterChip, filter === 'sport_specific' && styles.filterChipActive]}
+                onPress={() => setFilter('sport_specific')}
+              >
+                <MaterialCommunityIcons 
+                  name="soccer" 
+                  size={16} 
+                  color={filter === 'sport_specific' ? COLORS.white : '#4ECDC4'} 
+                  style={styles.filterIconImg}
+                />
+                <Text style={[styles.filterText, filter === 'sport_specific' && styles.filterTextActive]}>
+                  Skills ({getCategoryCount('sport_specific')})
+                </Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.filterChip, filter === 'iq' && styles.filterChipActive]}
-            onPress={() => setFilter('iq')}
-          >
-            <MaterialCommunityIcons 
-              name="brain" 
-              size={16} 
-              color={filter === 'iq' ? COLORS.white : '#9B59B6'} 
-              style={styles.filterIconImg}
-            />
-            <Text style={[styles.filterText, filter === 'iq' && styles.filterTextActive]}>
-              Cognitive ({getCategoryCount('iq')})
-            </Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filter === 'iq' && styles.filterChipActive]}
+                onPress={() => setFilter('iq')}
+              >
+                <MaterialCommunityIcons 
+                  name="brain" 
+                  size={16} 
+                  color={filter === 'iq' ? COLORS.white : '#9B59B6'} 
+                  style={styles.filterIconImg}
+                />
+                <Text style={[styles.filterText, filter === 'iq' && styles.filterTextActive]}>
+                  Cognitive ({getCategoryCount('iq')})
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </ScrollView>
       </View>
 
@@ -329,6 +373,15 @@ export default function SelectTestsScreen() {
                 {metric.description && (
                   <Text style={styles.metricDescription}>{metric.description}</Text>
                 )}
+                
+                {metric.pairedWith && (
+                  <View style={styles.pairedBadge}>
+                    <Ionicons name="link" size={12} color={COLORS.primary} />
+                    <Text style={styles.pairedBadgeText}>
+                      Paired with {metrics.find(m => m.id === metric.pairedWith)?.name || 'another test'}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -344,6 +397,95 @@ export default function SelectTestsScreen() {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* Paired Deselect Modal */}
+      <Modal visible={showPairedDeselectModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="link" size={48} color={COLORS.warning} />
+            </View>
+            <Text style={styles.modalTitle}>Paired Test</Text>
+            <Text style={styles.modalMessage}>
+              {pendingMetric?.name} is paired with {metrics.find(m => m.id === pendingMetric?.pairedWith)?.name}. Deselect both?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => setShowPairedDeselectModal(false)}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDestructive]}
+                onPress={() => {
+                  const newSelected = selectedTests.filter(id => id !== pendingMetric.id);
+                  setSelectedTests(newSelected.filter(id => id !== pendingMetric.pairedWith));
+                  setShowPairedDeselectModal(false);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Deselect Both</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Paired Select Modal */}
+      <Modal visible={showPairedSelectModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="link" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.modalTitle}>Paired Test</Text>
+            <Text style={styles.modalMessage}>
+              {pendingMetric?.name} is best assessed together with {metrics.find(m => m.id === pendingMetric?.pairedWith)?.name}. Select both?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setSelectedTests([...selectedTests, pendingMetric.id]);
+                  setShowPairedSelectModal(false);
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Only This Test</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton]}
+                onPress={() => {
+                  setSelectedTests([...selectedTests, pendingMetric.id, pendingMetric.pairedWith]);
+                  setShowPairedSelectModal(false);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Select Both</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* No Tests Selected Modal */}
+      <Modal visible={showNoTestsModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color={COLORS.warning} />
+            </View>
+            <Text style={styles.modalTitle}>No Tests Selected</Text>
+            <Text style={styles.modalMessage}>
+              Please select at least one test
+            </Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowNoTestsModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Continue Button */}
       {selectedTests.length > 0 && (
@@ -404,4 +546,93 @@ const styles = StyleSheet.create({
   continueButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 12, gap: 8 },
   continueButtonText: { fontSize: 16, fontWeight: 'bold', color: COLORS.white },
   bottomPadding: { height: 16 },
+  
+  // Paired Test Badge
+  pairedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary + '10',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  pairedBadgeText: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonSecondary: {
+    backgroundColor: COLORS.backgroundDark,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+  },
+  modalButtonDestructive: {
+    backgroundColor: COLORS.error,
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  modalButtonTextSecondary: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
 });

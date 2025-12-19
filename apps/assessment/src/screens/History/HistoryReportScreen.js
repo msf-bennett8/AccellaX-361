@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -28,7 +28,13 @@ export default function HistoryReportScreen() {
   const [loading, setLoading] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv');
   const [showFormatMenu, setShowFormatMenu] = useState(false);
-
+  const [showNoDataModal, setShowNoDataModal] = useState(false);
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   useEffect(() => {
     console.log('📊 HistoryReportScreen loaded with:', filteredAssessments.length, 'assessments');
   }, []);
@@ -41,7 +47,7 @@ export default function HistoryReportScreen() {
 
   const handleExport = async () => {
     if (filteredAssessments.length === 0) {
-      Alert.alert('No Data', 'No assessments available to export');
+      setShowNoDataModal(true);
       return;
     }
 
@@ -51,22 +57,25 @@ export default function HistoryReportScreen() {
       if (exportFormat === 'csv') {
         await exportToCSV();
       } else if (exportFormat === 'pdf') {
-        Alert.alert('Coming Soon', 'PDF export will be available soon');
+        setComingSoonFeature('PDF export');
+        setShowComingSoonModal(true);
       } else if (exportFormat === 'excel') {
-        Alert.alert('Coming Soon', 'Excel export will be available soon');
+        setComingSoonFeature('Excel export');
+        setShowComingSoonModal(true);
       }
       
       setLoading(false);
     } catch (error) {
       console.error('Export error:', error);
-      Alert.alert('Export Failed', error.message);
+      setErrorMessage(error.message);
+      setShowErrorModal(true);
       setLoading(false);
     }
   };
 
   const handleShare = async () => {
     if (filteredAssessments.length === 0) {
-      Alert.alert('No Data', 'No assessments available to share');
+      setShowNoDataModal(true);
       return;
     }
 
@@ -76,7 +85,8 @@ export default function HistoryReportScreen() {
       setLoading(false);
     } catch (error) {
       console.error('Share error:', error);
-      Alert.alert('Share Failed', error.message);
+      setErrorMessage(error.message);
+      setShowErrorModal(true);
       setLoading(false);
     }
   };
@@ -148,12 +158,14 @@ export default function HistoryReportScreen() {
       });
       console.log('✅ CSV file shared successfully');
     } else {
-      Alert.alert('Success', `Report saved to ${fileUri}`);
+      setSuccessMessage(`Report saved to ${fileUri}`);
+      setShowSuccessModal(true);
     }
   };
 
   const handleCopyData = () => {
-    Alert.alert('Copy Data', 'Copy functionality coming soon!');
+    setComingSoonFeature('Copy functionality');
+    setShowComingSoonModal(true);
   };
 
   const getFilterSummary = () => {
@@ -318,6 +330,82 @@ export default function HistoryReportScreen() {
           </TouchableOpacity>
         </>
       )}
+
+      {/* No Data Modal */}
+      <Modal visible={showNoDataModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color="#FF9800" />
+            </View>
+            <Text style={styles.modalTitle}>No Data</Text>
+            <Text style={styles.modalMessage}>No assessments available to export</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowNoDataModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Coming Soon Modal */}
+      <Modal visible={showComingSoonModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="information-circle" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.modalTitle}>Coming Soon</Text>
+            <Text style={styles.modalMessage}>{comingSoonFeature} will be available soon</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowComingSoonModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal visible={showErrorModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="close-circle" size={48} color={COLORS.error} />
+            </View>
+            <Text style={styles.modalTitle}>Error</Text>
+            <Text style={styles.modalMessage}>{errorMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+            </View>
+            <Text style={styles.modalTitle}>Success</Text>
+            <Text style={styles.modalMessage}>{successMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -522,5 +610,58 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });

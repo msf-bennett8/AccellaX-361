@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { saveAssessmentResult, getLastAssessmentForKid } from '../../services/assessmentService';
 import MetricInput from '../../components/metrics/MetricInput';
+import TimerAssessmentInput from '../../components/metrics/TimerAssessmentInput';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS } from '../../utils/constants';
@@ -97,6 +99,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
   const [missingValueModal, setMissingValueModal] = useState(false);
   const [completeModal, setCompleteModal] = useState(false);
   const [saveErrorModal, setSaveErrorModal] = useState(false);
+  const [pairedMetricErrorModal, setPairedMetricErrorModal] = useState(false);
 
   const isBatchMode = mode === 'test-by-test';
 
@@ -143,6 +146,13 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
   const currentMetric = typeof currentTest === 'string' 
     ? { id: currentTest, name: currentTest, type: 'numeric' } 
     : currentTest;
+  
+  const isBeepTest = currentMetric.id === 'beep_test' || 
+                      currentMetric.name.toLowerCase().includes('beep test');
+  const isCooperTest = currentMetric.id === 'cooper_test' || 
+                        currentMetric.name.toLowerCase().includes('cooper test');
+  const isPairedTest = currentMetric.pairedWith !== undefined;
+  const isTimerTest = currentMetric.type === 'timer';
 
   const isLastKid = currentKidIndex === kids.length - 1;
   const isLastTest = currentTestIndex === selectedTests.length - 1;
@@ -155,6 +165,27 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
       const currentValue = getCurrentValue();
       if (prefillEnabled && !currentValue && lastValues[currentMetric.id]) {
         saveCurrentValue(lastValues[currentMetric.id]);
+      }
+      
+      // SPECIAL: If Beep Test detected in test-by-test mode, navigate to live tracker
+      if (isBeepTest && isBatchMode && currentKidIndex === 0 && currentTestIndex === 0) {
+        handleBeepTestLaunch();
+      }
+      
+      // SPECIAL: If Cooper Test detected in test-by-test mode, navigate to live tracker
+      if (isCooperTest && isBatchMode && currentKidIndex === 0 && currentTestIndex === 0) {
+        handleCooperTestLaunch();
+      }
+      
+      // SPECIAL: If Paired Test detected in test-by-test mode, navigate to paired tracker
+      if (isPairedTest && isBatchMode && currentKidIndex === 0) {
+        // Check if this is the first of the pair (not already processed)
+        const pairedMetricIndex = selectedTests.findIndex(t => t.id === currentMetric.pairedWith);
+        const shouldLaunch = pairedMetricIndex > currentTestIndex || pairedMetricIndex === -1;
+        
+        if (shouldLaunch) {
+          handlePairedTestLaunch();
+        }
       }
     }
   }, [currentKid?.id, currentMetric?.id]);
@@ -254,6 +285,93 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     if (newPrefillState && lastValues[currentMetric.id] && (!currentValue || currentValue === '')) {
       await saveCurrentValue(lastValues[currentMetric.id]);
     }
+  };
+
+  const handleBeepTestLaunch = () => {
+    navigation.navigate('BeepTestLiveTracker', {
+      sport,
+      kids,
+      metric: currentMetric,
+      assessmentMetadata,
+      onComplete: (results) => {
+        // Save all beep test results
+        results.forEach(result => {
+          const key = `${result.kidId}_${currentMetric.id}`;
+          const value = `${result.level}.${result.shuttle}`;
+          assessmentData[key] = value;
+        });
+        
+        // Move to next test or complete
+        if (isLastTest) {
+          handleComplete();
+        } else {
+          setCurrentTestIndex(currentTestIndex + 1);
+          setCurrentKidIndex(0);
+        }
+      }
+    });
+  };
+
+  const handleCooperTestLaunch = () => {
+    navigation.navigate('CooperTestLiveTracker', {
+      sport,
+      kids,
+      metric: currentMetric,
+      assessmentMetadata,
+      onComplete: (results) => {
+        // Save all Cooper test results
+        results.forEach(result => {
+          const key = `${result.kidId}_${currentMetric.id}`;
+          assessmentData[key] = result.totalDistance;
+        });
+        
+        // Move to next test or complete
+        if (isLastTest) {
+          handleComplete();
+        } else {
+          setCurrentTestIndex(currentTestIndex + 1);
+          setCurrentKidIndex(0);
+        }
+      }
+    });
+  };
+
+  const handlePairedTestLaunch = () => {
+    // Find the paired metric
+    const pairedMetric = selectedTests.find(t => t.id === currentMetric.pairedWith);
+    
+    if (!pairedMetric) {
+      setPairedMetricErrorModal(true);
+      return;
+    }
+
+    navigation.navigate('PairedAssessmentTracker', {
+      sport,
+      kids,
+      metric1: currentMetric,
+      metric2: pairedMetric,
+      assessmentMetadata,
+      onComplete: (results) => {
+        // Save all paired assessment results
+        results.forEach(result => {
+          const key = `${result.kidId}_${result.metricId}`;
+          assessmentData[key] = result.value;
+        });
+        
+        // Skip the paired metric (already assessed)
+        const pairedTestIndex = selectedTests.findIndex(t => t.id === pairedMetric.id);
+        
+        // Move to next test after the pair
+        const nextIndex = Math.max(currentTestIndex, pairedTestIndex) + 1;
+        
+        if (nextIndex >= selectedTests.length) {
+          handleComplete();
+        } else {
+          setCurrentTestIndex(nextIndex);
+          setCurrentKidIndex(0);
+        }
+      }
+    });
   };
 
   const handleNext = async () => {
@@ -477,14 +595,121 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Metric Input */}
-        <MetricInput
-          metric={currentMetric}
-          value={getCurrentValue()}
-          onChange={saveCurrentValue}
-          previousValue={lastValues[currentMetric.id]}
-          showPrevious={prefillEnabled}
-        />
+        {/* Metric Input or Group/Timer Test */}
+        {isTimerTest ? (
+          <TimerAssessmentInput
+            metric={currentMetric}
+            value={getCurrentValue()}
+            onChange={saveCurrentValue}
+            previousValue={lastValues[currentMetric.id]}
+            showPrevious={prefillEnabled}
+            kidName={currentKid.name}
+          />
+        ) : isPairedTest && !isBatchMode ? (
+          <View style={styles.beepTestCard}>
+            <View style={styles.beepTestIconContainer}>
+              <Ionicons name="people" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.beepTestTitle}>Paired Assessment</Text>
+            <Text style={styles.beepTestDescription}>
+              {currentMetric.name} & {selectedTests.find(t => t.id === currentMetric.pairedWith)?.name || 'Paired Skill'} - assess both skills simultaneously with pairs of kids
+            </Text>
+            <TouchableOpacity
+              style={styles.beepTestButton}
+              onPress={handlePairedTestLaunch}
+            >
+              <Ionicons name="people-circle" size={24} color={COLORS.white} />
+              <Text style={styles.beepTestButtonText}>Launch Paired Tracker</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.beepTestDivider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            
+            <Text style={styles.manualEntryLabel}>Enter score manually if already assessed:</Text>
+            <MetricInput
+              metric={currentMetric}
+              value={getCurrentValue()}
+              onChange={saveCurrentValue}
+              previousValue={lastValues[currentMetric.id]}
+              showPrevious={prefillEnabled}
+            />
+          </View>
+        ) : isCooperTest && !isBatchMode ? (
+          <View style={styles.beepTestCard}>
+            <View style={styles.beepTestIconContainer}>
+              <Ionicons name="timer-outline" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.beepTestTitle}>Group Cooper Test</Text>
+            <Text style={styles.beepTestDescription}>
+              12-minute run test with lap tracking - best conducted with all kids at once
+            </Text>
+            <TouchableOpacity
+              style={styles.beepTestButton}
+              onPress={handleCooperTestLaunch}
+            >
+              <Ionicons name="play-circle" size={24} color={COLORS.white} />
+              <Text style={styles.beepTestButtonText}>Launch Live Tracker</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.beepTestDivider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            
+            <Text style={styles.manualEntryLabel}>Enter distance manually if already completed:</Text>
+            <MetricInput
+              metric={currentMetric}
+              value={getCurrentValue()}
+              onChange={saveCurrentValue}
+              previousValue={lastValues[currentMetric.id]}
+              showPrevious={prefillEnabled}
+            />
+          </View>
+        ) : isBeepTest && !isBatchMode ? (
+          <View style={styles.beepTestCard}>
+            <View style={styles.beepTestIconContainer}>
+              <Ionicons name="fitness" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.beepTestTitle}>Group Beep Test</Text>
+            <Text style={styles.beepTestDescription}>
+              This test is best conducted with all kids at once using the live tracker
+            </Text>
+            <TouchableOpacity
+              style={styles.beepTestButton}
+              onPress={handleBeepTestLaunch}
+            >
+              <Ionicons name="play-circle" size={24} color={COLORS.white} />
+              <Text style={styles.beepTestButtonText}>Launch Live Tracker</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.beepTestDivider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            
+            <Text style={styles.manualEntryLabel}>Enter manually if already completed:</Text>
+            <MetricInput
+              metric={currentMetric}
+              value={getCurrentValue()}
+              onChange={saveCurrentValue}
+              previousValue={lastValues[currentMetric.id]}
+              showPrevious={prefillEnabled}
+            />
+          </View>
+        ) : (
+          <MetricInput
+            metric={currentMetric}
+            value={getCurrentValue()}
+            onChange={saveCurrentValue}
+            previousValue={lastValues[currentMetric.id]}
+            showPrevious={prefillEnabled}
+          />
+        )}
 
         {/* Previous Value Reference */}
         {lastValues[currentMetric.id] && !prefillEnabled && (
@@ -635,6 +860,21 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
                 sessionId, // Pass sessionId for tracking
               });
             }
+          }
+        ]}
+      />
+
+      {/* Paired Metric Error Modal */}
+      <CustomModal
+        visible={pairedMetricErrorModal}
+        title="Error"
+        message="Paired metric not found in selected tests"
+        icon="alert-circle"
+        iconColor={COLORS.error}
+        buttons={[
+          { 
+            text: 'OK', 
+            onPress: () => setPairedMetricErrorModal(false)
           }
         ]}
       />
@@ -966,6 +1206,78 @@ const styles = StyleSheet.create({
     color: COLORS.white, 
     fontSize: 16, 
     fontWeight: 'bold' 
+  },
+  
+  // Beep Test Styles
+  beepTestCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 20,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  beepTestIconContainer: {
+    alignSelf: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.primaryLight + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  beepTestTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  beepTestDescription: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  beepTestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+  },
+  beepTestButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  beepTestDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  manualEntryLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
   },
 });
 

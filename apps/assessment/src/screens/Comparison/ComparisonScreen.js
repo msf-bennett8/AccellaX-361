@@ -61,7 +61,7 @@ export default function ComparisonScreen() {
       // Safety check: ensure kidId and sportId exist
       if (!kidId || !sportId) {
         console.error('❌ Missing kidId or sportId in navigation params');
-        alert('Unable to load comparison data. Missing parameters.');
+        console.error('Unable to load comparison data. Missing parameters.');
         navigation.goBack();
         return;
       }
@@ -73,7 +73,7 @@ export default function ComparisonScreen() {
       // Safety check: ensure kid and sport exist
       if (!kidData || !sportData) {
         console.error('❌ Kid or sport not found');
-        Alert.alert('Error', 'Unable to load comparison data');
+        console.error('Unable to load comparison data');
         navigation.goBack();
         return;
       }

@@ -13,6 +13,11 @@ import SelectKidsScreen from '../screens/SelectKids/SelectKidsScreen';
 import AssessmentEntryScreen from '../screens/AssessmentEntry/AssessmentEntryScreen';
 import AssessmentSummaryScreen from '../screens/AssessmentSummary/AssessmentSummaryScreen';
 
+// Import Special Assessment Screens
+import BeepTestLiveTrackerScreen from '../screens/BeepTest/BeepTestLiveTrackerScreen';
+import CooperTestLiveTrackerScreen from '../screens/CooperTest/CooperTestLiveTrackerScreen';
+import PairedAssessmentTrackerScreen from '../screens/PairedAssessment/PairedAssessmentTrackerScreen';
+
 const Stack = createStackNavigator();
 
 export default function AssessmentStackNavigator() {
@@ -57,6 +62,21 @@ export default function AssessmentStackNavigator() {
         name="AssessmentSummary" 
         component={AssessmentSummaryScreen}
         options={{ title: 'Assessment Summary' }}
+      />
+      <Stack.Screen 
+        name="BeepTestLiveTracker" 
+        component={BeepTestLiveTrackerScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="CooperTestLiveTracker" 
+        component={CooperTestLiveTrackerScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="PairedAssessmentTracker" 
+        component={PairedAssessmentTrackerScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  Modal,
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +35,9 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [userName, setUserName] = useState('');
 
   const updateFormData = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -156,15 +159,13 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
 
         // Show welcome message after navigation starts
         setTimeout(() => {
-          Alert.alert(
-            'Welcome!',
-            `Welcome to ${APP_NAME}, ${result.userProfile.fullName || 'there'}! ${
-              result.offlineMode 
-                ? 'Your account was created in offline mode. It will sync when you connect to the internet.' 
-                : 'Your account has been created and synced.'
-            }`,
-            [{ text: 'Get Started' }]
+          setUserName(result.userProfile.fullName || 'there');
+          setWelcomeMessage(
+            result.offlineMode 
+              ? 'Your account was created in offline mode. It will sync when you connect to the internet.' 
+              : 'Your account has been created and synced.'
           );
+          setShowWelcomeModal(true);
         }, 500);
       } else {
         console.error('❌ Registration failed:', result.error);
@@ -456,6 +457,31 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Welcome Modal */}
+      <Modal visible={showWelcomeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={styles.welcomeIconContainer}>
+                <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
+              </View>
+            </View>
+            <Text style={styles.modalTitle}>Welcome! 🎉</Text>
+            <Text style={styles.modalSubtitle}>
+              Welcome to {APP_NAME}, {userName}!
+            </Text>
+            <Text style={styles.modalMessage}>{welcomeMessage}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowWelcomeModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalButtonText}>Get Started</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -721,6 +747,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.primary,
     fontWeight: 'bold',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 32,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  welcomeIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.primary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  modalButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
 });
 

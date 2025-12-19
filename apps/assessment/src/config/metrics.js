@@ -44,37 +44,63 @@ export const GENERAL_FITNESS_METRICS = [
     id: 'beep_test',
     name: 'Beep Test (Endurance)',
     category: 'general_fitness',
-    type: 'counted',
+    type: 'beep_test', // Special type for live tracker
     unit: 'level',
     minValue: 1,
-    maxValue: 20,
+    maxValue: 21,
     displayOrder: 3,
     isDefault: true,
     description: '20m shuttle run test level reached',
+    requiresLiveTracking: true, // Flag for group test
   },
   {
     id: 'cooper_test',
     name: 'Cooper Test (12-min run)',
     category: 'general_fitness',
-    type: 'numeric',
+    type: 'cooper_test', // Special type for live tracker
     unit: 'meters',
     minValue: 500,
     maxValue: 4000,
     displayOrder: 4,
     isDefault: true,
     description: 'Distance covered in 12 minutes',
+    requiresLiveTracking: true, // Flag for group test
   },
   {
     id: 'sprint_100m',
     name: '100m Sprint (Speed)',
     category: 'general_fitness',
-    type: 'timed',
+    type: 'timer',
     unit: 'seconds',
     minValue: 10,
     maxValue: 30,
     displayOrder: 5,
     isDefault: true,
     description: '100-meter sprint time',
+  },
+  {
+    id: 'sprint_40m',
+    name: '40m Sprint (Speed)',
+    category: 'general_fitness',
+    type: 'timer',
+    unit: 'seconds',
+    minValue: 5,
+    maxValue: 15,
+    displayOrder: 6,
+    isDefault: true,
+    description: '40-meter sprint time - suitable for younger athletes',
+  },
+  {
+    id: 'sprint_20m',
+    name: '20m Sprint (Speed)',
+    category: 'general_fitness',
+    type: 'timer',
+    unit: 'seconds',
+    minValue: 3,
+    maxValue: 10,
+    displayOrder: 7,
+    isDefault: true,
+    description: '20-meter sprint time - ideal for 4-9 age group',
   },
   {
     id: 'pushups_1min',
@@ -84,7 +110,7 @@ export const GENERAL_FITNESS_METRICS = [
     unit: 'reps',
     minValue: 0,
     maxValue: 100,
-    displayOrder: 6,
+    displayOrder: 8,
     isDefault: true,
     description: 'Push-ups in 1 minute',
   },
@@ -96,7 +122,7 @@ export const GENERAL_FITNESS_METRICS = [
     unit: 'reps',
     minValue: 0,
     maxValue: 100,
-    displayOrder: 7,
+    displayOrder: 9,
     isDefault: true,
     description: 'Sit-ups in 1 minute',
   },
@@ -108,7 +134,7 @@ export const GENERAL_FITNESS_METRICS = [
     unit: 'cm',
     minValue: -20,
     maxValue: 50,
-    displayOrder: 8,
+    displayOrder: 10,
     isDefault: true,
     description: 'Sit-and-reach test',
   },
@@ -116,11 +142,11 @@ export const GENERAL_FITNESS_METRICS = [
     id: 'agility_ttest',
     name: 'T-Test (Agility)',
     category: 'general_fitness',
-    type: 'timed',
+    type: 'timer', // Use timer component
     unit: 'seconds',
     minValue: 8,
     maxValue: 20,
-    displayOrder: 9,
+    displayOrder: 11,
     isDefault: true,
     description: 'T-Test agility drill',
   },
@@ -132,9 +158,21 @@ export const GENERAL_FITNESS_METRICS = [
     unit: 'cm',
     minValue: 10,
     maxValue: 80,
-    displayOrder: 10,
+    displayOrder: 12,
     isDefault: true,
     description: 'Maximum vertical jump height',
+  },
+  {
+    id: 'standing_broad_jump',
+    name: 'Standing Broad Jump (Power)',
+    category: 'general_fitness',
+    type: 'numeric',
+    unit: 'cm',
+    minValue: 50,
+    maxValue: 300,
+    displayOrder: 13,
+    isDefault: true,
+    description: 'Maximum horizontal jump distance from standing position',
   },
 ];
 
@@ -152,6 +190,8 @@ export const FOOTBALL_METRICS = [
     maxValue: 10,
     displayOrder: 1,
     isDefault: true,
+    pairedWith: 'football_receiving', // Links to receiving
+    pairRole: 'passer', // Role in the pair
   },
   {
     id: 'football_receiving',
@@ -164,6 +204,8 @@ export const FOOTBALL_METRICS = [
     maxValue: 10,
     displayOrder: 2,
     isDefault: true,
+    pairedWith: 'football_passing', // Links to passing
+    pairRole: 'receiver', // Role in the pair
   },
   {
     id: 'football_dribbling',
@@ -308,6 +350,8 @@ export const RUGBY_METRICS = [
     maxValue: 10,
     displayOrder: 1,
     isDefault: true,
+    pairedWith: 'rugby_receiving',
+    pairRole: 'passer',
   },
   {
     id: 'rugby_receiving',
@@ -320,6 +364,8 @@ export const RUGBY_METRICS = [
     maxValue: 10,
     displayOrder: 2,
     isDefault: true,
+    pairedWith: 'rugby_passing',
+    pairRole: 'receiver',
   },
   {
     id: 'rugby_running',
@@ -542,6 +588,22 @@ export const BASKETBALL_METRICS = [
     maxValue: 10,
     displayOrder: 1,
     isDefault: true,
+    pairedWith: 'basketball_receiving',
+    pairRole: 'passer',
+  },
+  {
+    id: 'basketball_receiving',
+    sportId: 'basketball',
+    name: 'Receiving/Catching',
+    category: 'sport_specific',
+    type: 'rating',
+    unit: '/10',
+    minValue: 1,
+    maxValue: 10,
+    displayOrder: 2,
+    isDefault: true,
+    pairedWith: 'basketball_passing',
+    pairRole: 'receiver',
   },
   {
     id: 'basketball_shooting',
@@ -632,11 +694,19 @@ export const ALL_DEFAULT_METRICS = [
 // ========== HELPER FUNCTIONS ==========
 
 /**
- * Get all metrics for a specific sport (including general fitness)
+ * Get all metrics for a specific sport
+ * - If sportId is 'fitness' or 'general', return ONLY general fitness metrics
+ * - For other sports, return ONLY sport-specific and IQ metrics (exclude fitness)
  */
 export const getMetricsBySport = (sportId) => {
+  // Special case: Fitness module returns ONLY general fitness tests
+  if (sportId === 'fitness' || sportId === 'general') {
+    return GENERAL_FITNESS_METRICS;
+  }
+  
+  // For other sports: Return ONLY sport-specific and IQ metrics (NO fitness tests)
   const sportSpecific = SPORT_METRICS_MAP[sportId] || [];
-  return [...GENERAL_FITNESS_METRICS, ...sportSpecific];
+  return sportSpecific;
 };
 
 /**

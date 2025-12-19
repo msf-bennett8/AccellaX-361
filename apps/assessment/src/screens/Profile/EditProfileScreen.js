@@ -9,10 +9,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  Modal,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../utils/constants';
 import { updateUserProfile } from '../../utils/auth';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -27,7 +28,7 @@ export default function EditProfileScreen({ navigation, route }) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
-
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const updateFormData = (field, value) => {
     setFormData({ ...formData, [field]: value });
     if (errors[field]) {
@@ -69,16 +70,7 @@ export default function EditProfileScreen({ navigation, route }) {
       });
 
       if (result.success) {
-        Alert.alert(
-          'Success',
-          'Your profile has been updated!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        setShowSuccessModal(true);
       } else {
         setErrors({ general: result.error || 'Failed to update profile' });
       }
@@ -202,6 +194,28 @@ export default function EditProfileScreen({ navigation, route }) {
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
+
+        {/* Success Modal */}
+        <Modal visible={showSuccessModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+              </View>
+              <Text style={styles.modalTitle}>Success</Text>
+              <Text style={styles.modalMessage}>Your profile has been updated!</Text>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonFull]}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.modalButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -318,5 +332,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.textSecondary,
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });

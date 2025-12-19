@@ -262,9 +262,13 @@ const MetricInput = ({
     );
   };
 
-  // Beep Test Input (special input for beep test levels)
+  // Beep Test Input (special input for beep test levels with shuttle)
   const renderBeepTestInput = () => {
-    const level = Number(inputValue) || 1;
+    // Parse level.shuttle format (e.g., "5.3" = Level 5, Shuttle 3)
+    const parts = String(inputValue).split('.');
+    const level = Number(parts[0]) || 1;
+    const shuttle = Number(parts[1]) || 1;
+    const maxShuttles = [7,8,8,9,9,10,10,11,11,11,12,12,13,13,13,14,14,15,15,16,16][level - 1] || 7;
 
     return (
       <View style={styles.beepTestContainer}>
@@ -279,8 +283,9 @@ const MetricInput = ({
                 level === lvl && styles.beepTestButtonActive,
               ]}
               onPress={() => {
-                setInputValue(String(lvl));
-                onChange(String(lvl));
+                const newValue = `${lvl}.1`;
+                setInputValue(newValue);
+                onChange(newValue);
               }}
             >
               <Text style={[
@@ -323,6 +328,38 @@ const MetricInput = ({
           placeholderTextColor={COLORS.textSecondary}
         />
 
+        {/* Shuttle Selection for selected level */}
+        {level > 0 && (
+          <View style={styles.shuttleSection}>
+            <Text style={styles.shuttleSectionTitle}>
+              Select Shuttle (1-{maxShuttles})
+            </Text>
+            <View style={styles.shuttleButtons}>
+              {Array.from({ length: maxShuttles }, (_, i) => i + 1).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[
+                    styles.shuttleButton,
+                    shuttle === s && styles.shuttleButtonActive,
+                  ]}
+                  onPress={() => {
+                    const newValue = `${level}.${s}`;
+                    setInputValue(newValue);
+                    onChange(newValue);
+                  }}
+                >
+                  <Text style={[
+                    styles.shuttleButtonText,
+                    shuttle === s && styles.shuttleButtonTextActive,
+                  ]}>
+                    {s}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         {showPrevious && previousValue && (
           <TouchableOpacity 
             style={styles.fillButton}
@@ -345,10 +382,15 @@ const MetricInput = ({
         return renderRatingInput();
       case 'timed':
         return renderTimedInput();
+      case 'timer':
+        // Use TimerAssessmentInput component instead
+        return null; // Will be handled by parent component
       case 'counted':
         return renderCountedInput();
       case 'beep_test':
         return renderBeepTestInput();
+      case 'cooper_test':
+        return renderNumericInput(); // Simple numeric input for distance in meters
       default:
         return renderDefaultInput();
     }
@@ -592,6 +634,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: COLORS.white,
     color: COLORS.text,
+  },
+
+  beepTestButtonTextActive: {
+    color: COLORS.white,
+  },
+  
+  // Shuttle Section Styles
+  shuttleSection: {
+    marginTop: 16,
+  },
+  shuttleSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  shuttleButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  shuttleButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shuttleButtonActive: {
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.success,
+  },
+  shuttleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  shuttleButtonTextActive: {
+    color: COLORS.white,
   },
 });
 

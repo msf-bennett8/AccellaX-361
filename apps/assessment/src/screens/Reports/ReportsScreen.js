@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -57,7 +57,8 @@ export default function ReportsScreen() {
 
   // Options
   const [yearOptions, setYearOptions] = useState([]);
-
+  const [showLoadErrorModal, setShowLoadErrorModal] = useState(false);
+  const [loadErrorMessage, setLoadErrorMessage] = useState('');
   useEffect(() => {
     loadData();
   }, []);
@@ -126,7 +127,8 @@ export default function ReportsScreen() {
 
     } catch (error) {
       console.error('❌ REPORTS: Error loading data:', error);
-      Alert.alert('Error', 'Failed to load data: ' + error.message);
+      setLoadErrorMessage('Failed to load data: ' + error.message);
+      setShowLoadErrorModal(true);
     } finally {
       console.log('🏁 REPORTS: Setting loading to false');
       setLoading(false);
@@ -922,6 +924,25 @@ export default function ReportsScreen() {
           />
         </View>
       )}
+
+      {/* Load Error Modal */}
+      <Modal visible={showLoadErrorModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color={COLORS.error} />
+            </View>
+            <Text style={styles.modalTitle}>Error</Text>
+            <Text style={styles.modalMessage}>{loadErrorMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowLoadErrorModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1340,5 +1361,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 99999,
+  },
+  modalButtonFull: {
+    width: '100%',
   },
 });

@@ -32,6 +32,13 @@ export default function SportFilter({
     try {
       const allSports = await getAllSports();
       
+      // Remove duplicates based on sport.id
+      const uniqueSports = allSports.filter((sport, index, self) =>
+        index === self.findIndex((s) => s.id === sport.id)
+      );
+      
+      const sportsWithIcons = uniqueSports.map(sport => ({
+      
       const sportsWithIcons = allSports.map(sport => ({
         ...sport,
         iconName: getSportIcon(sport.id),

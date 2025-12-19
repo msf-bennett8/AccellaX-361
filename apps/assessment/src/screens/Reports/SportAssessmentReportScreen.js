@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
-  Alert,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -59,6 +59,11 @@ export default function SportAssessmentReportScreen() {
     avgMetrics: 0,
     lastAssessmentDate: null,
   });
+
+  const [showNoDataModal, setShowNoDataModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadData();
@@ -194,7 +199,7 @@ export default function SportAssessmentReportScreen() {
 
   const handleShare = async () => {
     if (filteredAssessments.length === 0) {
-      Alert.alert('No Data', 'No assessments available to share');
+      setShowNoDataModal(true);
       return;
     }
 
@@ -212,10 +217,11 @@ export default function SportAssessmentReportScreen() {
         ageGroup: selectedAgeGroup,
       });
 
-      Alert.alert('Success', 'Report exported successfully!');
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('❌ Export error:', error);
-      Alert.alert('Export Failed', error.message || 'Could not export data');
+      setErrorMessage(error.message || 'Could not export data');
+      setShowErrorModal(true);
     }
   };
 
@@ -498,6 +504,63 @@ export default function SportAssessmentReportScreen() {
           </TouchableOpacity>
         </>
       )}
+
+      {/* No Data Modal */}
+      <Modal visible={showNoDataModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle" size={48} color="#FF9800" />
+            </View>
+            <Text style={styles.modalTitle}>No Data</Text>
+            <Text style={styles.modalMessage}>No assessments available to share</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowNoDataModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+            </View>
+            <Text style={styles.modalTitle}>Success</Text>
+            <Text style={styles.modalMessage}>Report exported successfully!</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal visible={showErrorModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="close-circle" size={48} color={COLORS.error} />
+            </View>
+            <Text style={styles.modalTitle}>Export Failed</Text>
+            <Text style={styles.modalMessage}>{errorMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -739,5 +802,58 @@ const styles = StyleSheet.create({
   fabShare: {
     bottom: 24,
     backgroundColor: '#4CAF50',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });

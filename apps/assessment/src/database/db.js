@@ -1085,7 +1085,12 @@ export const insertSport = async (sportData, userId, skipFirebaseSync = false) =
 
 export const getAllSports = async () => {
   if (isWeb) {
-    return webDB.sports.filter(s => s.is_active === 1);
+    const activeSports = webDB.sports.filter(s => s.is_active === 1);
+    // Remove duplicates based on sport.id
+    const uniqueSports = activeSports.filter((sport, index, self) =>
+      index === self.findIndex((s) => s.id === sport.id)
+    );
+    return uniqueSports;
   }
   return await db.getAllAsync('SELECT * FROM sports WHERE is_active = 1 ORDER BY name');
 };

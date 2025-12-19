@@ -1,7 +1,8 @@
 //src/components/common/Header.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, Image, Alert, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, Image, Modal, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, APP_NAME } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
 import { generateInitials, getAvatarColor, getBase64DataUri } from '../../utils/imageUtils';
@@ -53,7 +54,8 @@ const Header = ({
   const [isAdmin, setIsAdmin] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
-
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
   // DEBUG: Log props on mount
   useEffect(() => {
     console.log('🔍 Header DEBUG - Props received:', {
@@ -178,8 +180,8 @@ const Header = ({
 
   const handleNavigateToAdminDashboard = () => {
     setShowDropdown(false);
-    Alert.alert('Admin Dashboard', 'Admin dashboard coming soon!');
-    // TODO: navigation.navigate('AdminDashboard');
+    setAlertConfig({ title: 'Admin Dashboard', message: 'Admin dashboard coming soon!' });
+    setShowAlertModal(true);
   };
 
   const renderAvatar = () => {
@@ -390,6 +392,25 @@ const Header = ({
 
       {/* Admin Dropdown Menu */}
       {renderAdminDropdown()}
+
+      {/* Alert Modal */}
+      <Modal visible={showAlertModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="information-circle" size={48} color="#2196F3" />
+            </View>
+            <Text style={styles.modalTitle}>{alertConfig.title}</Text>
+            <Text style={styles.modalMessage}>{alertConfig.message}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonFull]}
+              onPress={() => setShowAlertModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -628,6 +649,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonFull: {
+    width: '100%',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });
 
