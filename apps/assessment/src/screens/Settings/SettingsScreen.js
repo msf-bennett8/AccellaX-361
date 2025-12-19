@@ -945,6 +945,33 @@ export default function SettingsScreen({ onLogout }) {
         {isAdmin && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Admin Tools</Text>
+            
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('AppLogs')}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="text-box-search" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
+              <View style={styles.actionButtonTextContainer}>
+                <Text style={styles.actionButtonTitle}>App Logs</Text>
+                <Text style={styles.actionButtonSubtitle}>View errors, warnings & system logs</Text>
+              </View>
+              <Text style={styles.actionButtonArrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('DatabaseDiagnostics')}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="database-search" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
+              <View style={styles.actionButtonTextContainer}>
+                <Text style={styles.actionButtonTitle}>Database Diagnostics</Text>
+                <Text style={styles.actionButtonSubtitle}>SQLite database inspection & repair</Text>
+              </View>
+              <Text style={styles.actionButtonArrow}>→</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate('SportManagement')}

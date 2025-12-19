@@ -288,62 +288,163 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
   };
 
   const handleBeepTestLaunch = () => {
+    console.log('🚀 [AssessmentEntry] Launching Beep Test tracker');
+    
     navigation.navigate('BeepTestLiveTracker', {
       sport,
       kids,
       metric: currentMetric,
       assessmentMetadata,
       onComplete: (results) => {
-        // Save all beep test results
-        results.forEach(result => {
-          const key = `${result.kidId}_${currentMetric.id}`;
-          const value = `${result.level}.${result.shuttle}`;
-          assessmentData[key] = value;
-        });
+        console.log('✅ [AssessmentEntry] Beep Test onComplete called with results:', results);
         
-        // Move to next test or complete
-        if (isLastTest) {
-          handleComplete();
-        } else {
-          setCurrentTestIndex(currentTestIndex + 1);
-          setCurrentKidIndex(0);
+        if (!results || results.length === 0) {
+          console.warn('⚠️ [AssessmentEntry] No results returned from Beep Test');
+          navigation.goBack();
+          return;
         }
+        
+        // ✅ Update state using functional setter
+        setAssessmentData(prevData => {
+          const newAssessmentData = { ...prevData };
+          
+          results.forEach(result => {
+            const key = `${result.kidId}_${currentMetric.id}`;
+            const value = result.value || `${result.level}.${result.shuttle}`;
+            newAssessmentData[key] = value;
+            console.log(`📝 [AssessmentEntry] Saved Beep Test: ${key} = ${value}`);
+          });
+          
+          console.log('📊 [AssessmentEntry] Updated assessment data:', {
+            totalKeys: Object.keys(newAssessmentData).length,
+            newResults: results.length,
+          });
+          
+          // ✅ Determine navigation INSIDE state update
+          setTimeout(() => {
+            const nextTestIndex = currentTestIndex + 1;
+            const isComplete = nextTestIndex >= selectedTests.length;
+            
+            console.log('➡️ [AssessmentEntry] Beep Test navigation decision:', {
+              currentTestIndex,
+              nextTestIndex,
+              totalTests: selectedTests.length,
+              isComplete,
+            });
+            
+            if (isComplete) {
+              console.log('✅ [AssessmentEntry] All tests complete, navigating to summary');
+              console.log('📊 [AssessmentEntry] Final assessment data keys:', Object.keys(newAssessmentData));
+              
+              navigation.replace('AssessmentSummary', { 
+                assessmentData: newAssessmentData,
+                sport, 
+                kids, 
+                selectedTests,
+                assessmentMetadata,
+                sessionId,
+              });
+            } else {
+              console.log(`➡️ [AssessmentEntry] Moving to test ${nextTestIndex + 1}/${selectedTests.length}`);
+              setCurrentTestIndex(nextTestIndex);
+              setCurrentKidIndex(0);
+              navigation.goBack();
+            }
+          }, 150);
+          
+          return newAssessmentData;
+        });
       }
     });
   };
 
   const handleCooperTestLaunch = () => {
+    console.log('🚀 [AssessmentEntry] Launching Cooper Test tracker');
+    
     navigation.navigate('CooperTestLiveTracker', {
       sport,
       kids,
       metric: currentMetric,
       assessmentMetadata,
       onComplete: (results) => {
-        // Save all Cooper test results
-        results.forEach(result => {
-          const key = `${result.kidId}_${currentMetric.id}`;
-          assessmentData[key] = result.totalDistance;
-        });
+        console.log('✅ [AssessmentEntry] Cooper Test onComplete called with results:', results);
         
-        // Move to next test or complete
-        if (isLastTest) {
-          handleComplete();
-        } else {
-          setCurrentTestIndex(currentTestIndex + 1);
-          setCurrentKidIndex(0);
+        if (!results || results.length === 0) {
+          console.warn('⚠️ [AssessmentEntry] No results returned from Cooper Test');
+          navigation.goBack();
+          return;
         }
+        
+        // ✅ Update state using functional setter
+        setAssessmentData(prevData => {
+          const newAssessmentData = { ...prevData };
+          
+          results.forEach(result => {
+            const key = `${result.kidId}_${currentMetric.id}`;
+            const value = result.value || result.totalDistance.toString();
+            newAssessmentData[key] = value;
+            console.log(`📝 [AssessmentEntry] Saved Cooper Test: ${key} = ${value}`);
+          });
+          
+          console.log('📊 [AssessmentEntry] Updated assessment data:', {
+            totalKeys: Object.keys(newAssessmentData).length,
+            newResults: results.length,
+          });
+          
+          // ✅ Determine navigation INSIDE state update
+          setTimeout(() => {
+            const nextTestIndex = currentTestIndex + 1;
+            const isComplete = nextTestIndex >= selectedTests.length;
+            
+            console.log('➡️ [AssessmentEntry] Cooper Test navigation decision:', {
+              currentTestIndex,
+              nextTestIndex,
+              totalTests: selectedTests.length,
+              isComplete,
+            });
+            
+            if (isComplete) {
+              console.log('✅ [AssessmentEntry] All tests complete, navigating to summary');
+              console.log('📊 [AssessmentEntry] Final assessment data keys:', Object.keys(newAssessmentData));
+              
+              navigation.replace('AssessmentSummary', { 
+                assessmentData: newAssessmentData,
+                sport, 
+                kids, 
+                selectedTests,
+                assessmentMetadata,
+                sessionId,
+              });
+            } else {
+              console.log(`➡️ [AssessmentEntry] Moving to test ${nextTestIndex + 1}/${selectedTests.length}`);
+              setCurrentTestIndex(nextTestIndex);
+              setCurrentKidIndex(0);
+              navigation.goBack();
+            }
+          }, 150);
+          
+          return newAssessmentData;
+        });
       }
     });
   };
 
-  const handlePairedTestLaunch = () => {
-    // Find the paired metric
+const handlePairedTestLaunch = () => {
     const pairedMetric = selectedTests.find(t => t.id === currentMetric.pairedWith);
     
     if (!pairedMetric) {
+      console.error('❌ [AssessmentEntry] Paired metric not found:', currentMetric.pairedWith);
       setPairedMetricErrorModal(true);
       return;
     }
+
+    console.log('🚀 [AssessmentEntry] Launching paired tracker:', {
+      metric1: currentMetric.name,
+      metric2: pairedMetric.name,
+      kids: kids.length,
+      currentTestIndex,
+      totalTests: selectedTests.length,
+    });
 
     navigation.navigate('PairedAssessmentTracker', {
       sport,
@@ -352,24 +453,66 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
       metric2: pairedMetric,
       assessmentMetadata,
       onComplete: (results) => {
-        // Save all paired assessment results
-        results.forEach(result => {
-          const key = `${result.kidId}_${result.metricId}`;
-          assessmentData[key] = result.value;
-        });
+        console.log('✅ [AssessmentEntry] Paired test onComplete called with results:', results);
         
-        // Skip the paired metric (already assessed)
-        const pairedTestIndex = selectedTests.findIndex(t => t.id === pairedMetric.id);
-        
-        // Move to next test after the pair
-        const nextIndex = Math.max(currentTestIndex, pairedTestIndex) + 1;
-        
-        if (nextIndex >= selectedTests.length) {
-          handleComplete();
-        } else {
-          setCurrentTestIndex(nextIndex);
-          setCurrentKidIndex(0);
+        if (!results || results.length === 0) {
+          console.warn('⚠️ [AssessmentEntry] No results returned from paired tracker');
+          navigation.goBack();
+          return;
         }
+        
+        // ✅ CRITICAL FIX: Update state using functional setter to get latest state
+        setAssessmentData(prevData => {
+          const newAssessmentData = { ...prevData };
+          
+          results.forEach(result => {
+            const key = `${result.kidId}_${result.metricId}`;
+            newAssessmentData[key] = result.value;
+            console.log(`📝 [AssessmentEntry] Saved paired result: ${key} = ${result.value}`);
+          });
+          
+          console.log('📊 [AssessmentEntry] Updated assessment data:', {
+            totalKeys: Object.keys(newAssessmentData).length,
+            newResults: results.length,
+          });
+          
+          // ✅ Determine next action INSIDE the state update
+          const pairedTestIndex = selectedTests.findIndex(t => t.id === pairedMetric.id);
+          const nextIndex = Math.max(currentTestIndex, pairedTestIndex) + 1;
+          
+          console.log('➡️ [AssessmentEntry] Navigation decision:', { 
+            currentTestIndex, 
+            pairedTestIndex, 
+            nextIndex,
+            totalTests: selectedTests.length,
+            isComplete: nextIndex >= selectedTests.length,
+          });
+          
+          // ✅ Use setTimeout to ensure state is committed before navigation
+          setTimeout(() => {
+            if (nextIndex >= selectedTests.length) {
+              console.log('✅ [AssessmentEntry] All tests complete, navigating to summary');
+              console.log('📊 [AssessmentEntry] Final assessment data keys:', Object.keys(newAssessmentData));
+              
+              // ✅ Navigate to summary with the updated data
+              navigation.replace('AssessmentSummary', { 
+                assessmentData: newAssessmentData, // ✅ Pass updated data directly
+                sport, 
+                kids, 
+                selectedTests,
+                assessmentMetadata,
+                sessionId,
+              });
+            } else {
+              console.log(`➡️ [AssessmentEntry] Moving to next test: ${nextIndex + 1}/${selectedTests.length}`);
+              setCurrentTestIndex(nextIndex);
+              setCurrentKidIndex(0);
+              navigation.goBack(); // ✅ Go back to entry screen
+            }
+          }, 150); // Increased delay to ensure state commit
+          
+          return newAssessmentData;
+        });
       }
     });
   };
@@ -609,6 +752,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
             previousValue={lastValues[currentMetric.id]}
             showPrevious={prefillEnabled}
             kidName={currentKid.name}
+            key={`${currentKid.id}_${currentMetric.id}`}
           />
         ) : isPairedTest && !isBatchMode ? (
           <View style={styles.beepTestCard}>

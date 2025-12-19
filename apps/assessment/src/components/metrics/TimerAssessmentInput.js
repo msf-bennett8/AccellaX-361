@@ -33,6 +33,20 @@ const TimerAssessmentInput = ({
     }
   }, [value]);
 
+  // Reset timer when navigating to a new kid/test
+  useEffect(() => {
+    // Reset all timer state when kid or metric changes
+    setTime(0);
+    setIsRunning(false);
+    
+    // If there's a saved value for this assessment, load it
+    if (value) {
+      setSavedTime(parseFloat(value) * 1000);
+    } else {
+      setSavedTime(0);
+    }
+  }, [kidName, metric.id]);
+
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {

@@ -78,26 +78,53 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     processAssessmentData();
-  }, [assessmentData]);
+  }, []);
 
-  const processAssessmentData = () => {
+  const processAssessmentData = async () => {
     const grouped = {};
     let total = 0;
     let completed = 0;
 
+    // ✅ Import the service at the top of the file
+    // import { getAssessmentsByDateRange } from '../../database/queries';
+    
+    // ✅ Load actual data from database instead of relying on assessmentData state
+    const assessmentDate = assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0];
+    
+    // Query database for today's assessments
+    const { default: queries } = await import('../../database/queries');
+    const todaysAssessments = await queries.getAssessmentsByDateRange(
+      assessmentDate,
+      assessmentDate,
+      sport.id
+    );
+    
+    console.log('📊 [Summary] Loaded from database:', {
+      date: assessmentDate,
+      assessments: todaysAssessments.length,
+      sportId: sport.id,
+    });
+
     kids.forEach(kid => {
       const results = selectedTests.map(test => {
         const testId = typeof test === 'string' ? test : test.id;
-        const key = `${kid.id}_${testId}`;
-        const value = assessmentData[key];
+        
+        // ✅ Find actual result from database instead of assessmentData state
+        const kidAssessment = todaysAssessments.find(a => a.kid_id === kid.id);
+        const result = kidAssessment?.results?.find(r => r.metric_id === testId);
+        const value = result?.value || assessmentData[`${kid.id}_${testId}`];
+        
         total++;
         if (value !== undefined && value !== null && value !== '') {
           completed++;
         }
+        
+        console.log(`📊 [Summary] ${kid.name} - ${test.name}:`, value || 'NOT FOUND');
+        
         return {
           test: typeof test === 'string' ? { id: test, name: test, type: 'numeric' } : test,
           value: value || null,
-          key,
+          key: `${kid.id}_${testId}`,
         };
       });
 

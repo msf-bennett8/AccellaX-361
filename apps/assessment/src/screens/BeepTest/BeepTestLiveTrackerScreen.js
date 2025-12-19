@@ -18,10 +18,11 @@ const BeepTestLiveTrackerScreen = ({ route }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [savedResultsCount, setSavedResultsCount] = useState(0);
+  const [savedResults, setSavedResults] = useState([]); // ✅ Store results
 
   const handleSave = async (results) => {
     try {
-      // Saving results
+      console.log('💾 [BeepTestScreen] Saving results:', results);
       
       // Save each kid's result
       for (const result of results) {
@@ -35,7 +36,8 @@ const BeepTestLiveTrackerScreen = ({ route }) => {
         });
       }
       
-      // Results saved
+      console.log('✅ [BeepTestScreen] Results saved successfully');
+      setSavedResults(results); // ✅ Store for onComplete
       setSavedResultsCount(results.length);
       setShowSuccessModal(true);
     } catch (error) {
@@ -46,12 +48,26 @@ const BeepTestLiveTrackerScreen = ({ route }) => {
   };
 
   const handleSuccessClose = () => {
+    console.log('✅ [BeepTestScreen] Closing success modal, calling onComplete with results:', savedResults);
     setShowSuccessModal(false);
+    
     if (onComplete) {
-      const results = []; // Results already saved
-      onComplete(results);
+      // ✅ Pass actual results to parent
+      const formattedResults = savedResults.map(result => ({
+        kidId: result.kidId,
+        kidName: result.kidName,
+        value: `${result.level}.${result.shuttle}`,
+        level: result.level,
+        shuttle: result.shuttle,
+        status: result.status,
+      }));
+      
+      console.log('✅ [BeepTestScreen] Calling onComplete with formatted results:', formattedResults);
+      onComplete(formattedResults);
+    } else {
+      console.warn('⚠️ [BeepTestScreen] No onComplete callback, navigating back');
+      navigation.goBack();
     }
-    navigation.goBack();
   };
 
   const handleCancel = () => {

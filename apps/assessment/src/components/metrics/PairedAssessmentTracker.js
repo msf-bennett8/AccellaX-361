@@ -51,36 +51,65 @@ const PairedAssessmentTracker = ({
     const generatedPairs = [];
     const assessed = new Set();
 
-    // Create pairs from available kids
+    // Create pairs from available kids - EACH PAIR ASSESSES BOTH DIRECTIONS
     while (availableKids.length >= 2) {
       const kid1 = availableKids.shift();
       const kid2 = availableKids.shift();
       
+      // First rotation: kid1 does metric1, kid2 does metric2
       generatedPairs.push({
-        id: `pair_${generatedPairs.length}`,
+        id: `pair_${generatedPairs.length}_rotation1`,
         passer: kid1,
         receiver: kid2,
+        rotation: 1,
+      });
+      
+      // Second rotation: SWAP - kid2 does metric1, kid1 does metric2
+      generatedPairs.push({
+        id: `pair_${generatedPairs.length}_rotation2`,
+        passer: kid2,
+        receiver: kid1,
+        rotation: 2,
+        note: `Rotation 2: Swapped roles`,
       });
       
       assessed.add(kid1.id);
       assessed.add(kid2.id);
     }
 
-    // Handle odd kid - pair with first assessed kid
+    // Handle odd kid - pair with first assessed kid (2 rotations)
     if (availableKids.length === 1) {
       const oddKid = availableKids[0];
       const firstAssessedKid = kids.find(k => k.id !== oddKid.id);
       
       if (firstAssessedKid) {
+        // First rotation
         generatedPairs.push({
-          id: `pair_${generatedPairs.length}`,
+          id: `pair_${generatedPairs.length}_rotation1`,
           passer: oddKid,
           receiver: firstAssessedKid,
+          rotation: 1,
           note: `${firstAssessedKid.name} partnering again`,
         });
+        
+        // Second rotation
+        generatedPairs.push({
+          id: `pair_${generatedPairs.length}_rotation2`,
+          passer: firstAssessedKid,
+          receiver: oddKid,
+          rotation: 2,
+          note: `${firstAssessedKid.name} partnering again - Rotation 2`,
+        });
+        
         assessed.add(oddKid.id);
       }
     }
+
+    console.log('🔄 [PairedTracker] Generated pairs with rotations:', {
+      totalPairs: generatedPairs.length,
+      kidsCount: kids.length,
+      rotationsPerPhysicalPair: 2,
+    });
 
     setPairs(generatedPairs);
     setAssessedKids(assessed);
@@ -116,21 +145,53 @@ const PairedAssessmentTracker = ({
       return;
     }
 
-    // Save results for both kids
+    // ✅ FIX: Respect rotation when assigning metrics
+    // Rotation 1: passer does metric1, receiver does metric2
+    // Rotation 2: passer does metric2, receiver does metric1 (they swapped roles!)
+    
+    let passerMetricId, receiverMetricId;
+    
+    if (currentPair.rotation === 1) {
+      // First rotation: normal assignment
+      passerMetricId = metric1.id;
+      receiverMetricId = metric2.id;
+    } else {
+      // Second rotation: SWAPPED assignment
+      passerMetricId = metric2.id;  // ✅ Passer now does metric2
+      receiverMetricId = metric1.id; // ✅ Receiver now does metric1
+    }
+    
+    // Save results with correct metric assignments
     const newResults = {
       ...pairResults,
-      [`${currentPair.passer.id}_${metric1.id}`]: passerScore,
-      [`${currentPair.receiver.id}_${metric2.id}`]: receiverScore,
+      [`${currentPair.passer.id}_${passerMetricId}`]: passerScore,
+      [`${currentPair.receiver.id}_${receiverMetricId}`]: receiverScore,
     };
     
     setPairResults(newResults);
+    
+    console.log('📊 [PairedTracker] Saved pair:', {
+      pairIndex: currentPairIndex + 1,
+      totalPairs: pairs.length,
+      rotation: currentPair.rotation,
+      passerAssessment: `${currentPair.passer.name} → ${passerMetricId === metric1.id ? metric1.name : metric2.name} = ${passerScore}`,
+      receiverAssessment: `${currentPair.receiver.name} → ${receiverMetricId === metric1.id ? metric1.name : metric2.name} = ${receiverScore}`,
+      isLastPair,
+      resultsCount: Object.keys(newResults).length,
+    });
 
     // Move to next pair or complete
     if (isLastPair) {
+      console.log('✅ [PairedTracker] Last pair completed, calling handleComplete');
       handleComplete(newResults);
     } else {
-      setCurrentPairIndex(currentPairIndex + 1);
-      showNextPairNotification();
+      const nextIndex = currentPairIndex + 1;
+      console.log('➡️ [PairedTracker] Moving to next pair:', nextIndex + 1);
+      setCurrentPairIndex(nextIndex);
+      // Show notification AFTER state update so it displays the NEW current pair
+      setTimeout(() => {
+        showNextPairNotification();
+      }, 100);
     }
   };
 
@@ -145,10 +206,14 @@ const PairedAssessmentTracker = ({
   };
 
   const confirmSkipPair = () => {
+    console.log('⏭️ [PairedTracker] Skipping pair:', currentPairIndex + 1);
     setShowSkipPairModal(false);
+    
     if (isLastPair) {
+      console.log('✅ [PairedTracker] Last pair (skipped), calling handleComplete');
       handleComplete(pairResults);
     } else {
+      console.log('➡️ [PairedTracker] Moving to next pair after skip');
       setCurrentPairIndex(currentPairIndex + 1);
       showNextPairNotification();
     }
@@ -160,14 +225,26 @@ const PairedAssessmentTracker = ({
       return { kidId, metricId, value };
     });
 
+    console.log('🎯 [PairedTracker] Completing with results:', resultArray);
     setShowCompleteModal(true);
-    // Store results for later
+    // Store results for confirmation modal
     window.completedResults = resultArray;
   };
 
   const confirmComplete = () => {
+    const resultsToSave = window.completedResults || [];
+    console.log('✅ [PairedTracker] Confirming save with:', resultsToSave);
     setShowCompleteModal(false);
-    onSave(window.completedResults);
+    
+    // Clean up global variable
+    delete window.completedResults;
+    
+    // Call onSave callback with proper format
+    if (resultsToSave.length > 0) {
+      onSave(resultsToSave);
+    } else {
+      console.error('❌ [PairedTracker] No results to save!');
+    }
   };
 
   if (!currentPair) {
@@ -197,9 +274,10 @@ const PairedAssessmentTracker = ({
           <View style={styles.notificationContent}>
             <Ionicons name="arrow-forward-circle" size={24} color={COLORS.white} />
             <View style={styles.notificationText}>
-              <Text style={styles.notificationTitle}>Next Pair</Text>
+              <Text style={styles.notificationTitle}>Next Assessment</Text>
               <Text style={styles.notificationSubtitle}>
                 {pairs[currentPairIndex]?.passer.name} & {pairs[currentPairIndex]?.receiver.name}
+                {pairs[currentPairIndex]?.rotation && ` (Rotation ${pairs[currentPairIndex].rotation})`}
               </Text>
             </View>
           </View>
@@ -216,7 +294,8 @@ const PairedAssessmentTracker = ({
           {/* Progress Header */}
           <View style={styles.progressHeader}>
             <Text style={styles.progressText}>
-              Pair {currentPairIndex + 1} of {pairs.length}
+              Assessment {currentPairIndex + 1} of {pairs.length}
+              {currentPair?.rotation && ` (Rotation ${currentPair.rotation})`}
             </Text>
             <View style={styles.progressBarContainer}>
               <View
@@ -283,7 +362,9 @@ const PairedAssessmentTracker = ({
                 <Ionicons name="arrow-forward" size={24} color={COLORS.primary} />
               </View>
               <View>
-                <Text style={styles.assessmentTitle}>{metric1.name}</Text>
+                <Text style={styles.assessmentTitle}>
+                  {currentPair.rotation === 1 ? metric1.name : metric2.name}
+                </Text>
                 <Text style={styles.assessmentSubtitle}>{currentPair.passer.name}</Text>
               </View>
             </View>
@@ -309,7 +390,9 @@ const PairedAssessmentTracker = ({
                 <Ionicons name="hand-left" size={24} color={COLORS.success} />
               </View>
               <View>
-                <Text style={styles.assessmentTitle}>{metric2.name}</Text>
+                <Text style={styles.assessmentTitle}>
+                  {currentPair.rotation === 1 ? metric2.name : metric1.name}
+                </Text>
                 <Text style={styles.assessmentSubtitle}>{currentPair.receiver.name}</Text>
               </View>
             </View>
@@ -447,9 +530,9 @@ const PairedAssessmentTracker = ({
             <View style={styles.modalHeader}>
               <Ionicons name="checkmark-circle" size={48} color={COLORS.success} />
             </View>
-            <Text style={styles.modalTitle}>Assessment Complete</Text>
+            <Text style={styles.modalTitle}>Paired Assessment Complete</Text>
             <Text style={styles.modalMessage}>
-              Recorded results for {pairs.length} pair(s)
+              Recorded {Object.keys(pairResults).length} results across {pairs.length / 2} pair(s) with role rotations
             </Text>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalButtonFull]}

@@ -229,7 +229,10 @@ const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
       (r) => r.status === 'completed' && r.totalDistance > 0
     );
     
+    console.log('💾 [CooperTest] handleSaveAll called with results:', completedResults);
+    
     if (completedResults.length === 0) {
+      console.warn('⚠️ [CooperTest] No completed results to save');
       setShowNoResultsModal(true);
       return;
     }
@@ -241,8 +244,23 @@ const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     const completedResults = Object.values(kidResults).filter(
       (r) => r.status === 'completed' && r.totalDistance > 0
     );
+    
+    console.log('✅ [CooperTest] Confirming save with results:', completedResults);
     setShowSaveModal(false);
-    onSave(completedResults);
+    
+    // Format results properly for onSave callback
+    const formattedResults = completedResults.map(result => ({
+      kidId: result.kidId,
+      kidName: result.kidName,
+      value: result.totalDistance.toString(),
+      totalDistance: result.totalDistance,
+      completedLaps: result.completedLaps,
+      markerPosition: result.markerPosition,
+      status: result.status,
+    }));
+    
+    console.log('✅ [CooperTest] Calling onSave with formatted results:', formattedResults);
+    onSave(formattedResults);
   };
 
   const handleAddMarker = () => {

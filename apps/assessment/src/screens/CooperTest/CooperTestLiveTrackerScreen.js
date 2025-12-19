@@ -18,10 +18,11 @@ const CooperTestLiveTrackerScreen = ({ route }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [savedResultsCount, setSavedResultsCount] = useState(0);
+  const [savedResults, setSavedResults] = useState([]); // ✅ Store results
 
   const handleSave = async (results) => {
     try {
-      // Saving Cooper test results
+      console.log('💾 [CooperTestScreen] Saving results:', results);
       
       // Save each kid's result
       for (const result of results) {
@@ -35,7 +36,8 @@ const CooperTestLiveTrackerScreen = ({ route }) => {
         });
       }
       
-      // Results saved successfully
+      console.log('✅ [CooperTestScreen] Results saved successfully');
+      setSavedResults(results); // ✅ Store for onComplete
       setSavedResultsCount(results.length);
       setShowSuccessModal(true);
     } catch (error) {
@@ -46,12 +48,27 @@ const CooperTestLiveTrackerScreen = ({ route }) => {
   };
 
   const handleSuccessClose = () => {
+    console.log('✅ [CooperTestScreen] Closing success modal, calling onComplete with results:', savedResults);
     setShowSuccessModal(false);
+    
     if (onComplete) {
-      const results = [];
-      onComplete(results);
+      // ✅ Pass actual results to parent
+      const formattedResults = savedResults.map(result => ({
+        kidId: result.kidId,
+        kidName: result.kidName,
+        value: result.totalDistance.toString(),
+        totalDistance: result.totalDistance,
+        completedLaps: result.completedLaps,
+        markerPosition: result.markerPosition,
+        status: result.status,
+      }));
+      
+      console.log('✅ [CooperTestScreen] Calling onComplete with formatted results:', formattedResults);
+      onComplete(formattedResults);
+    } else {
+      console.warn('⚠️ [CooperTestScreen] No onComplete callback, navigating back');
+      navigation.goBack();
     }
-    navigation.goBack();
   };
 
   const handleCancel = () => {

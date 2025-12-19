@@ -15,6 +15,8 @@ import SettingsScreen from '../screens/Settings/SettingsScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import EditProfileScreen from '../screens/Profile/EditProfileScreen';
 import TeamsListScreen from '../screens/Teams/TeamsListScreen';
+import SQLiteDiagnosticScreen from '../screens/Debug/SQLiteDiagnosticScreen';
+import AppLogScreen from '../screens/Debug/AppLogScreen';
 
 // Stack Navigators
 import AssessmentStackNavigator from './AssessmentStackNavigator';
@@ -36,13 +38,15 @@ export default function DrawerNavigator({ onLogout }) {
       const pageTitles = {
         Home: 'Home',
         Kids: 'Kids Management',
-        Teams: 'Teams', // ✅ NEW
+        Teams: 'Teams',
         AddEditKid: 'Add/Edit Kid',
         History: 'Assessment History',
         Profile: 'Profile',
         EditProfile: 'Edit Profile',
         Settings: 'Settings',
         Assessment: 'Start Assessment',
+        AppLogs: 'App Logs',
+        DatabaseDiagnostics: 'Database Diagnostics',
       };
       const pageTitle = pageTitles[routeName] || routeName;
       document.title = `AccellaX 361° | ${pageTitle}`;
@@ -218,6 +222,30 @@ export default function DrawerNavigator({ onLogout }) {
       >
         {(props) => <SettingsScreen {...props} onLogout={onLogout} />}
       </Drawer.Screen>
+
+      {/* 10. APP LOGS - Comprehensive logging */}
+      <Drawer.Screen
+        name="AppLogs"
+        component={AppLogScreen}
+        options={{
+          title: 'App Logs',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="text-box-search" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 11. DATABASE DIAGNOSTICS - SQLite inspection */}
+      <Drawer.Screen
+        name="DatabaseDiagnostics"
+        component={SQLiteDiagnosticScreen}
+        options={{
+          title: 'Database Diagnostics',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="database-search" size={22} color={color} />
+          ),
+        }}
+      />
 
       {/* HIDDEN SCREENS - Not visible in drawer */}
       <Drawer.Screen

@@ -32,9 +32,15 @@ export default function App() {
     try {
       console.log('🚀 Initializing Assessment App...');
 
+      // Initialize logger service
+      const logger = (await import('./src/services/loggerService')).default;
+      await logger.init();
+      await logger.system('App', 'Startup', 'Application starting');
+
       // Initialize database
       await initDatabase();
       console.log('✅ Database initialized');
+      await logger.info('Database', 'Init', 'Database initialized successfully');
 
       // Check authentication status
       const userProfile = await AsyncStorage.getItem('userProfile');

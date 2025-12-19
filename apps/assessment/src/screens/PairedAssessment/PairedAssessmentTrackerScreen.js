@@ -18,13 +18,22 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [savedPairsCount, setSavedPairsCount] = useState(0);
+  const [savedResults, setSavedResults] = useState([]); // ✅ Store results
 
   const handleSave = async (results) => {
     try {
-      // Saving paired assessment results
+      console.log('💾 [PairedScreen] handleSave called with results:', results);
+      
+      if (!results || results.length === 0) {
+        console.error('❌ [PairedScreen] No results to save!');
+        setErrorMessage('No results to save');
+        setShowErrorModal(true);
+        return;
+      }
       
       // Save each result
       for (const result of results) {
+        console.log('💾 [PairedScreen] Saving result:', result);
         await saveAssessmentResult({
           kid_id: result.kidId,
           sport_id: sport.id,
@@ -35,23 +44,36 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
         });
       }
       
-      // Results saved successfully
+      console.log('✅ [PairedScreen] All results saved successfully');
+      setSavedResults(results); // ✅ Store for onComplete
       setSavedPairsCount(Math.floor(results.length / 2));
       setShowSuccessModal(true);
     } catch (error) {
-      console.error('Error saving paired assessment results:', error);
+      console.error('❌ [PairedScreen] Error saving paired assessment results:', error);
       setErrorMessage(error.message);
       setShowErrorModal(true);
     }
   };
 
   const handleSuccessClose = () => {
+    console.log('✅ [PairedScreen] Success modal closed, calling onComplete with results:', savedResults);
     setShowSuccessModal(false);
+    
+    // ✅ CRITICAL: Call onComplete BEFORE any navigation
     if (onComplete) {
-      const results = [];
-      onComplete(results);
+      console.log('✅ [PairedScreen] Calling onComplete with formatted results:', savedResults);
+      
+      // Call onComplete and wait a moment before navigating
+      try {
+        onComplete(savedResults);
+        console.log('✅ [PairedScreen] onComplete called successfully');
+      } catch (error) {
+        console.error('❌ [PairedScreen] Error calling onComplete:', error);
+      }
+    } else {
+      console.warn('⚠️ [PairedScreen] No onComplete callback provided, navigating back');
+      navigation.goBack();
     }
-    navigation.goBack();
   };
 
   const handleCancel = () => {
@@ -87,9 +109,9 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
             <View style={styles.modalHeader}>
               <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
             </View>
-            <Text style={styles.modalTitle}>Results Saved!</Text>
+            <Text style={styles.modalTitle}>Paired Tests Saved!</Text>
             <Text style={styles.modalMessage}>
-              Paired assessment results saved for {savedPairsCount} pair(s)
+              Successfully saved {savedPairsCount} pair(s) for {metric1?.name} and {metric2?.name}
             </Text>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalButtonFull]}

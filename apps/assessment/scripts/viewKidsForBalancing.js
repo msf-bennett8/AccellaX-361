@@ -52,12 +52,12 @@ async function viewKidsForBalancing() {
     console.log(`❌ Kids WITHOUT house teams: ${kidsWithoutTeams.length}\n`);
 
     if (kidsWithTeams.length > 0) {
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('🏠 KIDS ALREADY ASSIGNED TO TEAMS:');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       
       kidsWithTeams.forEach(kid => {
-        console.log(`✅ ${kid.name.padEnd(25)} | Team: ${kid.house_team.padEnd(8)} | Age: ${kid.age_group.padEnd(8)} | Gender: ${kid.gender || 'N/A'} | Sport: ${kid.primary_sport}`);
+        console.log(`✅ ${kid.name.padEnd(25)} | ID: ${kid.id.padEnd(25)} | Team: ${kid.house_team.padEnd(8)} | Age: ${kid.age_group.padEnd(8)} | Gender: ${(kid.gender || 'N/A').padEnd(6)} | Sport: ${kid.primary_sport}`);
       });
       console.log('\n');
     }
@@ -66,18 +66,18 @@ async function viewKidsForBalancing() {
       console.log('✅ All kids already have house teams assigned!\n');
       
       // Show distribution analysis
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('📊 CURRENT TEAM DISTRIBUTION:');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       
       analyzeTeamDistribution(kidsWithTeams);
       return;
     }
 
     // Analyze kids without teams
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`❌ ${kidsWithoutTeams.length} KIDS NEED HOUSE TEAM ASSIGNMENT:`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Group by age group
     const byAgeGroup = {
@@ -97,19 +97,19 @@ async function viewKidsForBalancing() {
     Object.entries(byAgeGroup).forEach(([ageGroup, groupKids]) => {
       if (groupKids.length > 0) {
         console.log(`\n📌 AGE GROUP ${ageGroup} (${groupKids.length} kids):`);
-        console.log('─'.repeat(80));
+        console.log('─'.repeat(100));
         
         groupKids.forEach((kid, index) => {
           const genderIcon = kid.gender === 'Male' ? '♂️' : kid.gender === 'Female' ? '♀️' : '⚧';
-          console.log(`${(index + 1).toString().padStart(3)}. ${kid.name.padEnd(25)} ${genderIcon} | Age: ${kid.age.toString().padStart(2)} | Sport: ${kid.primary_sport || 'None'}`);
+          console.log(`${(index + 1).toString().padStart(3)}. ${kid.name.padEnd(25)} ${genderIcon} | ID: ${kid.id.padEnd(25)} | Age: ${kid.age.toString().padStart(2)} | Sport: ${kid.primary_sport || 'None'}`);
         });
       }
     });
 
     // Show statistics
-    console.log('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('📊 DISTRIBUTION ANALYSIS:');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Age distribution
     console.log('🎂 BY AGE GROUP:');
@@ -152,9 +152,9 @@ async function viewKidsForBalancing() {
     const idealPerTeam = Math.floor(totalKids / 5);
     const remainder = totalKids % 5;
 
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🎯 BALANCED ASSIGNMENT PLAN:');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     console.log(`Total kids to assign: ${totalKids}`);
     console.log(`Teams: 5 (Fire, Ice, Water, Wind, Earth)`);
@@ -169,7 +169,7 @@ async function viewKidsForBalancing() {
       console.log(`   🔥 ${team.padEnd(8)}: ${teamSize} kids`);
     });
 
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     console.log('✅ Ready to run assignment script!');
     console.log('   Run: node scripts/assignHouseTeamsBalanced.js\n');
 
@@ -208,9 +208,9 @@ function analyzeTeamDistribution(kids) {
 
     const teamName = team.charAt(0).toUpperCase() + team.slice(1);
     console.log(`🔥 ${teamName.toUpperCase()} TEAM (${members.length} kids):`);
-    console.log('─'.repeat(80));
+    console.log('─'.repeat(100));
 
-    // By age group
+    // By age group with kid IDs
     const ageGroups = { '4-6': [], '7-9': [], '10-13': [], '13+': [] };
     members.forEach(kid => {
       if (ageGroups[kid.age_group]) {
@@ -223,6 +223,12 @@ function analyzeTeamDistribution(kids) {
         const males = kids.filter(k => k.gender === 'Male').length;
         const females = kids.filter(k => k.gender === 'Female').length;
         console.log(`   ${age.padEnd(8)}: ${kids.length} kids (${males}M, ${females}F)`);
+        
+        // List individual kids in this age group
+        kids.forEach(kid => {
+          const genderIcon = kid.gender === 'Male' ? '♂️' : kid.gender === 'Female' ? '♀️' : '⚧';
+          console.log(`      ${genderIcon} ${kid.name.padEnd(25)} | ID: ${kid.id}`);
+        });
       }
     });
 

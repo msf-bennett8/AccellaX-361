@@ -47,6 +47,38 @@ const generateId = () => {
  */
 export const saveAssessmentResult = async (resultData) => {
   const { kid_id, sport_id, metric_id, value, assessment_date, metadata } = resultData;
+    
+  // ✅ VALIDATION: Validate kid_id format
+  if (!kid_id || typeof kid_id !== 'string') {
+    console.error('❌ [saveAssessmentResult] INVALID kid_id - null or not a string!', {
+      kid_id,
+      type: typeof kid_id,
+    });
+    throw new Error(`Invalid kid_id: ${kid_id}. Must be a non-empty string.`);
+  }
+  
+  // Check format: timestamp_randomstring (correct) or just timestamp (legacy - warn)
+  const correctFormat = /^\d{13}_[a-z0-9]+$/; // e.g., 1764027045553_3j93r7fxo
+  const legacyFormat = /^\d{13}$/; // e.g., 1764027045553 (legacy - numeric only)
+  
+  if (!correctFormat.test(kid_id) && !legacyFormat.test(kid_id)) {
+    console.error('❌ [saveAssessmentResult] MALFORMED kid_id detected!', {
+      kid_id,
+      expected: 'timestamp_randomstring (e.g., 1764027045553_3j93r7fxo)',
+      stack: new Error().stack,
+    });
+    throw new Error(`Malformed kid_id: ${kid_id}. Expected format: timestamp_randomstring`);
+  }
+  
+  // Warn if using legacy format (numeric only - no random suffix)
+  if (legacyFormat.test(kid_id) && !correctFormat.test(kid_id)) {
+    console.warn('⚠️ [saveAssessmentResult] LEGACY kid_id format detected (no random suffix)!', {
+      kid_id,
+      recommendation: 'Regenerate kid with format: timestamp_randomstring',
+      risk: 'Potential ID collision if multiple kids created in same millisecond',
+    });
+    // Continue - don't throw, just warn
+  }
   
   console.log('💾 Saving assessment result:', { 
     kid_id, 
