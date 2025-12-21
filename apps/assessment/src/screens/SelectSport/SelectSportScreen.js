@@ -54,6 +54,8 @@ export default function SelectSportScreen({ route }) {
       // Get kid counts per sport
       const counts = {};
       for (const sport of activeSports) {
+        console.log(`🔍 [SelectSport] Processing sport: ${sport.name} (${sport.id})`);
+        
         // For 'fitness', count all kids
         if (sport.id === 'fitness') {
           const { getAllKids } = await import('../../database/db');
@@ -81,7 +83,12 @@ export default function SelectSportScreen({ route }) {
   const handleSportSelect = (sport) => {
     const kidCount = sportKidCounts[sport.id] || 0;
     
-    console.log('🎯 [SelectSport] Sport selected:', sport.name, '| ID:', sport.id, '| Kids:', kidCount);
+    console.log('🎯 [SelectSport] Sport selected:', {
+      name: sport.name,
+      id: sport.id,
+      kidCount,
+      metadata: assessmentMetadata,
+    });
     
     if (kidCount === 0) {
       alert(`No kids enrolled in ${sport.name}. Please assign kids to this sport first.`);

@@ -30,29 +30,19 @@ export const getActiveSports = async () => {
 };
 
 /**
- * Get sport by ID with special handling for 'fitness'
+ * Get sport by ID (Fitness is now a REAL sport in the database)
  */
 export const getSport = async (sportId) => {
   try {
     log(`Fetching sport: ${sportId}`);
     
-    // Special case: 'fitness' is a virtual module
-    if (sportId === 'fitness' || sportId === 'general') {
-      log('Returning virtual Fitness module');
-      return {
-        id: 'fitness',
-        name: 'Fitness',
-        icon: 'heart-pulse',
-        color: '#E74C3C',
-        description: 'General fitness assessments',
-        isDefault: true,
-        isActive: true,
-        is_active: 1,
-        categories: ['general_fitness'],
-      };
+    const sport = await getSportById(sportId);
+    
+    if (!sport) {
+      log(`⚠️ Sport not found: ${sportId}`);
+      return null;
     }
     
-    const sport = await getSportById(sportId);
     log(`Retrieved sport:`, sport);
     return sport;
   } catch (error) {
@@ -62,44 +52,26 @@ export const getSport = async (sportId) => {
 };
 
 /**
- * Get all sports including virtual Fitness module
- * CRITICAL: This adds Fitness ONCE at the beginning
+ * Get all sports (Fitness is now stored in database, not virtual)
  */
 export const getAllSportsWithFitness = async () => {
   try {
-    log('Fetching all sports with Fitness module...');
+    log('Fetching all sports from database...');
     
-    // Get regular sports from database
     const dbSports = await getAllSports();
-    log(`Database returned ${dbSports.length} sports:`, dbSports.map(s => s.name));
+    log(`Database returned ${dbSports.length} sports:`, dbSports.map(s => `${s.name} (${s.id})`));
     
-    // Filter out any existing 'fitness' entries (safety check)
-    const cleanedSports = dbSports.filter(s => 
-      s.id !== 'fitness' && 
-      s.id !== 'general' && 
-      s.name.toLowerCase() !== 'fitness' &&
-      s.name.toLowerCase() !== 'general fitness'
-    );
+    // Ensure Fitness is first in the list for UI
+    const sortedSports = dbSports.sort((a, b) => {
+      if (a.id === 'fitness') return -1;
+      if (b.id === 'fitness') return 1;
+      return a.name.localeCompare(b.name);
+    });
     
-    // Create virtual Fitness module
-    const fitnessModule = {
-      id: 'fitness',
-      name: 'Fitness',
-      icon: 'heart-pulse',
-      color: '#E74C3C',
-      description: 'General fitness assessments',
-      isDefault: true,
-      isActive: true,
-      is_active: 1,
-      categories: ['general_fitness'],
-    };
-    
-    const allSports = [fitnessModule, ...cleanedSports];
-    log(`Returning ${allSports.length} total sports:`, allSports.map(s => s.name));
-    
-    return allSports;
+    log(`Returning ${sortedSports.length} sports (Fitness-first order)`);
+    return sortedSports;
   } catch (error) {
-    console.error('❌ Error getting all sports with fitness:', error);
+    console.error('❌ Error getting all sports:', error);
     return [];
   }
 };

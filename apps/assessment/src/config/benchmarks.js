@@ -128,7 +128,10 @@ export const VERTICAL_JUMP_BENCHMARKS = [
 
 export const RATING_BENCHMARKS = [
   // All age groups, all sports (1-10 rating scale)
-  { category: 'rating', ageGroup: 'all', gender: null, excellent: 8, good: 6, fair: 4, poor: 2, source: 'AccellaX Standard' },
+  { metricId: 'rating_general', category: 'rating', ageGroup: '4-6', gender: null, excellent: 8, good: 6, fair: 4, poor: 2, source: 'AccellaX Standard' },
+  { metricId: 'rating_general', category: 'rating', ageGroup: '7-9', gender: null, excellent: 8, good: 6, fair: 4, poor: 2, source: 'AccellaX Standard' },
+  { metricId: 'rating_general', category: 'rating', ageGroup: '10-13', gender: null, excellent: 8, good: 6, fair: 4, poor: 2, source: 'AccellaX Standard' },
+  { metricId: 'rating_general', category: 'rating', ageGroup: '13+', gender: null, excellent: 8, good: 6, fair: 4, poor: 2, source: 'AccellaX Standard' },
 ];
 
 // ========== COMBINED BENCHMARKS ==========

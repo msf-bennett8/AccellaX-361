@@ -80,3 +80,15 @@ Level	Shuttles	Speed
 
 #beeb instructions end
 
+
+
+# Navigate to assessment scripts folder
+cd ~/ctrl.dev/studio.dev/AccellaX\ 361°/apps/assessment/scripts/
+
+# Run with different options:
+node listAssessments.js        # Shows everything (default)
+node listAssessments.js 1      # Summary table only
+node listAssessments.js 2      # Detailed view only
+node listAssessments.js 3      # Statistics only
+node listAssessments.js 4      # Top performers only
+node listAssessments.js 5      # Complete report

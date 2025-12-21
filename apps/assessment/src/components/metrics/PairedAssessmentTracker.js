@@ -22,6 +22,14 @@ const PairedAssessmentTracker = ({
   onSave,
   onCancel,
 }) => {
+
+  // ✅ DEBUG: Verify metrics are different
+  console.log('🔍 [PairedTracker] Initialized with metrics:', {
+    metric1: { id: metric1?.id, name: metric1?.name },
+    metric2: { id: metric2?.id, name: metric2?.name },
+    areSame: metric1?.id === metric2?.id,
+  });
+
   const [pairs, setPairs] = useState([]);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [pairResults, setPairResults] = useState({});
@@ -51,63 +59,63 @@ const PairedAssessmentTracker = ({
     const generatedPairs = [];
     const assessed = new Set();
 
-    // Create pairs from available kids - EACH PAIR ASSESSES BOTH DIRECTIONS
+    // ✅ Create pairs where EACH PLAYER does BOTH METRICS
     while (availableKids.length >= 2) {
-      const kid1 = availableKids.shift();
-      const kid2 = availableKids.shift();
+      const player1 = availableKids.shift();
+      const player2 = availableKids.shift();
       
-      // First rotation: kid1 does metric1, kid2 does metric2
+      // First rotation: player1 does metric1, player2 does metric2
       generatedPairs.push({
         id: `pair_${generatedPairs.length}_rotation1`,
-        passer: kid1,
-        receiver: kid2,
+        player1: player1,
+        player2: player2,
         rotation: 1,
       });
       
-      // Second rotation: SWAP - kid2 does metric1, kid1 does metric2
+      // Second rotation: SAME PAIR, but player1 does metric2, player2 does metric1
       generatedPairs.push({
         id: `pair_${generatedPairs.length}_rotation2`,
-        passer: kid2,
-        receiver: kid1,
+        player1: player1,
+        player2: player2,
         rotation: 2,
-        note: `Rotation 2: Swapped roles`,
+        note: `Rotation 2: Swapped skills`,
       });
       
-      assessed.add(kid1.id);
-      assessed.add(kid2.id);
+      assessed.add(player1.id);
+      assessed.add(player2.id);
     }
 
-    // Handle odd kid - pair with first assessed kid (2 rotations)
+    // Handle odd player - pair with first assessed player (2 rotations)
     if (availableKids.length === 1) {
-      const oddKid = availableKids[0];
-      const firstAssessedKid = kids.find(k => k.id !== oddKid.id);
+      const oddPlayer = availableKids[0];
+      const firstAssessedPlayer = kids.find(k => k.id !== oddPlayer.id);
       
-      if (firstAssessedKid) {
+      if (firstAssessedPlayer) {
         // First rotation
         generatedPairs.push({
           id: `pair_${generatedPairs.length}_rotation1`,
-          passer: oddKid,
-          receiver: firstAssessedKid,
+          player1: oddPlayer,
+          player2: firstAssessedPlayer,
           rotation: 1,
-          note: `${firstAssessedKid.name} partnering again`,
+          note: `${firstAssessedPlayer.name} partnering again`,
         });
         
         // Second rotation
         generatedPairs.push({
           id: `pair_${generatedPairs.length}_rotation2`,
-          passer: firstAssessedKid,
-          receiver: oddKid,
+          player1: oddPlayer,
+          player2: firstAssessedPlayer,
           rotation: 2,
-          note: `${firstAssessedKid.name} partnering again - Rotation 2`,
+          note: `${firstAssessedPlayer.name} partnering again - Rotation 2`,
         });
         
-        assessed.add(oddKid.id);
+        assessed.add(oddPlayer.id);
       }
     }
 
     console.log('🔄 [PairedTracker] Generated pairs with rotations:', {
       totalPairs: generatedPairs.length,
-      kidsCount: kids.length,
+      playersCount: kids.length,
       rotationsPerPhysicalPair: 2,
     });
 
@@ -116,6 +124,10 @@ const PairedAssessmentTracker = ({
   };
   
   const currentPair = pairs[currentPairIndex];
+  
+  // ✅ Map kid1/kid2 to metric1/metric2 based on rotation
+  // Rotation 1: kid1 does metric1, kid2 does metric2
+  // Rotation 2: kid1 does metric2, kid2 does metric1
   const isLastPair = currentPairIndex === pairs.length - 1;
 
   // Show next pair notification
@@ -139,33 +151,31 @@ const PairedAssessmentTracker = ({
     });
   };
 
-  const handleSavePair = (passerScore, receiverScore) => {
-    if (!passerScore || !receiverScore) {
+  const handleSavePair = (player1Score, player2Score) => {
+    if (!player1Score || !player2Score) {
       setShowMissingScoresModal(true);
       return;
     }
 
-    // ✅ FIX: Respect rotation when assigning metrics
-    // Rotation 1: passer does metric1, receiver does metric2
-    // Rotation 2: passer does metric2, receiver does metric1 (they swapped roles!)
-    
-    let passerMetricId, receiverMetricId;
+    // ✅ CRITICAL FIX: Determine which metric each player is doing in THIS rotation
+    let player1MetricId, player2MetricId;
     
     if (currentPair.rotation === 1) {
-      // First rotation: normal assignment
-      passerMetricId = metric1.id;
-      receiverMetricId = metric2.id;
+      // ✅ Rotation 1: player1 does metric1 (Passing), player2 does metric2 (Receiving)
+      player1MetricId = metric1.id;
+      player2MetricId = metric2.id;
     } else {
-      // Second rotation: SWAPPED assignment
-      passerMetricId = metric2.id;  // ✅ Passer now does metric2
-      receiverMetricId = metric1.id; // ✅ Receiver now does metric1
+      // ✅ Rotation 2: player1 does metric2 (Receiving), player2 does metric1 (Passing)
+      // SWAP: player1 now does what player2 did, player2 now does what player1 did
+      player1MetricId = metric2.id;
+      player2MetricId = metric1.id;
     }
     
-    // Save results with correct metric assignments
+    // ✅ CRITICAL: Save results with correct metric assignments
     const newResults = {
       ...pairResults,
-      [`${currentPair.passer.id}_${passerMetricId}`]: passerScore,
-      [`${currentPair.receiver.id}_${receiverMetricId}`]: receiverScore,
+      [`${currentPair.player1.id}_${player1MetricId}`]: player1Score,
+      [`${currentPair.player2.id}_${player2MetricId}`]: player2Score,
     };
     
     setPairResults(newResults);
@@ -174,15 +184,26 @@ const PairedAssessmentTracker = ({
       pairIndex: currentPairIndex + 1,
       totalPairs: pairs.length,
       rotation: currentPair.rotation,
-      passerAssessment: `${currentPair.passer.name} → ${passerMetricId === metric1.id ? metric1.name : metric2.name} = ${passerScore}`,
-      receiverAssessment: `${currentPair.receiver.name} → ${receiverMetricId === metric1.id ? metric1.name : metric2.name} = ${receiverScore}`,
+      player1: {
+        name: currentPair.player1.name,
+        metric: player1MetricId === metric1.id ? metric1.name : metric2.name,
+        metricId: player1MetricId,
+        score: player1Score,
+      },
+      player2: {
+        name: currentPair.player2.name,
+        metric: player2MetricId === metric1.id ? metric1.name : metric2.name,
+        metricId: player2MetricId,
+        score: player2Score,
+      },
+      savedKeys: Object.keys(newResults),
       isLastPair,
-      resultsCount: Object.keys(newResults).length,
     });
 
     // Move to next pair or complete
     if (isLastPair) {
       console.log('✅ [PairedTracker] Last pair completed, calling handleComplete');
+      console.log('📦 [PairedTracker] Final results object:', newResults);
       handleComplete(newResults);
     } else {
       const nextIndex = currentPairIndex + 1;
@@ -221,13 +242,40 @@ const PairedAssessmentTracker = ({
 
   const handleComplete = (results) => {
     const resultArray = Object.entries(results).map(([key, value]) => {
-      const [kidId, metricId] = key.split('_');
-      return { kidId, metricId, value };
+      // ✅ Key format: "kidId_withSuffix_football_metricname"
+      // Example: "1764019736553_3upzonrn9_football_passing"
+      // We need: kidId = "1764019736553_3upzonrn9", metricId = "football_passing"
+      
+      const parts = key.split('_');
+      
+      // Find where "football" starts (this is the beginning of the metric ID)
+      const footballIndex = parts.findIndex(p => p === 'football');
+      
+      if (footballIndex >= 0) {
+        // Everything BEFORE "football" is the kid ID (including any underscores in the kid ID)
+        const kidIdParts = parts.slice(0, footballIndex);
+        const kidId = kidIdParts.join('_'); // Rejoin to preserve kid ID format
+        
+        // Everything FROM "football" onwards is the metric ID
+        const metricId = parts.slice(footballIndex).join('_');
+        
+        return { kidId, metricId, value };
+      } else {
+        // Fallback: assume last 2 parts are metric ID
+        const kidId = parts.slice(0, -2).join('_');
+        const metricId = parts.slice(-2).join('_');
+        return { kidId, metricId, value };
+      }
     });
-
-    console.log('🎯 [PairedTracker] Completing with results:', resultArray);
+    
+    console.log('🎯 [PairedTracker] Completing with results:', {
+      rawResults: results,
+      resultArray,
+      count: resultArray.length,
+      mappedResults: resultArray.map(r => `${r.kidId} → ${r.metricId} = ${r.value}`),
+    });
+    
     setShowCompleteModal(true);
-    // Store results for confirmation modal
     window.completedResults = resultArray;
   };
 
@@ -239,11 +287,14 @@ const PairedAssessmentTracker = ({
     // Clean up global variable
     delete window.completedResults;
     
-    // Call onSave callback with proper format
+    // ✅ CRITICAL: Call onSave callback with proper format
     if (resultsToSave.length > 0) {
+      console.log('📤 [PairedTracker] Calling onSave with results:', resultsToSave);
       onSave(resultsToSave);
     } else {
       console.error('❌ [PairedTracker] No results to save!');
+      // Still call onSave with empty array so parent can handle it
+      onSave([]);
     }
   };
 
@@ -258,8 +309,16 @@ const PairedAssessmentTracker = ({
     );
   }
 
-  const passerKey = `${currentPair.passer.id}_${metric1.id}`;
-  const receiverKey = `${currentPair.receiver.id}_${metric2.id}`;
+  // ✅ Determine which metric each player is doing based on rotation
+  const player1MetricId = currentPair.rotation === 1 ? metric1.id : metric2.id;
+  const player2MetricId = currentPair.rotation === 1 ? metric2.id : metric1.id;
+  
+  const player1Key = `${currentPair.player1.id}_${player1MetricId}`;
+  const player2Key = `${currentPair.player2.id}_${player2MetricId}`;
+  
+  // ✅ Get metric names for display
+  const player1MetricName = currentPair.rotation === 1 ? metric1.name : metric2.name;
+  const player2MetricName = currentPair.rotation === 1 ? metric2.name : metric1.name;
 
   return (
     <View style={styles.container}>
@@ -276,7 +335,7 @@ const PairedAssessmentTracker = ({
             <View style={styles.notificationText}>
               <Text style={styles.notificationTitle}>Next Assessment</Text>
               <Text style={styles.notificationSubtitle}>
-                {pairs[currentPairIndex]?.passer.name} & {pairs[currentPairIndex]?.receiver.name}
+                {pairs[currentPairIndex]?.player1.name} & {pairs[currentPairIndex]?.player2.name}
                 {pairs[currentPairIndex]?.rotation && ` (Rotation ${pairs[currentPairIndex].rotation})`}
               </Text>
             </View>
@@ -311,18 +370,18 @@ const PairedAssessmentTracker = ({
           <Text style={styles.pairTitle}>Current Pair</Text>
           
           <View style={styles.pairLayout}>
-            {/* Passer */}
+            {/* Player 1 */}
             <View style={styles.kidBox}>
-              <View style={[styles.roleBadge, styles.passerBadge]}>
-                <Ionicons name="arrow-forward" size={16} color={COLORS.white} />
+              <View style={[styles.roleBadge, styles.player1Badge]}>
+                <Ionicons name="person" size={16} color={COLORS.white} />
                 <Text style={styles.roleBadgeText}>PASSER</Text>
               </View>
               <View style={styles.kidAvatar}>
                 <Ionicons name="person" size={32} color={COLORS.primary} />
               </View>
-              <Text style={styles.kidBoxName}>{currentPair.passer.name}</Text>
+              <Text style={styles.kidBoxName}>{currentPair.player1.name}</Text>
               <Text style={styles.kidBoxDetails}>
-                {currentPair.passer.age} yrs • {currentPair.passer.age_group}
+                {currentPair.player1.age} yrs • {currentPair.player1.age_group}
               </Text>
             </View>
 
@@ -330,18 +389,18 @@ const PairedAssessmentTracker = ({
               <Ionicons name="swap-horizontal" size={32} color={COLORS.primary} />
             </View>
 
-            {/* Receiver */}
+            {/* Player 2 */}
             <View style={styles.kidBox}>
-              <View style={[styles.roleBadge, styles.receiverBadge]}>
-                <Ionicons name="hand-left" size={16} color={COLORS.white} />
+              <View style={[styles.roleBadge, styles.player2Badge]}>
+                <Ionicons name="football" size={16} color={COLORS.white} />
                 <Text style={styles.roleBadgeText}>RECEIVER</Text>
               </View>
               <View style={styles.kidAvatar}>
                 <Ionicons name="person" size={32} color={COLORS.success} />
               </View>
-              <Text style={styles.kidBoxName}>{currentPair.receiver.name}</Text>
+              <Text style={styles.kidBoxName}>{currentPair.player2.name}</Text>
               <Text style={styles.kidBoxDetails}>
-                {currentPair.receiver.age} yrs • {currentPair.receiver.age_group}
+                {currentPair.player2.age} yrs • {currentPair.player2.age_group}
               </Text>
             </View>
           </View>
@@ -354,57 +413,53 @@ const PairedAssessmentTracker = ({
           )}
         </View>
 
-        {/* Passer Assessment */}
+        {/* Player 1 Assessment */}
         <View style={styles.assessmentCard}>
           <View style={styles.assessmentHeader}>
             <View style={styles.assessmentHeaderLeft}>
               <View style={[styles.assessmentIcon, { backgroundColor: COLORS.primary + '20' }]}>
-                <Ionicons name="arrow-forward" size={24} color={COLORS.primary} />
+                <Ionicons name="person" size={24} color={COLORS.primary} />
               </View>
               <View>
-                <Text style={styles.assessmentTitle}>
-                  {currentPair.rotation === 1 ? metric1.name : metric2.name}
-                </Text>
-                <Text style={styles.assessmentSubtitle}>{currentPair.passer.name}</Text>
+                <Text style={styles.assessmentTitle}>{player1MetricName}</Text>
+                <Text style={styles.assessmentSubtitle}>{currentPair.player1.name}</Text>
               </View>
             </View>
           </View>
           
           <MetricInput
-            metric={metric1}
-            value={pairResults[passerKey] || ''}
+            metric={currentPair.rotation === 1 ? metric1 : metric2}
+            value={pairResults[player1Key] || ''}
             onChange={(value) => {
               setPairResults({
                 ...pairResults,
-                [passerKey]: value,
+                [player1Key]: value,
               });
             }}
           />
         </View>
 
-        {/* Receiver Assessment */}
+        {/* Player 2 Assessment */}
         <View style={styles.assessmentCard}>
           <View style={styles.assessmentHeader}>
             <View style={styles.assessmentHeaderLeft}>
               <View style={[styles.assessmentIcon, { backgroundColor: COLORS.success + '20' }]}>
-                <Ionicons name="hand-left" size={24} color={COLORS.success} />
+                <Ionicons name="people" size={24} color={COLORS.success} />
               </View>
               <View>
-                <Text style={styles.assessmentTitle}>
-                  {currentPair.rotation === 1 ? metric2.name : metric1.name}
-                </Text>
-                <Text style={styles.assessmentSubtitle}>{currentPair.receiver.name}</Text>
+                <Text style={styles.assessmentTitle}>{player2MetricName}</Text>
+                <Text style={styles.assessmentSubtitle}>{currentPair.player2.name}</Text>
               </View>
             </View>
           </View>
           
           <MetricInput
-            metric={metric2}
-            value={pairResults[receiverKey] || ''}
+            metric={currentPair.rotation === 1 ? metric2 : metric1}
+            value={pairResults[player2Key] || ''}
             onChange={(value) => {
               setPairResults({
                 ...pairResults,
-                [receiverKey]: value,
+                [player2Key]: value,
               });
             }}
           />
@@ -418,7 +473,7 @@ const PairedAssessmentTracker = ({
               <View key={pair.id} style={styles.upcomingPair}>
                 <Text style={styles.upcomingPairNumber}>#{currentPairIndex + index + 2}</Text>
                 <Text style={styles.upcomingPairText}>
-                  {pair.passer.name} ↔ {pair.receiver.name}
+                  {pair.player1.name} ↔ {pair.player2.name}
                 </Text>
               </View>
             ))}
@@ -455,11 +510,11 @@ const PairedAssessmentTracker = ({
           style={[
             styles.navButton,
             styles.nextButton,
-            (pairResults[passerKey] && pairResults[receiverKey]) && styles.nextButtonEnabled,
-            (!pairResults[passerKey] || !pairResults[receiverKey]) && styles.nextButtonDisabled,
+            (pairResults[player1Key] && pairResults[player2Key]) && styles.nextButtonEnabled,
+            (!pairResults[player1Key] || !pairResults[player2Key]) && styles.nextButtonDisabled,
           ]}
-          onPress={() => handleSavePair(pairResults[passerKey], pairResults[receiverKey])}
-          disabled={!pairResults[passerKey] || !pairResults[receiverKey]}
+          onPress={() => handleSavePair(pairResults[player1Key], pairResults[player2Key])}
+          disabled={!pairResults[player1Key] || !pairResults[player2Key]}
         >
           <Text style={styles.navButtonText}>
             {isLastPair ? 'Complete Assessment' : 'Next Pair'}
@@ -663,10 +718,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 4,
   },
-  passerBadge: {
+  player1Badge: {
     backgroundColor: COLORS.primary,
   },
-  receiverBadge: {
+  player2Badge: {
     backgroundColor: COLORS.success,
   },
   roleBadgeText: {

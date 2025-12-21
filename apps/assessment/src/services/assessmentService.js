@@ -47,7 +47,16 @@ const generateId = () => {
  */
 export const saveAssessmentResult = async (resultData) => {
   const { kid_id, sport_id, metric_id, value, assessment_date, metadata } = resultData;
-    
+  
+  console.log('💾 [AssessmentService] Saving result:', {
+    kid_id,
+    sport_id,
+    metric_id,
+    value,
+    date: assessment_date,
+    metadata: metadata ? 'Present' : 'Missing',
+  });
+  
   // ✅ VALIDATION: Validate kid_id format
   if (!kid_id || typeof kid_id !== 'string') {
     console.error('❌ [saveAssessmentResult] INVALID kid_id - null or not a string!', {

@@ -42,6 +42,31 @@ const initializeWebDB = async () => {
       webDB.benchmarks = parsed.benchmarks || [];
       webDB.goals = parsed.goals || [];
       console.log('✅ Web DB initialized from storage');
+      
+      // ✅ MIGRATION: Rename 'general_fitness' to 'fitness' (WEB)
+      const oldSportIndex = webDB.sports.findIndex(s => s.id === 'general_fitness');
+      if (oldSportIndex !== -1) {
+        console.log('🔄 [Web] Migration: Renaming sport "general_fitness" to "fitness"...');
+        
+        webDB.sports[oldSportIndex].id = 'fitness';
+        webDB.metrics.forEach(m => { if (m.sport_id === 'general_fitness') m.sport_id = 'fitness'; });
+        webDB.assessments.forEach(a => { if (a.sport_id === 'general_fitness') a.sport_id = 'fitness'; });
+        webDB.kids.forEach(k => {
+          if (k.primary_sport === 'general_fitness') k.primary_sport = 'fitness';
+          if (k.sports_enrolled) {
+            try {
+              let enrolled = typeof k.sports_enrolled === 'string' ? JSON.parse(k.sports_enrolled) : k.sports_enrolled;
+              if (Array.isArray(enrolled)) {
+                const idx = enrolled.indexOf('general_fitness');
+                if (idx !== -1) { enrolled[idx] = 'fitness'; k.sports_enrolled = JSON.stringify(enrolled); }
+              }
+            } catch (e) {}
+          }
+        });
+        
+        await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(webDB));
+        console.log('✅ [Web] Migration: Successfully renamed "general_fitness" to "fitness"');
+      }
     } else {
       console.log('📦 Web DB initialized empty');
     }
@@ -278,6 +303,33 @@ export const initDatabase = async () => {
   } catch (error) {
     if (!error.message.includes('duplicate column')) {
       console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+  
+  // ✅ MIGRATION: Rename 'general_fitness' to 'fitness' (MOBILE)
+  if (!isWeb) {
+    try {
+      console.log('🔄 Migration: Checking for old sport ID "general_fitness"...');
+      
+      const oldSport = await db.getFirstAsync(
+        'SELECT id FROM sports WHERE id = ?',
+        ['general_fitness']
+      );
+      
+      if (oldSport) {
+        console.log('🔄 Migration: Renaming sport "general_fitness" to "fitness"...');
+        
+        await db.runAsync('UPDATE sports SET id = ? WHERE id = ?', ['fitness', 'general_fitness']);
+        await db.runAsync('UPDATE metrics SET sport_id = ? WHERE sport_id = ?', ['fitness', 'general_fitness']);
+        await db.runAsync('UPDATE assessments SET sport_id = ? WHERE sport_id = ?', ['fitness', 'general_fitness']);
+        await db.runAsync('UPDATE kids SET primary_sport = ? WHERE primary_sport = ?', ['fitness', 'general_fitness']);
+        
+        console.log('✅ Migration: Successfully renamed "general_fitness" to "fitness"');
+      } else {
+        console.log('✅ Migration: No "general_fitness" found (already migrated or fresh install)');
+      }
+    } catch (error) {
+      console.error('❌ Migration error (non-critical):', error.message);
     }
   }
   

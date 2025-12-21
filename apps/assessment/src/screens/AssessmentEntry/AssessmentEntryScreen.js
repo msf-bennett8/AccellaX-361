@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { saveAssessmentResult, getLastAssessmentForKid } from '../../services/assessmentService';
+import { triggerSyncOnChange } from '../../services/autoSyncTrigger';
 import MetricInput from '../../components/metrics/MetricInput';
 import TimerAssessmentInput from '../../components/metrics/TimerAssessmentInput';
 import Header from '../../components/common/Header';
@@ -92,6 +93,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
   const [lastValues, setLastValues] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [shouldSkip, setShouldSkip] = useState(false);
 
   // Modal States
   const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' });
@@ -159,6 +161,21 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     if (currentKid?.id && currentMetric?.id) {
+      // Check if this is a paired metric that's already assessed
+      if (isPairedTest && !isBatchMode) {
+        const currentValue = getCurrentValue();
+        if (currentValue && currentValue !== '' && currentValue !== null) {
+          console.log('✅ [AssessmentEntry] Paired metric already assessed:', {
+            kid: currentKid.name,
+            metric: currentMetric.name,
+            value: currentValue,
+          });
+          setShouldSkip(true);
+          return; // Don't load previous data or do anything else
+        }
+      }
+      
+      setShouldSkip(false);
       loadPreviousData();
       
       // Auto-fill field if prefill is enabled and value exists
@@ -179,7 +196,6 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
       
       // SPECIAL: If Paired Test detected in test-by-test mode, navigate to paired tracker
       if (isPairedTest && isBatchMode && currentKidIndex === 0) {
-        // Check if this is the first of the pair (not already processed)
         const pairedMetricIndex = selectedTests.findIndex(t => t.id === currentMetric.pairedWith);
         const shouldLaunch = pairedMetricIndex > currentTestIndex || pairedMetricIndex === -1;
         
@@ -267,6 +283,10 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
       await AsyncStorage.setItem(`assessment_session_${sessionId}`, JSON.stringify(sessionState));
       
       console.log('✅ Auto-saved:', { kid: currentKid.name, metric: currentMetric.name, value });
+      
+      // ✅ NEW: Trigger background sync after saving
+      await triggerSyncOnChange('assessment_result_saved');
+      
     } catch (error) {
       console.error('❌ Error auto-saving:', error);
       setSaveErrorModal(true);
@@ -442,8 +462,10 @@ const handlePairedTestLaunch = () => {
       metric1: currentMetric.name,
       metric2: pairedMetric.name,
       kids: kids.length,
+      currentKidIndex,
       currentTestIndex,
       totalTests: selectedTests.length,
+      mode,
     });
 
     navigation.navigate('PairedAssessmentTracker', {
@@ -476,40 +498,128 @@ const handlePairedTestLaunch = () => {
             newResults: results.length,
           });
           
-          // ✅ Determine next action INSIDE the state update
-          const pairedTestIndex = selectedTests.findIndex(t => t.id === pairedMetric.id);
-          const nextIndex = Math.max(currentTestIndex, pairedTestIndex) + 1;
-          
-          console.log('➡️ [AssessmentEntry] Navigation decision:', { 
-            currentTestIndex, 
-            pairedTestIndex, 
-            nextIndex,
-            totalTests: selectedTests.length,
-            isComplete: nextIndex >= selectedTests.length,
-          });
-          
-          // ✅ Use setTimeout to ensure state is committed before navigation
+          // ✅ FIX: Determine next action based on mode
           setTimeout(() => {
-            if (nextIndex >= selectedTests.length) {
-              console.log('✅ [AssessmentEntry] All tests complete, navigating to summary');
-              console.log('📊 [AssessmentEntry] Final assessment data keys:', Object.keys(newAssessmentData));
+            if (mode === 'kid-by-kid') {
+              // ✅ Kid-by-Kid: Find indices of BOTH paired metrics
+              const pairedMetric1Index = selectedTests.findIndex(t => t.id === currentMetric.id);
+              const pairedMetric2Index = selectedTests.findIndex(t => t.id === pairedMetric.id);
+              const maxPairedIndex = Math.max(pairedMetric1Index, pairedMetric2Index);
               
-              // ✅ Navigate to summary with the updated data
-              navigation.replace('AssessmentSummary', { 
-                assessmentData: newAssessmentData, // ✅ Pass updated data directly
-                sport, 
-                kids, 
-                selectedTests,
-                assessmentMetadata,
-                sessionId,
+              // ✅ Find NEXT UNPAIRED metric (skip any remaining paired metrics)
+              let nextTestIndex = maxPairedIndex + 1;
+              
+              // Skip any other paired metrics that might be in the list
+              while (nextTestIndex < selectedTests.length) {
+                const nextTest = selectedTests[nextTestIndex];
+                const isPaired = nextTest.pairedWith !== undefined;
+                
+                if (isPaired) {
+                  // Check if this paired metric was already handled
+                  const pairKey1 = `${currentKid.id}_${nextTest.id}`;
+                  const pairKey2 = nextTest.pairedWith ? `${currentKid.id}_${nextTest.pairedWith}` : null;
+                  
+                  if (newAssessmentData[pairKey1] || (pairKey2 && newAssessmentData[pairKey2])) {
+                    // Already assessed, skip it
+                    console.log(`⏭️ Skipping already-assessed paired metric: ${nextTest.name}`);
+                    nextTestIndex++;
+                    continue;
+                  }
+                }
+                
+                // Found unpaired or unassessed metric
+                break;
+              }
+              
+              console.log('➡️ [Kid-by-Kid] Navigation after paired assessment:', {
+                currentKid: kids[currentKidIndex].name,
+                pairedMetric1Index,
+                pairedMetric2Index,
+                maxPairedIndex,
+                nextTestIndex,
+                nextTestName: nextTestIndex < selectedTests.length ? selectedTests[nextTestIndex].name : 'COMPLETE',
+                totalTests: selectedTests.length,
               });
+              
+              // Check if current kid has more tests
+              if (nextTestIndex >= selectedTests.length) {
+                // Move to next kid, start from first test
+                const nextKidIndex = currentKidIndex + 1;
+                
+                if (nextKidIndex >= kids.length) {
+                  // All kids done - go to summary
+                  console.log('✅ [Kid-by-Kid] All kids complete, navigating to summary');
+                  navigation.replace('AssessmentSummary', { 
+                    assessmentData: newAssessmentData,
+                    sport, 
+                    kids, 
+                    selectedTests,
+                    assessmentMetadata,
+                    sessionId,
+                  });
+                } else {
+                  // ✅ CRITICAL: For next kid, check if first metric is paired and already assessed
+                  let startTestIndex = 0;
+                  const firstTest = selectedTests[0];
+                  
+                  if (firstTest.pairedWith !== undefined) {
+                    const nextKid = kids[nextKidIndex];
+                    const key1 = `${nextKid.id}_${firstTest.id}`;
+                    const key2 = `${nextKid.id}_${firstTest.pairedWith}`;
+                    
+                    if (newAssessmentData[key1] || newAssessmentData[key2]) {
+                      // First metric is paired and already done, skip to next unpaired
+                      const pairedIdx1 = 0;
+                      const pairedIdx2 = selectedTests.findIndex(t => t.id === firstTest.pairedWith);
+                      startTestIndex = Math.max(pairedIdx1, pairedIdx2) + 1;
+                      
+                      console.log(`⏭️ Next kid's first metric already assessed, starting at index ${startTestIndex}`);
+                    }
+                  }
+                  
+                  console.log(`➡️ [Kid-by-Kid] Moving to next kid: ${kids[nextKidIndex].name}, starting at test ${startTestIndex + 1}`);
+                  setCurrentKidIndex(nextKidIndex);
+                  setCurrentTestIndex(startTestIndex);
+                  navigation.goBack();
+                }
+              } else {
+                // Continue with next test for same kid
+                console.log(`➡️ [Kid-by-Kid] Next test for ${kids[currentKidIndex].name}: ${selectedTests[nextTestIndex].name}`);
+                setCurrentTestIndex(nextTestIndex);
+                navigation.goBack();
+              }
             } else {
-              console.log(`➡️ [AssessmentEntry] Moving to next test: ${nextIndex + 1}/${selectedTests.length}`);
-              setCurrentTestIndex(nextIndex);
-              setCurrentKidIndex(0);
-              navigation.goBack(); // ✅ Go back to entry screen
+              // ✅ Test-by-Test: Skip BOTH paired metrics, move to next test with all kids
+              const pairedMetric1Index = selectedTests.findIndex(t => t.id === currentMetric.id);
+              const pairedMetric2Index = selectedTests.findIndex(t => t.id === pairedMetric.id);
+              const nextTestIndex = Math.max(pairedMetric1Index, pairedMetric2Index) + 1;
+              
+              console.log('➡️ [Test-by-Test] Navigation decision:', { 
+                pairedMetric1Index,
+                pairedMetric2Index,
+                nextTestIndex,
+                totalTests: selectedTests.length,
+                isComplete: nextTestIndex >= selectedTests.length,
+              });
+              
+              if (nextTestIndex >= selectedTests.length) {
+                console.log('✅ [Test-by-Test] All tests complete, navigating to summary');
+                navigation.replace('AssessmentSummary', { 
+                  assessmentData: newAssessmentData,
+                  sport, 
+                  kids, 
+                  selectedTests,
+                  assessmentMetadata,
+                  sessionId,
+                });
+              } else {
+                console.log(`➡️ [Test-by-Test] Moving to next test: ${nextTestIndex + 1}/${selectedTests.length}`);
+                setCurrentTestIndex(nextTestIndex);
+                setCurrentKidIndex(0);
+                navigation.goBack();
+              }
             }
-          }, 150); // Increased delay to ensure state commit
+          }, 150);
           
           return newAssessmentData;
         });
@@ -520,7 +630,10 @@ const handlePairedTestLaunch = () => {
   const handleNext = async () => {
     const currentValue = getCurrentValue();
     
-    if (!currentValue || currentValue === '') {
+    // ✅ Allow skipping if already assessed (for auto-skip logic)
+    const isAlreadyAssessed = currentValue !== '' && currentValue !== null && currentValue !== undefined;
+    
+    if (!isAlreadyAssessed) {
       setMissingValueModal(true);
       return;
     }
@@ -542,6 +655,7 @@ const handlePairedTestLaunch = () => {
         nextKidIndex = currentKidIndex + 1;
       }
     } else {
+      // ✅ Kid-by-Kid mode
       if (isLastTest) {
         if (isLastKid) {
           isComplete = true;
@@ -660,6 +774,58 @@ const handlePairedTestLaunch = () => {
 
   const totalItems = kids.length * selectedTests.length;
   const completedItems = Object.keys(assessmentData).length;
+
+  // ✅ Show already-assessed indicator if this metric was completed in paired tracker
+  if (shouldSkip) {
+    return (
+      <View style={styles.container}>
+        <Header
+          title="Assessment"
+          subtitle={`${sport?.name || 'Sport'} • ${isBatchMode ? 'Test-by-Test' : 'Kid-by-Kid'}`}
+          leftIcon="←"
+          onLeftPress={handlePrevious}
+          showAvatar={false}
+        />
+        
+        <View style={styles.scrollableContent}>
+          <View style={styles.alreadyAssessedContainer}>
+            <View style={styles.alreadyAssessedIcon}>
+              <Ionicons name="checkmark-circle" size={64} color={COLORS.success} />
+            </View>
+            <Text style={styles.alreadyAssessedTitle}>Already Assessed</Text>
+            <Text style={styles.alreadyAssessedText}>
+              {currentKid.name}'s {currentMetric.name} was completed in the paired assessment.
+            </Text>
+            <View style={styles.alreadyAssessedValue}>
+              <Text style={styles.alreadyAssessedLabel}>Score:</Text>
+              <Text style={styles.alreadyAssessedScore}>{getCurrentValue()}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.navigationContainer}>
+          <TouchableOpacity
+            style={[styles.navButton, styles.previousButton]}
+            onPress={handlePrevious}
+            disabled={currentKidIndex === 0 && currentTestIndex === 0}
+          >
+            <Ionicons name="arrow-back" size={20} color={COLORS.white} />
+            <Text style={styles.navButtonText}>Previous</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navButton, styles.nextButton, styles.nextButtonEnabled]}
+            onPress={handleNext}
+          >
+            <Text style={styles.navButtonText}>
+              {isLastKid && isLastTest ? 'Complete' : 'Skip to Next'}
+            </Text>
+            <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -881,6 +1047,7 @@ const handlePairedTestLaunch = () => {
           style={[
             styles.navButton, 
             styles.previousButton,
+            // ✅ Only disable at the very first screen
             (currentKidIndex === 0 && currentTestIndex === 0) && styles.disabledButton
           ]}
           onPress={handlePrevious}
@@ -1365,7 +1532,7 @@ const styles = StyleSheet.create({
     gap: 6 
   },
   previousButton: { 
-    backgroundColor: COLORS.textSecondary 
+    backgroundColor: COLORS.success  // ✅ Green background
   },
   nextButton: { 
     backgroundColor: COLORS.primary 
@@ -1451,6 +1618,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginBottom: 12,
+  },
+  // Already Assessed Styles
+  alreadyAssessedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  alreadyAssessedIcon: {
+    marginBottom: 24,
+  },
+  alreadyAssessedTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  alreadyAssessedText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  alreadyAssessedValue: {
+    backgroundColor: COLORS.successLight || COLORS.success + '20',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  alreadyAssessedLabel: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  alreadyAssessedScore: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.success,
   },
 });
 

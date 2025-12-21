@@ -1159,6 +1159,21 @@ export const performFullSync = async (userId) => {
     return { success: false, message: 'Sync already in progress' };
   }
   
+  // ✅ NEW: Auto-seed before syncing
+  debugLog('FULL_SYNC', 'Step 0: Auto-seed missing data before sync');
+  try {
+    const { autoSeedDatabase } = await import('../services/autoSeedService');
+    const seedResult = await autoSeedDatabase(userId);
+    
+    if (seedResult.success) {
+      debugLog('FULL_SYNC', 'Auto-seed completed successfully', seedResult.results);
+    } else {
+      debugLog('FULL_SYNC', 'Auto-seed had errors (non-critical)', seedResult.results?.errors);
+    }
+  } catch (seedError) {
+    debugLog('FULL_SYNC', 'Auto-seed failed (non-critical), continuing with sync', { error: seedError.message });
+  }
+  
   if (!userId) {
     debugLog('FULL_SYNC', 'No user ID provided - aborting');
     return { success: false, message: 'User ID required for sync' };

@@ -9,6 +9,16 @@
 
 export const DEFAULT_SPORTS = [
   {
+    id: 'fitness',
+    name: 'Fitness',
+    icon: '💪',
+    description: 'General Fitness Tests',
+    isDefault: true,
+    isActive: true,
+    color: '#E74C3C', // Red/Orange
+    categories: ['general_fitness'],
+  },
+  {
     id: 'football',
     name: 'Football',
     icon: '⚽',

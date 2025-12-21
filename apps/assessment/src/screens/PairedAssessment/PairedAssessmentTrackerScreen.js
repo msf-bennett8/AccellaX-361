@@ -23,6 +23,8 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
   const handleSave = async (results) => {
     try {
       console.log('💾 [PairedScreen] handleSave called with results:', results);
+      console.log('📊 [PairedScreen] Assessment metadata:', assessmentMetadata);
+      console.log('⚽ [PairedScreen] Sport ID:', sport?.id);
       
       if (!results || results.length === 0) {
         console.error('❌ [PairedScreen] No results to save!');
@@ -31,10 +33,26 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
         return;
       }
       
-      // Save each result
+      // ✅ Validate sport ID
+      if (!sport || !sport.id) {
+        console.error('❌ [PairedScreen] Invalid sport data!', sport);
+        setErrorMessage('Invalid sport data');
+        setShowErrorModal(true);
+        return;
+      }
+      
+      // Save each result with detailed logging
+      const savedResults = [];
       for (const result of results) {
-        console.log('💾 [PairedScreen] Saving result:', result);
-        await saveAssessmentResult({
+        console.log('💾 [PairedScreen] Saving result:', {
+          kid_id: result.kidId,
+          sport_id: sport.id,
+          metric_id: result.metricId,
+          value: result.value,
+          date: assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0],
+        });
+        
+        const saveResult = await saveAssessmentResult({
           kid_id: result.kidId,
           sport_id: sport.id,
           metric_id: result.metricId,
@@ -42,15 +60,19 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
           assessment_date: assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0],
           metadata: assessmentMetadata,
         });
+        
+        console.log('✅ [PairedScreen] Save result response:', saveResult);
+        savedResults.push(result);
       }
       
-      console.log('✅ [PairedScreen] All results saved successfully');
-      setSavedResults(results); // ✅ Store for onComplete
-      setSavedPairsCount(Math.floor(results.length / 2));
+      console.log('✅ [PairedScreen] All results saved successfully:', savedResults.length);
+      setSavedResults(savedResults); // ✅ Store for onComplete
+      setSavedPairsCount(Math.floor(savedResults.length / 2));
       setShowSuccessModal(true);
     } catch (error) {
       console.error('❌ [PairedScreen] Error saving paired assessment results:', error);
-      setErrorMessage(error.message);
+      console.error('❌ [PairedScreen] Error stack:', error.stack);
+      setErrorMessage(error.message || 'Unknown error occurred');
       setShowErrorModal(true);
     }
   };
@@ -59,16 +81,18 @@ const PairedAssessmentTrackerScreen = ({ route }) => {
     console.log('✅ [PairedScreen] Success modal closed, calling onComplete with results:', savedResults);
     setShowSuccessModal(false);
     
-    // ✅ CRITICAL: Call onComplete BEFORE any navigation
+    // ✅ CRITICAL: Call onComplete to save results, then let callback handle navigation
     if (onComplete) {
       console.log('✅ [PairedScreen] Calling onComplete with formatted results:', savedResults);
       
-      // Call onComplete and wait a moment before navigating
       try {
         onComplete(savedResults);
         console.log('✅ [PairedScreen] onComplete called successfully');
+        // ✅ Don't navigate here - let the callback in AssessmentEntryScreen handle it
       } catch (error) {
         console.error('❌ [PairedScreen] Error calling onComplete:', error);
+        // Fallback: go back if there's an error
+        navigation.goBack();
       }
     } else {
       console.warn('⚠️ [PairedScreen] No onComplete callback provided, navigating back');

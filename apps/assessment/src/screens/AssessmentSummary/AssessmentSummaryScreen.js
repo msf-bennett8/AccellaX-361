@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import { COLORS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
+import { triggerSyncOnChange } from '../../services/autoSyncTrigger';
 
 export default function AssessmentSetupScreen() {
   const navigation = useNavigation();
@@ -138,30 +139,37 @@ export default function AssessmentSetupScreen() {
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleContinue = () => {
-  if (!validateForm()) {
-    return;
-  }
-  
-  console.log('🔍 AssessmentSetup - Metadata being passed:', {
-    year,
-    term,
-    assessmentType,
-    weekNumber,
-  });
-  
-  // Pass metadata to next screen (Select Sport)
-  navigation.navigate('SelectSport', {
-    assessmentMetadata: {
+  const handleContinue = async () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    console.log('🔍 AssessmentSetup - Metadata being passed:', {
       year,
       term,
+      assessmentType,
+      weekNumber,
+    });
+    
+    // ✅ Trigger sync after setting up assessment
+    try {
+      await triggerSyncOnChange('assessment_setup_completed');
+    } catch (error) {
+      console.warn('Failed to trigger sync:', error);
+    }
+    
+    // Pass metadata to next screen (Select Sport)
+    navigation.navigate('SelectSport', {
+      assessmentMetadata: {
+        year,
+        term,
         assessmentType,
         weekNumber: parseInt(weekNumber),
         location: location.trim() || null,
         assessorName,
         generalNotes: generalNotes.trim() || null,
         setupDate: new Date().toISOString(),
-        assessmentDate: new Date().toISOString().split('T')[0], // ✅ ADD THIS LINE - Current date in YYYY-MM-DD format
+        assessmentDate: new Date().toISOString().split('T')[0],
       },
     });
   };

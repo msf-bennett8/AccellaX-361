@@ -18,6 +18,7 @@
 export const GENERAL_FITNESS_METRICS = [
   {
     id: 'height',
+    sportId: 'fitness',
     name: 'Height',
     category: 'general_fitness',
     type: 'numeric',
@@ -30,6 +31,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'weight',
+    sportId: 'fitness',
     name: 'Weight',
     category: 'general_fitness',
     type: 'numeric',
@@ -42,6 +44,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'beep_test',
+    sportId: 'fitness',
     name: 'Beep Test (Endurance)',
     category: 'general_fitness',
     type: 'beep_test', // Special type for live tracker
@@ -55,6 +58,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'cooper_test',
+    sportId: 'fitness',
     name: 'Cooper Test (12-min run)',
     category: 'general_fitness',
     type: 'cooper_test', // Special type for live tracker
@@ -68,6 +72,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'sprint_100m',
+    sportId: 'fitness',
     name: '100m Sprint (Speed)',
     category: 'general_fitness',
     type: 'timer',
@@ -80,6 +85,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'sprint_40m',
+    sportId: 'fitness',
     name: '40m Sprint (Speed)',
     category: 'general_fitness',
     type: 'timer',
@@ -92,6 +98,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'sprint_20m',
+    sportId: 'fitness',
     name: '20m Sprint (Speed)',
     category: 'general_fitness',
     type: 'timer',
@@ -104,6 +111,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'pushups_1min',
+    sportId: 'fitness',
     name: 'Push-ups (Strength)',
     category: 'general_fitness',
     type: 'counted',
@@ -116,6 +124,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'situps_1min',
+    sportId: 'fitness',
     name: 'Sit-ups (Core)',
     category: 'general_fitness',
     type: 'counted',
@@ -128,6 +137,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'flexibility',
+    sportId: 'fitness',
     name: 'Sit-and-Reach (Flexibility)',
     category: 'general_fitness',
     type: 'numeric',
@@ -140,6 +150,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'agility_ttest',
+    sportId: 'fitness',
     name: 'T-Test (Agility)',
     category: 'general_fitness',
     type: 'timer', // Use timer component
@@ -152,6 +163,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'vertical_jump',
+    sportId: 'fitness',
     name: 'Vertical Jump (Power)',
     category: 'general_fitness',
     type: 'numeric',
@@ -164,6 +176,7 @@ export const GENERAL_FITNESS_METRICS = [
   },
   {
     id: 'standing_broad_jump',
+    sportId: 'fitness',
     name: 'Standing Broad Jump (Power)',
     category: 'general_fitness',
     type: 'numeric',

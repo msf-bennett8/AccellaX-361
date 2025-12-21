@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { triggerSyncOnChange } from '../../services/autoSyncTrigger';
 import { insertKid, updateKid, getKidById } from '../../database/db';
 import { assignSportsToKid } from '../../services/kidService';
 import { getCurrentUserId, getUserRole } from '../../utils/auth';
@@ -217,6 +218,9 @@ const AddEditKidScreen = () => {
 
         setSuccessMessage('Kid updated successfully');
         setShowSuccessModal(true);
+        
+        // ✅ Trigger sync after updating kid
+        await triggerSyncOnChange('kid_updated');
       } else {
         // Create new kid
         const newKid = await insertKid(
@@ -242,6 +246,9 @@ const AddEditKidScreen = () => {
 
         setSuccessMessage('Kid added successfully');
         setShowSuccessModal(true);
+        
+        // ✅ Trigger sync after adding kid
+        await triggerSyncOnChange('kid_created');
       }
     } catch (error) {
       console.error('❌ Error saving kid:', error);

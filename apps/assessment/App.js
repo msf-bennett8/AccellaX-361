@@ -37,19 +37,35 @@ export default function App() {
       await logger.init();
       await logger.system('App', 'Startup', 'Application starting');
 
-      // Initialize database
+      // 1. Initialize database schema
       await initDatabase();
-      console.log('✅ Database initialized');
-      await logger.info('Database', 'Init', 'Database initialized successfully');
+      console.log('✅ Database schema initialized');
+      await logger.info('Database', 'Init', 'Database schema initialized successfully');
 
       // Check authentication status
       const userProfile = await AsyncStorage.getItem('userProfile');
       const currentUserId = await AsyncStorage.getItem('currentUserId');
 
-      // Seed database (safe to call every time - checks if already seeded)
-      console.log('🌱 Checking database seeding...');
-      const seedResult = await seedDatabaseIfNeeded(currentUserId || 'system');
-      console.log('📊 Seeding result:', seedResult);
+      // 2. Auto-seed missing data
+      console.log('🌱 Running auto-seed...');
+      const { autoSeedDatabase } = await import('./src/services/autoSeedService');
+      const seedResult = await autoSeedDatabase(currentUserId || 'system');
+      
+      if (seedResult.success) {
+        console.log('✅ Auto-seed completed successfully');
+        await logger.info('Database', 'Seed', 'Auto-seed completed', seedResult.results);
+      } else {
+        console.warn('⚠️  Auto-seed completed with errors:', seedResult.results?.errors);
+        await logger.warn('Database', 'Seed', 'Auto-seed had errors', seedResult.results?.errors);
+      }
+
+      // 3. Start periodic background sync (every 5 minutes)
+      if (currentUserId) {
+        const { startAutoSync } = await import('./src/database/sync');
+        startAutoSync();
+        console.log('✅ Periodic background sync started');
+        await logger.info('Sync', 'AutoSync', 'Periodic sync started');
+      }
 
       if (userProfile && currentUserId) {
         console.log('✅ User is authenticated');

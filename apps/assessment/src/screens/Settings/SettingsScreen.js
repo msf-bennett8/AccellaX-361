@@ -373,6 +373,56 @@ export default function SettingsScreen({ onLogout }) {
     });
   };
 
+  const handleForceReseed = () => {
+    setModalConfig({
+      visible: true,
+      title: 'Force Re-Seed Database',
+      message: 'This will re-seed all default sports, metrics, and benchmarks. Existing data will NOT be deleted. Continue?',
+      type: 'warning',
+      showCancel: true,
+      confirmText: 'Re-Seed',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setModalConfig({ ...modalConfig, visible: false });
+        
+        try {
+          const { forceReseed } = await import('../../services/autoSeedService');
+          const result = await forceReseed();
+          
+          if (result.success) {
+            setModalConfig({
+              visible: true,
+              title: 'Success',
+              message: 'Database re-seeded successfully!',
+              type: 'success',
+              confirmText: 'OK',
+              onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+            });
+          } else {
+            setModalConfig({
+              visible: true,
+              title: 'Error',
+              message: result.error || 'Failed to re-seed database',
+              type: 'error',
+              confirmText: 'OK',
+              onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+            });
+          }
+        } catch (error) {
+          setModalConfig({
+            visible: true,
+            title: 'Error',
+            message: 'Re-seed failed: ' + error.message,
+            type: 'error',
+            confirmText: 'OK',
+            onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+          });
+        }
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
+  };
+
   const handleDeleteAllData = () => {
     setModalConfig({
       visible: true,
@@ -1010,7 +1060,20 @@ export default function SettingsScreen({ onLogout }) {
           </View>
           <Text style={styles.actionButtonArrow}>→</Text>
         </TouchableOpacity>
-      </View>
+        
+        <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleForceReseed}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="database-refresh" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
+              <View style={styles.actionButtonTextContainer}>
+                <Text style={styles.actionButtonTitle}>Force Re-Seed Database</Text>
+                <Text style={styles.actionButtonSubtitle}>Re-seed sports, metrics & benchmarks</Text>
+              </View>
+              <Text style={styles.actionButtonArrow}>→</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Data Management Section */}
