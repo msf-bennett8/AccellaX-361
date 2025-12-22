@@ -14,6 +14,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { saveAssessmentResult, getLastAssessmentForKid } from '../../services/assessmentService';
+import { useUndo } from '../../contexts/UndoContext';
+import { predictNextValue, suggestBenchmarkTarget } from '../../services/suggestionService';
+import { useAuth } from '../../contexts/AuthContext';
 import { triggerSyncOnChange } from '../../services/autoSyncTrigger';
 import MetricInput from '../../components/metrics/MetricInput';
 import TimerAssessmentInput from '../../components/metrics/TimerAssessmentInput';
@@ -88,6 +91,14 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
   
   const [currentKidIndex, setCurrentKidIndex] = useState(initialKidIndex);
   const [currentTestIndex, setCurrentTestIndex] = useState(initialTestIndex);
+  // Undo functionality
+  const { recordAction, undo, canUndo, getLastActionDescription } = useUndo();
+  
+  // Smart suggestions
+  const { user } = useAuth();
+  const [suggestion, setSuggestion] = useState(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  
   const [assessmentData, setAssessmentData] = useState(existingAssessmentData);
   const [prefillEnabled, setPrefillEnabled] = useState(false);
   const [lastValues, setLastValues] = useState({});
@@ -159,6 +170,50 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
   const isLastKid = currentKidIndex === kids.length - 1;
   const isLastTest = currentTestIndex === selectedTests.length - 1;
 
+  const loadSmartSuggestion = async () => {
+    if (!currentKid?.id || !currentMetric?.id) return;
+    
+    try {
+      setLoadingSuggestion(true);
+      
+      // Try prediction based on history
+      const prediction = await predictNextValue(currentKid.id, currentMetric.id);
+      
+      if (prediction) {
+        setSuggestion({
+          type: 'prediction',
+          value: prediction.value,
+          reason: prediction.reason,
+          confidence: prediction.confidence,
+        });
+      } else {
+        // Try benchmark-based suggestion
+        const benchmarkTarget = suggestBenchmarkTarget(
+          currentMetric.id,
+          currentKid.age_group,
+          currentKid.gender,
+          0 // No current value yet
+        );
+        
+        if (benchmarkTarget && benchmarkTarget.targetValue) {
+          setSuggestion({
+            type: 'benchmark',
+            value: benchmarkTarget.targetValue,
+            reason: benchmarkTarget.suggestion,
+            confidence: 'low',
+          });
+        } else {
+          setSuggestion(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading suggestion:', error);
+      setSuggestion(null);
+    } finally {
+      setLoadingSuggestion(false);
+    }
+  };
+
   useEffect(() => {
     if (currentKid?.id && currentMetric?.id) {
       // Check if this is a paired metric that's already assessed
@@ -175,6 +230,8 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
         }
       }
       
+      // Load smart suggestion
+      loadSmartSuggestion();
       setShouldSkip(false);
       loadPreviousData();
       
@@ -257,6 +314,16 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     try {
       setSaving(true);
       
+      // Validate value before saving
+      const { validateMetricValue } = await import('../../utils/validators');
+      const validation = validateMetricValue(value, currentMetric);
+      
+      if (!validation.isValid) {
+        const { showUserFriendlyError } = await import('../../utils/errorHandlers');
+        showUserFriendlyError(new Error(validation.error));
+        return;
+      }
+      
       // Save to local database
       await saveAssessmentResult({
         kid_id: currentKid.id,
@@ -284,11 +351,46 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
       
       console.log('✅ Auto-saved:', { kid: currentKid.name, metric: currentMetric.name, value });
       
-      // ✅ NEW: Trigger background sync after saving
+      // Trigger background sync after saving
       await triggerSyncOnChange('assessment_result_saved');
+
+      // Record action for undo
+      const previousValue = assessmentData[key];
+      recordAction({
+        type: 'metric_change',
+        description: `${currentKid.name}: ${currentMetric.name} = ${value}`,
+        data: { key, previousValue, newValue: value },
+        undo: async () => {
+          // Restore previous value
+          const restored = { ...assessmentData, [key]: previousValue || '' };
+          setAssessmentData(restored);
+          
+          // Save to database
+          if (previousValue) {
+            await saveAssessmentResult({
+              kid_id: currentKid.id,
+              sport_id: sport.id,
+              metric_id: currentMetric.id,
+              value: previousValue,
+              assessment_date: assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0],
+              metadata: assessmentMetadata,
+            });
+          }
+        },
+      });
       
     } catch (error) {
       console.error('❌ Error auto-saving:', error);
+      
+      // Log error with context
+      const { logErrorWithContext } = await import('../../utils/errorHandlers');
+      logErrorWithContext(error, {
+        operation: 'save_assessment_result',
+        kidId: currentKid.id,
+        metricId: currentMetric.id,
+        value
+      });
+      
       setSaveErrorModal(true);
     } finally {
       setSaving(false);
@@ -1026,6 +1128,33 @@ const handlePairedTestLaunch = () => {
           />
         )}
 
+        {/* Smart Suggestion */}
+        {suggestion && !getCurrentValue() && (
+          <TouchableOpacity
+            style={styles.suggestionCard}
+            onPress={() => saveCurrentValue(suggestion.value)}
+          >
+            <View style={styles.suggestionHeader}>
+              <Ionicons 
+                name={suggestion.confidence === 'high' ? 'bulb' : 'bulb-outline'} 
+                size={20} 
+                color={COLORS.primary} 
+              />
+              <Text style={styles.suggestionTitle}>
+                {suggestion.type === 'prediction' ? 'Predicted Value' : 'Suggested Target'}
+              </Text>
+              <View style={styles.confidenceBadge}>
+                <Text style={styles.confidenceText}>{suggestion.confidence}</Text>
+              </View>
+            </View>
+            <Text style={styles.suggestionValue}>
+              {suggestion.value} {currentMetric.unit || ''}
+            </Text>
+            <Text style={styles.suggestionReason}>{suggestion.reason}</Text>
+            <Text style={styles.suggestionAction}>Tap to use this value</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Previous Value Reference */}
         {lastValues[currentMetric.id] && !prefillEnabled && (
           <View style={styles.previousValueCard}>
@@ -1043,6 +1172,21 @@ const handlePairedTestLaunch = () => {
 
       {/* Navigation Buttons */}
       <View style={styles.navigationContainer}>
+        {/* Undo Button */}
+        {canUndo() && (
+          <TouchableOpacity
+            style={styles.undoButton}
+            onPress={async () => {
+              await undo();
+              // Show toast
+              const description = getLastActionDescription();
+              console.log('↩️ Undone:', description);
+            }}
+          >
+            <Ionicons name="arrow-undo" size={20} color={COLORS.white} />
+          </TouchableOpacity>
+        )}
+        
         <TouchableOpacity
           style={[
             styles.navButton, 
@@ -1659,6 +1803,69 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.success,
+  },
+  
+  // Undo Button
+  undoButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.warning,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  
+  // Smart Suggestion Styles
+  suggestionCard: {
+    backgroundColor: COLORS.primaryLight + '20',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginHorizontal: 16,
+    borderWidth: 2,
+    borderColor: COLORS.primary + '40',
+    borderStyle: 'dashed',
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  suggestionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+    flex: 1,
+  },
+  confidenceBadge: {
+    backgroundColor: COLORS.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  confidenceText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+  },
+  suggestionValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  suggestionReason: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  suggestionAction: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });
 

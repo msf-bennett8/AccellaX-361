@@ -17,7 +17,11 @@ import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
 import { COLORS } from '../../utils/constants';
-import { getRecentAssessments } from '../../database/queries';
+import { 
+  getAssessmentsPaginated, 
+  getAssessmentCount,
+  getAssessmentResultsLazy 
+} from '../../database/queries';
 import { getKidByIdFromFirebase } from '../../services/kidService';
 import { getKidById, getSportById, getAllSports } from '../../database/db';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -72,6 +76,13 @@ export default function HistoryScreen() {
     lastAssessmentDate: null,
   });
 
+  // PHASE 5: Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 20;
+
   // Filter options
   const [yearOptions, setYearOptions] = useState([
     { value: 'all', label: 'All Years' },
@@ -119,66 +130,72 @@ export default function HistoryScreen() {
     applyFilters();
   }, [assessments, filters, searchQuery, selectedYear, selectedTerm, selectedSport, selectedAgeGroup, selectedSort]);
 
-  const loadHistory = async () => {
+  const loadHistory = async (page = 1) => {
     try {
-      setLoading(true);
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       
-      console.log('📋 Loading assessment history...');
+      console.log(`📋 Loading assessment history (page ${page})...`);
       
-      // Use queries.js which properly handles the assessmentWebDB storage
-      const allAssessments = await getRecentAssessments(100); // Get last 100 assessments
+      // PHASE 5: Use paginated query
+      const result = await getAssessmentsPaginated({}, page, PAGE_SIZE);
       
-      console.log('📊 Loaded assessments from queries:', allAssessments.length);
+      console.log(`📊 Loaded page ${page}:`, result.assessments.length, 'assessments');
       
       // Enrich with kid and sport details
-      // queries.js already provides kid_name and sport_name from the JOIN
       const enrichedAssessments = await Promise.all(
-        allAssessments.map(async (assessment) => {
-          // Try to get full kid object for additional details
-          let kid = null;
-          try {
-            kid = await getKidByIdFromFirebase(assessment.kid_id);
-          } catch (error) {
-            console.warn('⚠️ Could not fetch kid details:', error);
-          }
-          
-          // Get sport details
+        result.assessments.map(async (assessment) => {
+          // Use local DB for kid/sport details (faster and more reliable)
+          const kid = await getKidById(assessment.kid_id);
           const sport = await getSportById(assessment.sport_id);
           
           return {
-            ...assessment, // ✅ This preserves year, term, etc.
-            kidName: assessment.kid_name || kid?.name || 'Unknown',
-            sportName: assessment.sport_name || sport?.name || 'Unknown',
+            ...assessment,
+            kidName: kid?.name || 'Unknown',
+            sportName: sport?.name || 'Unknown',
             sportColor: sport?.color || COLORS.primary,
             kidDetails: kid,
             sportDetails: sport,
-            // ✅ Ensure metadata fields are accessible
             year: assessment.year || null,
             term: assessment.term || null,
             age_group: kid?.age_group || null,
+            // NO results yet - will lazy load on expand
           };
         })
       );
       
       console.log('✅ Enriched assessments:', enrichedAssessments.length);
-      console.log('🔍 Sample assessment with metadata:', enrichedAssessments[0]); 
-      setAssessments(enrichedAssessments);
+      
+      // Append or replace based on page
+      if (page === 1) {
+        setAssessments(enrichedAssessments);
+      } else {
+        setAssessments(prev => [...prev, ...enrichedAssessments]);
+      }
+      
+      // Update pagination state
+      setCurrentPage(page);
+      setTotalCount(result.total);
+      setTotalPages(Math.ceil(result.total / PAGE_SIZE));
+      
       calculateStats(enrichedAssessments);
+      setLoading(false);
+      setLoadingMore(false);
 
-      // Generate year options dynamically from actual assessment data
+      // Generate year options (keep existing logic)
       const assessmentYears = new Set();
       enrichedAssessments.forEach(a => {
-        // Use the saved year field if available, otherwise derive from assessment_date
         if (a.year && a.year !== 'null' && a.year !== null) {
           assessmentYears.add(a.year);
         } else {
-          // Fallback: generate from assessment_date
           const assessmentYear = new Date(a.assessment_date).getFullYear();
           assessmentYears.add(`${assessmentYear}/${assessmentYear + 1}`);
         }
       });
       
-      // Sort years in descending order (most recent first)
       const sortedYears = Array.from(assessmentYears).sort((a, b) => {
         const yearA = parseInt(a.split('/')[0]);
         const yearB = parseInt(b.split('/')[0]);
@@ -192,8 +209,6 @@ export default function HistoryScreen() {
       
       setYearOptions([{ value: 'all', label: 'All Years' }, ...dynamicYearOptions]);
 
-      setLoading(false);
-
       // Load sports for filter
       const allSports = await getAllSports();
       const sportsFilterOptions = [
@@ -205,6 +220,7 @@ export default function HistoryScreen() {
     } catch (error) {
       console.error('❌ Error loading history:', error);
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -360,6 +376,12 @@ console.log('🔍 Year filter debug:', {
     setFilteredAssessments(filtered);
   };
 
+  const loadMoreAssessments = () => {
+    if (!loadingMore && currentPage < totalPages) {
+      loadHistory(currentPage + 1);
+    }
+  };
+
   const clearFilters = () => {
     setFilters({
       sport: null,
@@ -386,10 +408,19 @@ console.log('🔍 Year filter debug:', {
     <TouchableOpacity
       key={assessment.id}
       style={styles.assessmentCard}
-      onPress={() => navigation.navigate('KidProgress', { 
-        kidId: assessment.kid_id, 
-        sportId: assessment.sport_id 
-      })}
+      onPress={async () => {
+        // PHASE 5: Lazy load results before navigation
+        if (!assessment.results) {
+          console.log('🔄 Lazy loading results for assessment:', assessment.id);
+          const results = await getAssessmentResultsLazy(assessment.id);
+          assessment.results = results;
+        }
+        
+        navigation.navigate('KidProgress', { 
+          kidId: assessment.kid_id, 
+          sportId: assessment.sport_id 
+        });
+      }}
       activeOpacity={0.7}
     >
       <View style={[styles.sportIndicator, { backgroundColor: assessment.sportColor }]} />
@@ -409,7 +440,9 @@ console.log('🔍 Year filter debug:', {
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="clipboard-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.metaText}>{assessment.results?.length || 0} metrics</Text>
+            <Text style={styles.metaText}>
+              {assessment.result_count || assessment.results?.length || 0} metrics
+            </Text>
           </View>
         </View>
       </View>
@@ -542,15 +575,8 @@ console.log('🔍 Year filter debug:', {
             {/* View Full Report Button */}
             <TouchableOpacity
               style={styles.reportButton}
-              onPress={() => navigation.navigate('HistoryReport', {
-                filteredAssessments,
-                filters: {
-                  year: selectedYear,
-                  term: selectedTerm,
-                  sport: selectedSport,
-                  ageGroup: selectedAgeGroup,
-                  sort: selectedSort,
-                },
+              onPress={() => navigation.navigate('Export', {
+                preSelectedAssessments: filteredAssessments,
               })}
             >
               <Ionicons name="stats-chart-outline" size={18} color="#2196F3" />
@@ -774,6 +800,26 @@ console.log('🔍 Year filter debug:', {
         ) : (
           <View style={styles.assessmentsList}>
             {filteredAssessments.map(renderAssessmentCard)}
+            
+            {/* PHASE 5: Load More Button */}
+            {currentPage < totalPages && (
+              <TouchableOpacity
+                style={styles.loadMoreButton}
+                onPress={loadMoreAssessments}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <Text style={styles.loadMoreText}>Loading...</Text>
+                ) : (
+                  <>
+                    <Text style={styles.loadMoreText}>
+                      Load More ({filteredAssessments.length} of {totalCount})
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#2196F3" />
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         )}
         </ScrollView>
@@ -1146,5 +1192,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 1000,
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    gap: 8,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2196F3',
   },
 });

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,12 @@ import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS } from '../../utils/constants';
 import { getMetricsBySport } from '../../config/metrics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  getTemplates, 
+  createTemplate, 
+  deleteTemplate 
+} from '../../services/templateService';
 
 export default function SelectTestsScreen() {
   const navigation = useNavigation();
@@ -34,6 +41,11 @@ export default function SelectTestsScreen() {
   const [showNoTestsModal, setShowNoTestsModal] = useState(false);
   const [pendingMetric, setPendingMetric] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
 
   // Determine mode
   const isTestByTestMode = assessmentMode === 'test_by_test';
@@ -41,6 +53,7 @@ export default function SelectTestsScreen() {
 
   useEffect(() => {
     loadMetrics();
+    loadTemplates();
   }, []);
 
   const loadMetrics = async () => {
@@ -62,6 +75,16 @@ export default function SelectTestsScreen() {
     } catch (error) {
       console.error('❌ Error loading metrics:', error);
       setLoading(false);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const sportTemplates = await getTemplates(sport.id);
+      setTemplates(sportTemplates);
+      console.log('✅ Loaded templates:', sportTemplates.length);
+    } catch (error) {
+      console.error('❌ Error loading templates:', error);
     }
   };
 
@@ -101,6 +124,73 @@ export default function SelectTestsScreen() {
 
   const deselectAll = () => {
     setSelectedTests([]);
+  };
+
+  const handleLoadTemplate = (template) => {
+    setSelectedTests(template.metric_ids);
+    setShowTemplateModal(false);
+    console.log('✅ Loaded template:', template.name);
+  };
+
+  const handleSaveAsTemplate = () => {
+    if (selectedTests.length === 0) {
+      setShowNoTestsModal(true);
+      return;
+    }
+    setShowSaveTemplateModal(true);
+  };
+
+  const confirmSaveTemplate = async () => {
+    try {
+      if (!templateName.trim()) {
+        return;
+      }
+
+      // Get current user from AsyncStorage
+      let userId = 'system';
+      try {
+        const userStr = await AsyncStorage.getItem('currentUser');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          userId = user.id || 'system';
+        }
+      } catch (err) {
+        console.warn('Could not get current user:', err);
+      }
+
+      await createTemplate(
+        templateName,
+        sport.id,
+        selectedTests,
+        templateDescription,
+        userId,
+        false
+      );
+
+      await loadTemplates();
+      setShowSaveTemplateModal(false);
+      setTemplateName('');
+      setTemplateDescription('');
+
+      setModalConfig({
+        visible: true,
+        title: 'Template Saved',
+        message: `"${templateName}" has been saved successfully!`,
+        type: 'success',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
+    } catch (error) {
+      console.error('❌ Error saving template:', error);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    try {
+      await deleteTemplate(templateId);
+      await loadTemplates();
+    } catch (error) {
+      console.error('❌ Error deleting template:', error);
+    }
   };
 
   const handleContinue = () => {
@@ -245,6 +335,38 @@ export default function SelectTestsScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Template Actions */}
+      {templates.length > 0 && (
+        <View style={styles.templateSection}>
+          <TouchableOpacity
+            style={styles.templateButton}
+            onPress={() => setShowTemplateModal(true)}
+          >
+            <Ionicons name="folder-open-outline" size={16} color={COLORS.primary} />
+            <Text style={styles.templateButtonText}>Load Template</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.templateButton}
+            onPress={handleSaveAsTemplate}
+          >
+            <Ionicons name="save-outline" size={16} color={COLORS.success} />
+            <Text style={[styles.templateButtonText, { color: COLORS.success }]}>Save as Template</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {templates.length === 0 && selectedTests.length > 0 && (
+        <View style={styles.templateSection}>
+          <TouchableOpacity
+            style={[styles.templateButton, { backgroundColor: COLORS.success + '10' }]}
+            onPress={handleSaveAsTemplate}
+          >
+            <Ionicons name="save-outline" size={16} color={COLORS.success} />
+            <Text style={[styles.templateButtonText, { color: COLORS.success }]}>Save as Template</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Category Filter */}
       <View style={styles.filterSection}>
@@ -466,6 +588,89 @@ export default function SelectTestsScreen() {
         </View>
       </Modal>
 
+      {/* Load Template Modal */}
+      <Modal visible={showTemplateModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Load Template</Text>
+              <TouchableOpacity onPress={() => setShowTemplateModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.templateList}>
+              {templates.map((template) => (
+                <TouchableOpacity
+                  key={template.id}
+                  style={styles.templateItem}
+                  onPress={() => handleLoadTemplate(template)}
+                >
+                  <View style={styles.templateInfo}>
+                    <Text style={styles.templateItemName}>{template.name}</Text>
+                    {template.description && (
+                      <Text style={styles.templateItemDescription}>{template.description}</Text>
+                    )}
+                    <Text style={styles.templateItemMeta}>
+                      {template.metric_ids.length} tests
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTemplate(template.id);
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Save Template Modal */}
+      <Modal visible={showSaveTemplateModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Save as Template</Text>
+            <TextInput
+              style={styles.templateInput}
+              placeholder="Template Name"
+              value={templateName}
+              onChangeText={setTemplateName}
+            />
+            <TextInput
+              style={[styles.templateInput, styles.templateInputMultiline]}
+              placeholder="Description (optional)"
+              value={templateDescription}
+              onChangeText={setTemplateDescription}
+              multiline
+              numberOfLines={3}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setShowSaveTemplateModal(false);
+                  setTemplateName('');
+                  setTemplateDescription('');
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton]}
+                onPress={confirmSaveTemplate}
+                disabled={!templateName.trim()}
+              >
+                <Text style={styles.modalButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* No Tests Selected Modal */}
       <Modal visible={showNoTestsModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -634,5 +839,80 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+  },
+  templateSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  templateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryLight + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  templateButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  templateList: {
+    maxHeight: 400,
+  },
+  templateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  templateInfo: {
+    flex: 1,
+  },
+  templateItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  templateItemDescription: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  templateItemMeta: {
+    fontSize: 12,
+    color: COLORS.primary,
+  },
+  templateInput: {
+    backgroundColor: COLORS.backgroundDark,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    fontSize: 15,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  templateInputMultiline: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
 });

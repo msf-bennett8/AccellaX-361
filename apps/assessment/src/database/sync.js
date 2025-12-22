@@ -51,6 +51,43 @@ import {
 
 const isWeb = Platform.OS === 'web';
 
+// Helper to log sync operations to history
+const logSyncOperation = async (operationData) => {
+  try {
+    const operationId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    if (isWeb) {
+      const history = await AsyncStorage.getItem('sync_history');
+      const historyArray = history ? JSON.parse(history) : [];
+      historyArray.push({ id: operationId, ...operationData });
+      
+      // Keep only last 100 operations
+      if (historyArray.length > 100) {
+        historyArray.shift();
+      }
+      
+      await AsyncStorage.setItem('sync_history', JSON.stringify(historyArray));
+    } else {
+      const db = getDatabase();
+      await db.runAsync(
+        `INSERT INTO sync_history (id, operation_type, status, records_affected, error_message, started_at, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          operationId,
+          operationData.operation_type,
+          operationData.status,
+          operationData.records_affected,
+          operationData.error_message,
+          operationData.started_at,
+          operationData.completed_at,
+        ]
+      );
+    }
+  } catch (error) {
+    console.error('Error logging sync operation:', error);
+  }
+};
+
 // ========== ENHANCED DEBUGGING ==========
 
 const DEBUG_MODE = true; // Set to false in production
@@ -131,7 +168,9 @@ const SYNC_CONFIG = {
   retryAttempts: 3,
   retryDelay: 2000,
   syncInterval: 300000, // 5 minutes
-  conflictResolution: 'last-write-wins',
+  conflictResolution: 'user-choice', // Changed from last-write-wins
+  maxRetryQueueSize: 100,
+  syncTimeout: 30000, // 30 seconds
 };
 
 // ========== SYNC STATUS TRACKING ==========
@@ -457,7 +496,7 @@ const uploadMetricsToFirebase = async (userId, academyId) => {
 };
 
 // ✅ NEW: Upload Assessments to Firebase
-const uploadAssessmentsToFirebase = async (userId, academyId) => {
+export const uploadAssessmentsToFirebase = async (userId, academyId) => {
   debugLog('ASSESSMENTS_UPLOAD', 'Starting assessments upload', { userId, academyId });
   
   try {
@@ -486,9 +525,30 @@ const uploadAssessmentsToFirebase = async (userId, academyId) => {
     
     const batch = writeBatch(db);
     let uploadCount = 0;
+    const conflicts = []; // Track conflicts
     
     for (const assessment of academyAssessments) {
       const assessmentRef = doc(db, `academies/${academyId}/assessments`, assessment.id.toString());
+      
+      // Check for existing version (optimistic locking)
+      const existingDoc = await getDoc(assessmentRef);
+      if (existingDoc.exists()) {
+        const { detectConflict } = await import('../services/conflictResolutionService');
+        const conflictCheck = detectConflict(assessment, existingDoc.data());
+        
+        if (conflictCheck.hasConflict) {
+          debugLog('ASSESSMENTS_UPLOAD', 'Conflict detected', { assessmentId: assessment.id });
+          const { queueConflict } = await import('../services/conflictResolutionService');
+          await queueConflict({
+            type: 'assessment',
+            localData: assessment,
+            firebaseData: existingDoc.data(),
+            ...conflictCheck
+          });
+          conflicts.push(assessment.id);
+          continue; // Skip upload, let user resolve
+        }
+      }
       
       // Get assessment results
       const results = await getAssessmentResults(assessment.id);
@@ -499,7 +559,6 @@ const uploadAssessmentsToFirebase = async (userId, academyId) => {
         kid_id: assessment.kid_id.toString(),
         sport_id: assessment.sport_id.toString(),
         assessment_date: assessment.assessment_date,
-        // ✅ METADATA FIELDS (preserve all rich data)
         year: assessment.year || null,
         term: assessment.term || null,
         assessment_type: assessment.assessment_type || null,
@@ -507,9 +566,12 @@ const uploadAssessmentsToFirebase = async (userId, academyId) => {
         location: assessment.location || null,
         assessor_name: assessment.assessor_name || assessment.assessed_by || 'Coach',
         general_notes: assessment.general_notes || assessment.notes || null,
-        // Standard fields
         assessed_by: assessment.assessed_by,
         status: assessment.status || 'completed',
+        version: (assessment.version || 0) + 1, // Increment version
+        last_edited_by: userId,
+        last_edited_at: Timestamp.now(),
+        edit_count: (assessment.edit_count || 0) + 1,
         created_at: Timestamp.fromDate(new Date(assessment.created_at)),
         updated_at: Timestamp.now(),
         synced_at: Timestamp.now(),
@@ -521,33 +583,56 @@ const uploadAssessmentsToFirebase = async (userId, academyId) => {
         })),
       };
       
-      debugLog('ASSESSMENTS_UPLOAD', 'Adding assessment to batch', { 
-        assessmentId: assessment.id,
-        kidId: assessment.kid_id,
-        resultsCount: results.length 
-      });
-      
       batch.set(assessmentRef, assessmentData);
       uploadCount++;
       
       if (uploadCount % SYNC_CONFIG.batchSize === 0) {
-        await batch.commit();
+        await Promise.race([
+          batch.commit(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Batch commit timeout')), SYNC_CONFIG.syncTimeout)
+          )
+        ]);
       }
     }
     
     if (uploadCount % SYNC_CONFIG.batchSize !== 0) {
-      await batch.commit();
+      await Promise.race([
+        batch.commit(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Batch commit timeout')), SYNC_CONFIG.syncTimeout)
+        )
+      ]);
     }
     
     for (const assessment of academyAssessments) {
-      await markAsSynced('assessments', assessment.id);
+      if (!conflicts.includes(assessment.id)) {
+        await markAsSynced('assessments', assessment.id);
+      }
     }
     
-    debugLog('ASSESSMENTS_UPLOAD', 'Assessments upload completed', { uploadCount });
-    return { success: true, count: uploadCount };
+    debugLog('ASSESSMENTS_UPLOAD', 'Assessments upload completed', { 
+      uploadCount,
+      conflicts: conflicts.length 
+    });
+    
+    return { 
+      success: true, 
+      count: uploadCount,
+      conflicts: conflicts.length 
+    };
     
   } catch (error) {
     debugError('ASSESSMENTS_UPLOAD', 'Assessments upload failed', error);
+    
+    // Surface error to user
+    const { handleSyncError } = await import('../utils/errorHandlers');
+    handleSyncError(error, {
+      operation: 'upload_assessments',
+      userId,
+      academyId
+    });
+    
     return { success: false, error: error.message, count: 0 };
   }
 };
@@ -1312,6 +1397,22 @@ export const performFullSync = async (userId) => {
     // Update sync timestamp
     lastSyncTimestamp = Date.now();
     await AsyncStorage.setItem('lastAssessmentSyncTimestamp', lastSyncTimestamp.toString());
+
+    // Log to sync history
+    await logSyncOperation({
+      operation_type: 'full_sync',
+      status: results.errors.length === 0 ? 'success' : 'partial',
+      records_affected: (
+        results.kidsUploaded + results.kidsDownloaded +
+        results.sportsUploaded + results.sportsDownloaded +
+        results.metricsUploaded + results.metricsDownloaded +
+        results.assessmentsUploaded + results.assessmentsDownloaded +
+        results.notesUploaded + results.notesDownloaded
+      ),
+      error_message: results.errors.length > 0 ? results.errors.join('; ') : null,
+      started_at: new Date(Date.now() - 5000).toISOString(), // Approximate start time
+      completed_at: new Date().toISOString(),
+    });
     
     debugLog('FULL_SYNC', '========== ASSESSMENT SYNC COMPLETED ==========', {
       success: results.errors.length === 0,

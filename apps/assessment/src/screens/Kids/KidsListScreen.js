@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getKidsWithSports, getKidsWithoutSports } from '../../services/kidService';
+import { getKidsPaginated } from '../../database/queries';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import SearchBar from '../../components/common/SearchBar';
@@ -42,21 +43,103 @@ const KidsListScreen = () => {
   const [filterType, setFilterType] = useState('all');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  // Load kids from database
-  const loadKids = async () => {
+  
+  // PHASE 5: Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cachedPages, setCachedPages] = useState({}); // PHASE 5.2: Cache loaded pages
+  const PAGE_SIZE = 20;
+  // PHASE 5: Load kids with pagination
+  const loadKids = async (page = 1, useCache = true) => {
     try {
-      setLoading(true);
-      const allKids = await getKidsWithSports();
+      // Check cache first (PHASE 5.2)
+      if (useCache && cachedPages[page]) {
+        console.log(`✅ Using cached page ${page}`);
+        if (page === 1) {
+          setKids(cachedPages[page]);
+          setFilteredKids(cachedPages[page]);
+        } else {
+          setKids(prev => [...prev, ...cachedPages[page]]);
+          setFilteredKids(prev => [...prev, ...cachedPages[page]]);
+        }
+        return;
+      }
       
-      console.log('📊 Loaded kids:', allKids.length);
-      setKids(allKids);
-      setFilteredKids(allKids);
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      
+      console.log(`📋 Loading kids page ${page}...`);
+      
+      // PHASE 5: Use paginated query
+      const result = await getKidsPaginated(page, PAGE_SIZE);
+      
+      console.log(`📊 Loaded page ${page}:`, result.kids.length, 'kids');
+      
+      // Enrich with sports data
+      const enrichedKids = await Promise.all(
+        result.kids.map(async (kid) => {
+          // Parse sports_enrolled if it's a string
+          let sportsEnrolled = kid.sports_enrolled;
+          if (typeof sportsEnrolled === 'string') {
+            try {
+              sportsEnrolled = JSON.parse(sportsEnrolled);
+              if (typeof sportsEnrolled === 'string') {
+                sportsEnrolled = JSON.parse(sportsEnrolled);
+              }
+            } catch (e) {
+              console.warn('Failed to parse sports_enrolled:', e);
+              sportsEnrolled = null;
+            }
+          }
+          
+          return {
+            ...kid,
+            sports_enrolled: sportsEnrolled || null,
+          };
+        })
+      );
+      
+      // Cache this page (PHASE 5.2)
+      setCachedPages(prev => ({
+        ...prev,
+        [page]: enrichedKids
+      }));
+      
+      // Append or replace based on page
+      if (page === 1) {
+        setKids(enrichedKids);
+        setFilteredKids(enrichedKids);
+      } else {
+        setKids(prev => [...prev, ...enrichedKids]);
+        setFilteredKids(prev => [...prev, ...enrichedKids]);
+      }
+      
+      // Update pagination state
+      setCurrentPage(page);
+      setTotalCount(result.total);
+      setTotalPages(Math.ceil(result.total / PAGE_SIZE));
+      
+      setLoading(false);
+      setLoadingMore(false);
+      
     } catch (error) {
       console.error('❌ Error loading kids:', error);
       setErrorMessage('Failed to load kids. Please try again.');
       setShowErrorModal(true);
-    } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // PHASE 5: Load more kids
+  const loadMoreKids = () => {
+    if (!loadingMore && currentPage < totalPages) {
+      loadKids(currentPage + 1);
     }
   };
 
@@ -73,10 +156,12 @@ const KidsListScreen = () => {
     }, [])
   );
 
-  // Handle refresh
+  // PHASE 5: Handle refresh (clear cache and reload page 1)
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadKids();
+    setCachedPages({}); // Clear cache
+    setCurrentPage(1);
+    await loadKids(1, false); // Don't use cache
     setRefreshing(false);
   };
 
@@ -197,14 +282,14 @@ const KidsListScreen = () => {
     );
   };
 
-  // Render header with stats
+  // PHASE 5: Render header with stats and pagination info
   const renderHeader = () => {
     const kidsWithoutSports = kids.filter(k => !k.sports_enrolled || k.sports_enrolled.length === 0).length;
 
     return (
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{kids.length}</Text>
+          <Text style={styles.statValue}>{totalCount}</Text>
           <Text style={styles.statLabel}>Total Kids</Text>
         </View>
         <View style={styles.statCard}>
@@ -273,6 +358,26 @@ const KidsListScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderKidCard}
         ListHeaderComponent={renderHeader}
+        ListFooterComponent={() => (
+          currentPage < totalPages && !loading ? (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={loadMoreKids}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <Text style={styles.loadMoreText}>Loading...</Text>
+              ) : (
+                <>
+                  <Text style={styles.loadMoreText}>
+                    Load More ({kids.length} of {totalCount})
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color="#2196F3" />
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null
+        )}
         ListEmptyComponent={
           <EmptyState
             icon="👶"
@@ -545,6 +650,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2196F3',
   },
 });
 

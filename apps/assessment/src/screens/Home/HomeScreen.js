@@ -16,11 +16,12 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
+import SyncIndicator from '../../components/common/SyncIndicator';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS, APP_NAME, AGE_GROUPS, SPORTS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
-import { getAssessmentStats, getAllAssessments } from '../../services/assessmentService';
+import { getAssessmentStats, getAllAssessments, getDraftAssessments, deleteDraftAssessment } from '../../services/assessmentService';
 import { getKidsWithSports } from '../../services/kidService';
 import { getAllSports } from '../../database/db';
 import { getAllSportsWithFitness } from '../../services/sportService';
@@ -46,6 +47,7 @@ export default function HomeScreen() {
   const [redFlags, setRedFlags] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [draftAssessments, setDraftAssessments] = useState([]);
   const [modalConfig, setModalConfig] = useState({
     visible: false,
     title: '',
@@ -92,6 +94,7 @@ export default function HomeScreen() {
         loadRedFlags(),
         loadTopPerformers(),
         loadRecentActivity(),
+        loadDrafts(),
       ]);
       
       console.log('✅ Dashboard data loaded');
@@ -352,6 +355,18 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
     }
   };
 
+  const loadDrafts = async () => {
+    try {
+      console.log('📋 Loading draft assessments...');
+      const drafts = await getDraftAssessments();
+      setDraftAssessments(drafts);
+      console.log('✅ Drafts loaded:', drafts.length);
+    } catch (error) {
+      console.error('❌ Error loading drafts:', error);
+      setDraftAssessments([]);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadDashboardData();
@@ -445,6 +460,38 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
         sportId: sportId,
         sportName: sportName,
       }
+    });
+  };
+
+  const handleResumeDraft = (draft) => {
+    navigation.navigate('Assessment', {
+      screen: 'AssessmentEntry',
+      params: {
+        draftId: draft.id,
+        resumeDraft: true,
+      },
+    });
+  };
+
+  const handleDeleteDraft = async (draftId) => {
+    setModalConfig({
+      visible: true,
+      title: 'Delete Draft',
+      message: 'Are you sure you want to delete this draft assessment?',
+      type: 'warning',
+      showCancel: true,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          await deleteDraftAssessment(draftId);
+          await loadDrafts();
+          setModalConfig({ ...modalConfig, visible: false });
+        } catch (error) {
+          console.error('❌ Error deleting draft:', error);
+        }
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
     });
   };
 
@@ -619,6 +666,48 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Draft Assessments */}
+        {draftAssessments.length > 0 && (
+          <View style={styles.draftSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Resume Draft</Text>
+              <Text style={styles.draftCount}>{draftAssessments.length} draft{draftAssessments.length !== 1 ? 's' : ''}</Text>
+            </View>
+            {draftAssessments.map((draft) => (
+              <View key={draft.id} style={styles.draftCard}>
+                <View style={styles.draftInfo}>
+                  <Text style={styles.draftTitle}>{draft.sportName}</Text>
+                  <Text style={styles.draftSubtitle}>
+                    {draft.kidName} • {draft.completion_percentage}% complete
+                  </Text>
+                  <View style={styles.draftProgressBar}>
+                    <View
+                      style={[
+                        styles.draftProgressFill,
+                        { width: `${draft.completion_percentage}%` },
+                      ]}
+                    />
+                  </View>
+                </View>
+                <View style={styles.draftActions}>
+                  <TouchableOpacity
+                    style={styles.draftResumeButton}
+                    onPress={() => handleResumeDraft(draft)}
+                  >
+                    <Ionicons name="play-circle" size={20} color={COLORS.primary} />
+                    <Text style={styles.draftResumeText}>Resume</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteDraft(draft.id)}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Red Flags Alert */}
         {redFlags.length > 0 && (
@@ -847,6 +936,9 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
           onConfirm={modalConfig.onConfirm}
           onCancel={modalConfig.onCancel}
         />
+
+      {/* Sync Indicator - Floating status indicator */}
+      <SyncIndicator />
 
       {/* Loading Spinner - Must be AFTER closing View to overlay everything */}
       {loading && (
@@ -1313,9 +1405,78 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     lineHeight: 20,
   },
-
-  // Loading handled by LoadingSpinner component
-  // Bottom Padding
+  // Draft Assessments Styles
+  draftSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  draftCount: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+    backgroundColor: COLORS.primaryLight + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  draftCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.warning,
+  },
+  draftInfo: {
+    flex: 1,
+  },
+  draftTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  draftSubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  draftProgressBar: {
+    height: 4,
+    backgroundColor: COLORS.backgroundDark,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  draftProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.warning,
+  },
+  draftActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  draftResumeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primaryLight + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  draftResumeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
   bottomPadding: {
     height: 32,
   },

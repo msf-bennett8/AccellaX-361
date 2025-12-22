@@ -1023,6 +1023,32 @@ export default function SettingsScreen({ onLogout }) {
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('OfflineQueue')}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="cloud-sync" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
+              <View style={styles.actionButtonTextContainer}>
+                <Text style={styles.actionButtonTitle}>Offline Queue</Text>
+                <Text style={styles.actionButtonSubtitle}>View pending sync operations</Text>
+              </View>
+              <Text style={styles.actionButtonArrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('SyncHistory')}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="history" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
+              <View style={styles.actionButtonTextContainer}>
+                <Text style={styles.actionButtonTitle}>Sync History</Text>
+                <Text style={styles.actionButtonSubtitle}>View past sync operations</Text>
+              </View>
+              <Text style={styles.actionButtonArrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate('SportManagement')}
           activeOpacity={0.7}

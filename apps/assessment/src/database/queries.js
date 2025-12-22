@@ -1287,6 +1287,218 @@ export const getRecentAssessments = async (limit = 10) => {
   );
 };
 
+/**
+ * PHASE 5: Get kids with pagination
+ * @param {number} page - Page number (starting from 1)
+ * @param {number} pageSize - Items per page
+ * @returns {Object} { kids: Array, total: number, hasMore: boolean }
+ */
+export const getKidsPaginated = async (page = 1, pageSize = 20) => {
+  const offset = (page - 1) * pageSize;
+  
+  if (isWeb) {
+    const webDB = await getWebDB();
+    const allKids = webDB.kids?.filter(k => k.status === 'active') || [];
+    const total = allKids.length;
+    const kids = allKids.slice(offset, offset + pageSize);
+    
+    return {
+      kids,
+      total,
+      hasMore: offset + pageSize < total,
+      page,
+      pageSize
+    };
+  }
+  
+  const db = getDatabase();
+  
+  const totalResult = await db.getFirstAsync(
+    'SELECT COUNT(*) as count FROM kids WHERE status = ?',
+    ['active']
+  );
+  
+  const kids = await db.getAllAsync(
+    'SELECT * FROM kids WHERE status = ? ORDER BY name LIMIT ? OFFSET ?',
+    ['active', pageSize, offset]
+  );
+  
+  return {
+    kids,
+    total: totalResult?.count || 0,
+    hasMore: offset + pageSize < (totalResult?.count || 0),
+    page,
+    pageSize
+  };
+};
+
+/**
+ * PHASE 5: Get assessments with pagination and lazy results
+ * @param {Object} filters - Filter criteria
+ * @param {number} page - Page number
+ * @param {number} pageSize - Items per page
+ * @returns {Object} Paginated assessments WITHOUT results (lazy load)
+ */
+export const getAssessmentsPaginated = async (filters = {}, page = 1, pageSize = 20) => {
+  const offset = (page - 1) * pageSize;
+  
+  if (isWeb) {
+    const webDB = await getWebDB();
+    let assessments = webDB.assessments || [];
+    
+    // Apply filters
+    if (filters.sport_id) {
+      assessments = assessments.filter(a => a.sport_id === filters.sport_id);
+    }
+    if (filters.kid_id) {
+      assessments = assessments.filter(a => a.kid_id === filters.kid_id);
+    }
+    if (filters.date_from) {
+      assessments = assessments.filter(a => a.assessment_date >= filters.date_from);
+    }
+    if (filters.date_to) {
+      assessments = assessments.filter(a => a.assessment_date <= filters.date_to);
+    }
+    
+    const total = assessments.length;
+    const paginatedAssessments = assessments.slice(offset, offset + pageSize);
+    
+    // Enrich with kid/sport names AND result count (NO full results yet - lazy load)
+    const enriched = paginatedAssessments.map(assessment => {
+      const kid = webDB.kids?.find(k => k.id === assessment.kid_id);
+      const sport = webDB.sports?.find(s => s.id === assessment.sport_id);
+      const resultCount = webDB.assessment_results?.filter(r => r.assessment_id === assessment.id).length || 0;
+      
+      return {
+        ...assessment,
+        kid_name: kid?.name || 'Unknown',
+        sport_name: sport?.name || 'Unknown',
+        result_count: resultCount,
+        // NO results array - will be loaded on demand
+      };
+    });
+    
+    return {
+      assessments: enriched,
+      total,
+      hasMore: offset + pageSize < total,
+      page,
+      pageSize
+    };
+  }
+  
+  const db = getDatabase();
+  
+  // Build query with filters
+  let whereClause = 'WHERE 1=1';
+  const params = [];
+  
+  if (filters.sport_id) {
+    whereClause += ' AND a.sport_id = ?';
+    params.push(filters.sport_id);
+  }
+  if (filters.kid_id) {
+    whereClause += ' AND a.kid_id = ?';
+    params.push(filters.kid_id);
+  }
+  if (filters.date_from) {
+    whereClause += ' AND a.assessment_date >= ?';
+    params.push(filters.date_from);
+  }
+  if (filters.date_to) {
+    whereClause += ' AND a.assessment_date <= ?';
+    params.push(filters.date_to);
+  }
+  
+  // Get total count
+  const countQuery = `SELECT COUNT(*) as count FROM assessments a ${whereClause}`;
+  const totalResult = await db.getFirstAsync(countQuery, params);
+  
+  // Get paginated data (WITHOUT results but WITH count)
+  const dataQuery = `
+    SELECT a.*, 
+           k.name as kid_name,
+           s.name as sport_name,
+           (SELECT COUNT(*) FROM assessment_results ar WHERE ar.assessment_id = a.id) as result_count
+    FROM assessments a
+    JOIN kids k ON a.kid_id = k.id
+    JOIN sports s ON a.sport_id = s.id
+    ${whereClause}
+    ORDER BY a.assessment_date DESC
+    LIMIT ? OFFSET ?
+  `;
+  
+  const assessments = await db.getAllAsync(dataQuery, [...params, pageSize, offset]);
+  
+  return {
+    assessments,
+    total: totalResult?.count || 0,
+    hasMore: offset + pageSize < (totalResult?.count || 0),
+    page,
+    pageSize
+  };
+};
+
+/**
+ * PHASE 5: Get assessment count (for pagination UI)
+ * @param {Object} filters - Filter criteria
+ * @returns {number} Total count
+ */
+export const getAssessmentCount = async (filters = {}) => {
+  if (isWeb) {
+    const webDB = await getWebDB();
+    let assessments = webDB.assessments || [];
+    
+    if (filters.sport_id) {
+      assessments = assessments.filter(a => a.sport_id === filters.sport_id);
+    }
+    if (filters.kid_id) {
+      assessments = assessments.filter(a => a.kid_id === filters.kid_id);
+    }
+    
+    return assessments.length;
+  }
+  
+  const db = getDatabase();
+  
+  let whereClause = 'WHERE 1=1';
+  const params = [];
+  
+  if (filters.sport_id) {
+    whereClause += ' AND sport_id = ?';
+    params.push(filters.sport_id);
+  }
+  if (filters.kid_id) {
+    whereClause += ' AND kid_id = ?';
+    params.push(filters.kid_id);
+  }
+  
+  const result = await db.getFirstAsync(
+    `SELECT COUNT(*) as count FROM assessments ${whereClause}`,
+    params
+  );
+  
+  return result?.count || 0;
+};
+
+/**
+ * PHASE 5: Lazy load results for a specific assessment
+ * @param {string} assessmentId - Assessment ID
+ * @returns {Array} Assessment results
+ */
+export const getAssessmentResultsLazy = async (assessmentId) => {
+  if (isWeb) {
+    const webDB = await getWebDB();
+    return webDB.assessment_results?.filter(r => r.assessment_id === assessmentId) || [];
+  }
+  
+  const db = getDatabase();
+  return await db.getAllAsync(
+    'SELECT * FROM assessment_results WHERE assessment_id = ?',
+    [assessmentId]
+  );
+};
+
 // ========== EXPORT ALL QUERIES ==========
 
 export default {
@@ -1307,4 +1519,9 @@ export default {
   getDashboardStats,
   getRecentAssessments,
   getAssessmentProgress,
+  // PHASE 5: Pagination functions
+  getKidsPaginated,
+  getAssessmentsPaginated,
+  getAssessmentCount,
+  getAssessmentResultsLazy,
 };

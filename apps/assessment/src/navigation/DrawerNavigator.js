@@ -17,12 +17,18 @@ import EditProfileScreen from '../screens/Profile/EditProfileScreen';
 import TeamsListScreen from '../screens/Teams/TeamsListScreen';
 import SQLiteDiagnosticScreen from '../screens/Debug/SQLiteDiagnosticScreen';
 import AppLogScreen from '../screens/Debug/AppLogScreen';
+import OfflineQueueScreen from '../screens/Settings/OfflineQueueScreen';
+import SyncHistoryScreen from '../screens/Settings/SyncHistoryScreen';
 
 // Stack Navigators
 import AssessmentStackNavigator from './AssessmentStackNavigator';
 import HistoryStackNavigator from './HistoryStackNavigator';
 import ReportsStackNavigator from './ReportsStackNavigator';
 import LeaderboardsStackNavigator from './LeaderboardsStackNavigator';
+
+// Phase 4: Import new report screens
+import VisualizationScreen from '../screens/Reports/VisualizationScreen';
+import ExportScreen from '../screens/Reports/ExportScreen';
 
 // Drawer Content
 import CustomDrawerContent from './CustomDrawerContent';
@@ -244,6 +250,44 @@ export default function DrawerNavigator({ onLogout }) {
           drawerIcon: ({ color }) => (
             <MaterialCommunityIcons name="database-search" size={22} color={color} />
           ),
+        }}
+      />
+
+      {/* 12. OFFLINE QUEUE - Pending sync operations */}
+      <Drawer.Screen
+        name="OfflineQueue"
+        component={OfflineQueueScreen}
+        options={{
+          title: 'Offline Queue',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+
+      {/* 13. SYNC HISTORY - Past sync operations */}
+      <Drawer.Screen
+        name="SyncHistory"
+        component={SyncHistoryScreen}
+        options={{
+          title: 'Sync History',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+
+      {/* 14. REPORT SCREENS - report operations */}
+      <Drawer.Screen 
+        name="Visualization" 
+        component={VisualizationScreen}
+        options={{
+          title: 'Data Visualization',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen 
+        name="Export" 
+        component={ExportScreen}
+        options={{
+          title: 'Export Data',
+          drawerItemStyle: { display: 'none' },
         }}
       />
 

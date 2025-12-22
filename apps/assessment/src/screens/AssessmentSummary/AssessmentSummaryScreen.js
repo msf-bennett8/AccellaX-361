@@ -16,6 +16,12 @@ import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { COLORS } from '../../utils/constants';
 import { syncAssessmentsToFirebase } from '../../services/assessmentService';
+import { 
+  copyLastAssessment, 
+  bulkCopyAssessments, 
+  exportToCSV, 
+  downloadCSV 
+} from '../../services/batchOperationsService';
 
 // Custom Modal Component
 const CustomModal = ({ visible, title, message, buttons, icon, iconColor }) => {
@@ -76,6 +82,11 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
   const [syncErrorModal, setSyncErrorModal] = useState(false);
   const [editConfirmModal, setEditConfirmModal] = useState({ visible: false, kidId: null, testId: null });
   const [doneConfirmModal, setDoneConfirmModal] = useState(false);
+  const [copyModal, setCopyModal] = useState(false);
+  const [exportModal, setExportModal] = useState(false);
+  const [batchProgressModal, setBatchProgressModal] = useState({ visible: false, message: '', progress: 0 });
+  // Quick Filters
+  const [activeFilter, setActiveFilter] = useState('all');
 
   useEffect(() => {
     processAssessmentData();
@@ -136,6 +147,30 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
       };
     });
 
+    // Apply active filter
+    let filteredGrouped = { ...grouped };
+    
+    if (activeFilter === 'completed') {
+      filteredGrouped = Object.fromEntries(
+        Object.entries(grouped).filter(([kidId, data]) => data.completionRate === 100)
+      );
+    } else if (activeFilter === 'missing') {
+      filteredGrouped = Object.fromEntries(
+        Object.entries(grouped).filter(([kidId, data]) => data.completionRate < 100)
+      );
+    } else if (activeFilter === 'below_average') {
+      // Filter kids with any metric below benchmark "good" level
+      filteredGrouped = Object.fromEntries(
+        Object.entries(grouped).filter(([kidId, data]) => {
+          return data.results.some(r => {
+            if (!r.value) return false;
+            // Simple heuristic: check if any numeric value is below expected
+            return parseFloat(r.value) < 50; // Adjust based on actual benchmark logic
+          });
+        })
+      );
+    }
+
     setGroupedData(grouped);
     setTotalEntries(total);
     setCompletedEntries(completed);
@@ -147,12 +182,106 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
       
       const result = await syncAssessmentsToFirebase();
       
+      if (result.conflicts && result.conflicts > 0) {
+        // Show conflict warning modal
+        setModalConfig({
+          visible: true,
+          title: 'Sync Conflicts Detected',
+          message: `${result.conflicts} conflict(s) detected. Some assessments require manual resolution. Go to Settings > Sync Conflicts to resolve them.`,
+          type: 'warning',
+          showCancel: true,
+          confirmText: 'Resolve Now',
+          cancelText: 'Later',
+          onConfirm: () => {
+            setModalConfig({ ...modalConfig, visible: false });
+            navigation.navigate('Settings', { screen: 'ConflictResolution' });
+          },
+          onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+        });
+      } else {
+        setSyncCompleteModal(true);
+      }
+      
       setSyncing(false);
-      setSyncCompleteModal(true);
     } catch (error) {
       console.error('❌ Sync error:', error);
+      
+      // Log error with context
+      try {
+        const { logErrorWithContext } = await import('../../utils/errorHandler');
+        logErrorWithContext(error, {
+          operation: 'sync_assessments_to_firebase',
+          assessmentCount: completedEntries
+        });
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
+      
       setSyncing(false);
       setSyncErrorModal(true);
+    }
+  };
+
+  const handleCopyToNewDate = async () => {
+    setCopyModal(true);
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const assessmentIds = Object.keys(groupedData).map(kidId => groupedData[kidId].assessment?.id).filter(Boolean);
+      const csvData = await exportToCSV(assessmentIds);
+      
+      if (Platform.OS === 'web') {
+        downloadCSV(csvData, `assessments_${new Date().toISOString().split('T')[0]}.csv`);
+      }
+      
+      setExportModal(true);
+    } catch (error) {
+      console.error('❌ Export error:', error);
+      setModalConfig({
+        visible: true,
+        title: 'Export Failed',
+        message: 'Failed to export assessments. Please try again.',
+        type: 'error',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
+    }
+  };
+
+  const confirmCopyToNewDate = async (newDate) => {
+    try {
+      setBatchProgressModal({ visible: true, message: 'Copying assessments...', progress: 0 });
+      
+      const results = await bulkCopyAssessments(
+        kids.map(k => k.id),
+        sport.id,
+        assessmentMetadata?.assessmentDate || new Date().toISOString().split('T')[0],
+        newDate,
+        assessmentMetadata
+      );
+      
+      setBatchProgressModal({ visible: false, message: '', progress: 0 });
+      
+      setModalConfig({
+        visible: true,
+        title: 'Copy Complete',
+        message: `Successfully copied ${results.success} of ${results.total} assessments.${results.failed > 0 ? `\n\n${results.failed} failed.` : ''}`,
+        type: results.failed > 0 ? 'warning' : 'success',
+        onConfirm: () => {
+          setModalConfig({ ...modalConfig, visible: false });
+          setCopyModal(false);
+        },
+      });
+    } catch (error) {
+      console.error('❌ Copy error:', error);
+      setBatchProgressModal({ visible: false, message: '', progress: 0 });
+      setModalConfig({
+        visible: true,
+        title: 'Copy Failed',
+        message: 'Failed to copy assessments. Please try again.',
+        type: 'error',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
     }
   };
 
@@ -309,6 +438,36 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
             ]} 
           />
         </View>
+      </View>
+
+      {/* Quick Filter Chips */}
+      <View style={styles.filterChipsContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {['all', 'completed', 'missing', 'below_average', 'above_average'].map(filter => (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterChip,
+                activeFilter === filter && styles.filterChipActive
+              ]}
+              onPress={() => {
+                setActiveFilter(filter);
+                processAssessmentData(); // Re-process with new filter
+              }}
+            >
+              <Text style={[
+                styles.filterChipText,
+                activeFilter === filter && styles.filterChipTextActive
+              ]}>
+                {filter === 'all' ? 'All Kids' :
+                 filter === 'completed' ? 'Completed' :
+                 filter === 'missing' ? 'Missing Values' :
+                 filter === 'below_average' ? 'Below Average' :
+                 'Above Average'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Scrollable Content */}
@@ -490,6 +649,20 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleCopyToNewDate}
+        >
+          <Ionicons name="copy-outline" size={20} color={COLORS.primary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleExportCSV}
+        >
+          <Ionicons name="download-outline" size={20} color={COLORS.primary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.doneButton}
           onPress={handleDone}
         >
@@ -601,6 +774,61 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
             >
               <Text style={styles.modalCancelButtonText}>Cancel</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Copy to New Date Modal */}
+      <Modal visible={copyModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Copy to New Date</Text>
+            <Text style={styles.modalMessage}>
+              This will duplicate all {kids.length} assessments to a new date.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => setCopyModal(false)}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton]}
+                onPress={() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  confirmCopyToNewDate(tomorrow.toISOString().split('T')[0]);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Copy to Tomorrow</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Export Success Modal */}
+      <CustomModal
+        visible={exportModal}
+        title="Export Complete"
+        message="Assessment data exported successfully!"
+        icon="download-outline"
+        iconColor={COLORS.success}
+        buttons={[
+          {
+            text: 'OK',
+            onPress: () => setExportModal(false)
+          }
+        ]}
+      />
+
+      {/* Batch Progress Modal */}
+      <Modal visible={batchProgressModal.visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <LoadingSpinner size="large" color={COLORS.primary} />
+            <Text style={styles.modalTitle}>{batchProgressModal.message}</Text>
           </View>
         </View>
       </Modal>
@@ -982,6 +1210,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
   },
+  actionButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
   doneButton: {
     flex: 1,
     flexDirection: 'row',
@@ -1101,6 +1340,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text,
     lineHeight: 20,
+  },
+  
+  // Filter Chips
+  filterChipsContainer: {
+    backgroundColor: COLORS.white,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.backgroundDark,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  filterChipTextActive: {
+    color: COLORS.white,
   },
 });
 

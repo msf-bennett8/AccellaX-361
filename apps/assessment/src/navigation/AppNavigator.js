@@ -11,6 +11,9 @@ import RegistrationScreen from '../screens/Auth/RegistrationScreen';
 
 // Main App Navigation
 import DrawerNavigator from './DrawerNavigator';
+// Import new report screens
+import VisualizationScreen from '../screens/Reports/VisualizationScreen';
+import ExportScreen from '../screens/Reports/ExportScreen';
 
 const Stack = createStackNavigator();
 

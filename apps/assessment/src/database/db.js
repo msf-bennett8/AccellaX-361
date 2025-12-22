@@ -25,50 +25,54 @@ const webDB = {
 };
 
 // Initialize webDB from AsyncStorage if exists
+// Initialize webDB from AsyncStorage if exists
 const initializeWebDB = async () => {
   try {
     const stored = await AsyncStorage.getItem('assessmentWebDB');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      webDB.users = parsed.users || [];
-      webDB.kids = parsed.kids || [];
-      webDB.sessions = parsed.sessions || [];
-      webDB.attendance = parsed.attendance || [];
-      webDB.notes = parsed.notes || [];
-      webDB.sports = parsed.sports || [];
-      webDB.metrics = parsed.metrics || [];
-      webDB.assessments = parsed.assessments || [];
-      webDB.assessment_results = parsed.assessment_results || [];
-      webDB.benchmarks = parsed.benchmarks || [];
-      webDB.goals = parsed.goals || [];
-      console.log('✅ Web DB initialized from storage');
+    
+    // Handle null, undefined, or invalid JSON
+    if (!stored || stored === 'undefined' || stored === 'null') {
+      console.log('📦 Web DB initialized empty (no stored data)');
+      return;
+    }
+    
+    const parsed = JSON.parse(stored);
+    webDB.users = parsed.users || [];
+    webDB.kids = parsed.kids || [];
+    webDB.sessions = parsed.sessions || [];
+    webDB.attendance = parsed.attendance || [];
+    webDB.notes = parsed.notes || [];
+    webDB.sports = parsed.sports || [];
+    webDB.metrics = parsed.metrics || [];
+    webDB.assessments = parsed.assessments || [];
+    webDB.assessment_results = parsed.assessment_results || [];
+    webDB.benchmarks = parsed.benchmarks || [];
+    webDB.goals = parsed.goals || [];
+    console.log('✅ Web DB initialized from storage');
+    
+    // ✅ MIGRATION: Rename 'general_fitness' to 'fitness' (WEB)
+    const oldSportIndex = webDB.sports.findIndex(s => s.id === 'general_fitness');
+    if (oldSportIndex !== -1) {
+      console.log('🔄 [Web] Migration: Renaming sport "general_fitness" to "fitness"...');
       
-      // ✅ MIGRATION: Rename 'general_fitness' to 'fitness' (WEB)
-      const oldSportIndex = webDB.sports.findIndex(s => s.id === 'general_fitness');
-      if (oldSportIndex !== -1) {
-        console.log('🔄 [Web] Migration: Renaming sport "general_fitness" to "fitness"...');
-        
-        webDB.sports[oldSportIndex].id = 'fitness';
-        webDB.metrics.forEach(m => { if (m.sport_id === 'general_fitness') m.sport_id = 'fitness'; });
-        webDB.assessments.forEach(a => { if (a.sport_id === 'general_fitness') a.sport_id = 'fitness'; });
-        webDB.kids.forEach(k => {
-          if (k.primary_sport === 'general_fitness') k.primary_sport = 'fitness';
-          if (k.sports_enrolled) {
-            try {
-              let enrolled = typeof k.sports_enrolled === 'string' ? JSON.parse(k.sports_enrolled) : k.sports_enrolled;
-              if (Array.isArray(enrolled)) {
-                const idx = enrolled.indexOf('general_fitness');
-                if (idx !== -1) { enrolled[idx] = 'fitness'; k.sports_enrolled = JSON.stringify(enrolled); }
-              }
-            } catch (e) {}
-          }
-        });
-        
-        await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(webDB));
-        console.log('✅ [Web] Migration: Successfully renamed "general_fitness" to "fitness"');
-      }
-    } else {
-      console.log('📦 Web DB initialized empty');
+      webDB.sports[oldSportIndex].id = 'fitness';
+      webDB.metrics.forEach(m => { if (m.sport_id === 'general_fitness') m.sport_id = 'fitness'; });
+      webDB.assessments.forEach(a => { if (a.sport_id === 'general_fitness') a.sport_id = 'fitness'; });
+      webDB.kids.forEach(k => {
+        if (k.primary_sport === 'general_fitness') k.primary_sport = 'fitness';
+        if (k.sports_enrolled) {
+          try {
+            let enrolled = typeof k.sports_enrolled === 'string' ? JSON.parse(k.sports_enrolled) : k.sports_enrolled;
+            if (Array.isArray(enrolled)) {
+              const idx = enrolled.indexOf('general_fitness');
+              if (idx !== -1) { enrolled[idx] = 'fitness'; k.sports_enrolled = JSON.stringify(enrolled); }
+            }
+          } catch (e) {}
+        }
+      });
+      
+      await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(webDB));
+      console.log('✅ [Web] Migration: Successfully renamed "general_fitness" to "fitness"');
     }
   } catch (error) {
     console.error('❌ Error initializing web DB:', error);
@@ -244,6 +248,26 @@ export const initDatabase = async () => {
       FOREIGN KEY (metric_id) REFERENCES metrics(id)
     );
 
+    CREATE TABLE IF NOT EXISTS sync_queue (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      data TEXT NOT NULL,
+      retry_count INTEGER DEFAULT 0,
+      last_error TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sync_history (
+      id TEXT PRIMARY KEY,
+      operation_type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      records_affected INTEGER DEFAULT 0,
+      error_message TEXT,
+      started_at DATETIME NOT NULL,
+      completed_at DATETIME
+    );
+
     CREATE TABLE IF NOT EXISTS goals (
       id TEXT PRIMARY KEY,
       kid_id TEXT NOT NULL,
@@ -270,6 +294,12 @@ export const initDatabase = async () => {
     CREATE INDEX IF NOT EXISTS idx_results_assessment ON assessment_results(assessment_id);
     CREATE INDEX IF NOT EXISTS idx_benchmarks_metric ON benchmarks(metric_id, age_group);
     CREATE INDEX IF NOT EXISTS idx_goals_kid ON goals(kid_id);
+    
+    -- ========== PHASE 5: COMPOUND INDEXES FOR COMMON QUERIES ==========
+    CREATE INDEX IF NOT EXISTS idx_assessments_kid_sport_date ON assessments(kid_id, sport_id, assessment_date);
+    CREATE INDEX IF NOT EXISTS idx_assessments_term_year ON assessments(term, year);
+    CREATE INDEX IF NOT EXISTS idx_results_metric_value ON assessment_results(metric_id, value);
+    CREATE INDEX IF NOT EXISTS idx_assessments_date_status ON assessments(assessment_date, status);
   `);
   
   // Add sports columns to kids table if they don't exist
@@ -702,6 +732,16 @@ export const insertKid = async (userId, name, age, gender, area, ageGroup, spons
 
 export const getAllKids = async () => {
   if (isWeb) {
+    // OFFLINE-FIRST: Try local storage first
+    const localKids = webDB.kids || [];
+    
+    if (localKids.length > 0) {
+      console.log(`✅ [Web] Loaded ${localKids.length} kids from local storage (offline-first)`);
+      return localKids.sort((a, b) => a.age_group.localeCompare(b.age_group) || a.name.localeCompare(b.name));
+    }
+    
+    // Fallback: Load from Firebase only if local DB is empty
+    console.log('🔄 [Web] Local DB empty, fetching from Firebase...');
     try {
       const FIXED_ACADEMY_ID = 'academy_accellax361_main';
       const { collection, getDocs } = await import('firebase/firestore');
@@ -726,19 +766,24 @@ export const getAllKids = async () => {
           programTypeOther: kid.programTypeOther || null,
           trialNotes: kid.trialNotes || null,
           status: kid.status || 'active',
-          house_team: kid.house_team || null,  // ← CRITICAL: Include house_team!
+          house_team: kid.house_team || null,
           sports_enrolled: kid.sports_enrolled || null,
           primary_sport: kid.primary_sport || null,
           created_at: kid.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
         });
       });
       
-      console.log(`✅ [Web] Loaded ${kids.length} kids from Firebase`);
+      // Store in local DB for future offline use
+      webDB.kids = kids;
+      await saveWebDB();
+      
+      console.log(`✅ [Web] Loaded ${kids.length} kids from Firebase and cached locally`);
       return kids.sort((a, b) => a.age_group.localeCompare(b.age_group) || a.name.localeCompare(b.name));
       
     } catch (error) {
       console.error('❌ [Web] Error loading kids from Firebase:', error);
-      return webDB.kids; // Fallback to local storage
+      console.log('⚠️ [Web] Working offline with empty kids list');
+      return []; // Return empty array if both local and Firebase fail
     }
   }
   
@@ -1137,12 +1182,20 @@ export const insertSport = async (sportData, userId, skipFirebaseSync = false) =
 
 export const getAllSports = async () => {
   if (isWeb) {
-    const activeSports = webDB.sports.filter(s => s.is_active === 1);
-    // Remove duplicates based on sport.id
+    // OFFLINE-FIRST: Use local sports
+    const activeSports = (webDB.sports || []).filter(s => s.is_active === 1);
     const uniqueSports = activeSports.filter((sport, index, self) =>
       index === self.findIndex((s) => s.id === sport.id)
     );
-    return uniqueSports;
+    
+    if (uniqueSports.length > 0) {
+      console.log(`✅ [Web] Loaded ${uniqueSports.length} sports from local storage (offline-first)`);
+      return uniqueSports;
+    }
+    
+    // If empty, log warning but don't try Firebase (should be seeded on first run)
+    console.warn('⚠️ [Web] No sports found in local DB - run seed script');
+    return [];
   }
   return await db.getAllAsync('SELECT * FROM sports WHERE is_active = 1 ORDER BY name');
 };

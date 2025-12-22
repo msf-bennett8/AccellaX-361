@@ -3,11 +3,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { SyncProvider } from './src/contexts/SyncContext';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { UndoProvider } from './src/contexts/UndoContext';
 import { AssessmentProvider } from './src/contexts/AssessmentContext';
 import { initDatabase } from './src/database/db';
 import { seedDatabaseIfNeeded } from './src/database/seeds';
@@ -121,8 +123,10 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
+   <AuthProvider>
+      <UndoProvider>
       <AssessmentProvider>
+      <SyncProvider>
         <NavigationContainer>
           <StatusBar style="auto" />
           <AppNavigator 
@@ -131,7 +135,9 @@ export default function App() {
             onLogout={handleLogout}
           />
         </NavigationContainer>
+        </SyncProvider>
       </AssessmentProvider>
+      </UndoProvider>
     </AuthProvider>
   );
 }

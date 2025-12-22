@@ -1,0 +1,1405 @@
+// Location: /apps/assessment/src/navigation/AppNavigator.js
+// Main app navigator with authentication routing
+
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+
+// Auth Screens
+import AuthChoiceScreen from '../screens/Auth/AuthChoiceScreen';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import RegistrationScreen from '../screens/Auth/RegistrationScreen';
+
+// Main App Navigation
+import DrawerNavigator from './DrawerNavigator';
+
+const Stack = createStackNavigator();
+
+export default function AppNavigator({ isAuthenticated, onAuthComplete, onLogout }) {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: false,
+      }}
+    >
+      {!isAuthenticated ? (
+        // Auth Stack
+        <>
+          <Stack.Screen 
+            name="AuthChoice" 
+            component={AuthChoiceScreen}
+          />
+          <Stack.Screen 
+            name="Login"
+          >
+            {(props) => (
+              <LoginScreen 
+                {...props} 
+                onAuthComplete={onAuthComplete}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen 
+            name="Register"
+          >
+            {(props) => (
+              <RegistrationScreen 
+                {...props} 
+                onAuthComplete={onAuthComplete}
+              />
+            )}
+          </Stack.Screen>
+        </>
+      ) : (
+        // Main App Stack
+        <Stack.Screen name="Main">
+          {(props) => (
+            <DrawerNavigator 
+              {...props} 
+              onLogout={onLogout}
+            />
+          )}
+        </Stack.Screen>
+      )}
+    </Stack.Navigator>
+  );
+}// Location: /apps/assessment/src/navigation/AssessmentStackNavigator.js
+// Stack navigator for assessment flow
+
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+
+// Import Assessment Screens
+import AssessmentSetupScreen from '../screens/AssessmentSetup/AssessmentSetupScreen';
+import SelectSportScreen from '../screens/SelectSport/SelectSportScreen';
+import AssessmentModeScreen from '../screens/SelectSport/AssessmentModeScreen';
+import SelectTestsScreen from '../screens/SelectSport/SelectTestsScreen';
+import SelectKidsScreen from '../screens/SelectKids/SelectKidsScreen';
+import AssessmentEntryScreen from '../screens/AssessmentEntry/AssessmentEntryScreen';
+import AssessmentSummaryScreen from '../screens/AssessmentSummary/AssessmentSummaryScreen';
+
+// Import Special Assessment Screens
+import BeepTestLiveTrackerScreen from '../screens/BeepTest/BeepTestLiveTrackerScreen';
+import CooperTestLiveTrackerScreen from '../screens/CooperTest/CooperTestLiveTrackerScreen';
+import PairedAssessmentTrackerScreen from '../screens/PairedAssessment/PairedAssessmentTrackerScreen';
+
+const Stack = createStackNavigator();
+
+export default function AssessmentStackNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+      }}
+    >
+      <Stack.Screen 
+        name="AssessmentSetup" 
+        component={AssessmentSetupScreen}
+        options={{ title: 'Assessment Setup' }}
+      />
+      <Stack.Screen 
+        name="SelectSport" 
+        component={SelectSportScreen}
+        options={{ title: 'Select Sport' }}
+      />
+      <Stack.Screen 
+        name="AssessmentMode" 
+        component={AssessmentModeScreen}
+        options={{ title: 'Assessment Mode' }}
+      />
+      <Stack.Screen 
+        name="SelectTests" 
+        component={SelectTestsScreen}
+        options={{ title: 'Select Tests' }}
+      />
+      <Stack.Screen 
+        name="SelectKids" 
+        component={SelectKidsScreen}
+        options={{ title: 'Select Kids' }}
+      />
+      <Stack.Screen 
+        name="AssessmentEntry" 
+        component={AssessmentEntryScreen}
+        options={{ title: 'Assessment Entry' }}
+      />
+      <Stack.Screen 
+        name="AssessmentSummary" 
+        component={AssessmentSummaryScreen}
+        options={{ title: 'Assessment Summary' }}
+      />
+      <Stack.Screen 
+        name="BeepTestLiveTracker" 
+        component={BeepTestLiveTrackerScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="CooperTestLiveTracker" 
+        component={CooperTestLiveTrackerScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="PairedAssessmentTracker" 
+        component={PairedAssessmentTrackerScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}// Location: /apps/assessment/src/navigation/CustomDrawerContent.js
+// Custom drawer content with user info and logout
+
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import ConfirmationModal from '../components/modals/ConfirmationModal';
+import {
+  DrawerContentScrollView,
+  DrawerItemList,
+} from '@react-navigation/drawer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, APP_NAME } from '../utils/constants';
+import { getAllAssessments } from '../services/assessmentService';
+import { getKidsWithSports } from '../services/kidService';
+
+export default function CustomDrawerContent(props) {
+  const [userProfile, setUserProfile] = useState(null);
+  const [stats, setStats] = useState({ totalKids: 0, totalAssessments: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+  });
+
+  useEffect(() => {
+    loadUserProfile();
+    loadQuickStats();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const profileJson = await AsyncStorage.getItem('userProfile');
+      if (profileJson) {
+        const profile = JSON.parse(profileJson);
+        setUserProfile(profile);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  const loadQuickStats = async () => {
+    try {
+      setLoadingStats(true);
+      
+      // Load kids count
+      const kids = await getKidsWithSports();
+      
+      // Load assessments count
+      const assessments = await getAllAssessments();
+      
+      setStats({
+        totalKids: kids.length,
+        totalAssessments: assessments.length,
+      });
+      
+      setLoadingStats(false);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      setLoadingStats(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setModalConfig({
+      visible: true,
+      title: 'Logout',
+      message: 'Are you sure you want to logout?',
+      type: 'warning',
+      showCancel: true,
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      onConfirm: () => {
+        setModalConfig({ ...modalConfig, visible: false });
+        props.onLogout();
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
+    });
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Sticky Header with User Info */}
+      <View style={styles.header}>
+        <View style={styles.avatarContainer}>
+          <Ionicons 
+            name="person" 
+            size={40} 
+            color={COLORS.primary} 
+          />
+        </View>
+        <Text style={styles.userName}>{userProfile?.fullName || 'User'}</Text>
+        <Text style={styles.userEmail}>{userProfile?.email || ''}</Text>
+        <View style={styles.roleBadge}>
+          <MaterialCommunityIcons name="shield-account" size={12} color={COLORS.primaryLight} />
+          <Text style={styles.userRole}>
+            {userProfile?.role?.toUpperCase() || 'COACH'}
+          </Text>
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.quickStats}>
+          {loadingStats ? (
+            <ActivityIndicator size="small" color={COLORS.primaryLight} />
+          ) : (
+            <>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{stats.totalKids}</Text>
+                <Text style={styles.statLabel}>Kids</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{stats.totalAssessments}</Text>
+                <Text style={styles.statLabel}>Assessments</Text>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+
+      {/* Scrollable Drawer Items */}
+      <View style={styles.scrollContainer}>
+        <DrawerContentScrollView 
+          {...props}
+          contentContainerStyle={styles.drawerScrollContent}
+          showsVerticalScrollIndicator={true}
+        >
+          <View style={styles.drawerItems}>
+            <DrawerItemList {...props} />
+          </View>
+        </DrawerContentScrollView>
+      </View>
+
+      {/* Sticky Footer with Logout */}
+      <View style={styles.footer}>
+        {/* Separator */}
+        <View style={styles.drawerSeparator} />
+        
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
+        <View style={styles.appInfo}>
+          <View style={styles.appNameRow}>
+            <MaterialCommunityIcons name="shield-star" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.appName}>{APP_NAME}</Text>
+          </View>
+          <Text style={styles.version}>Version 1.0.0</Text>
+        </View>
+      </View>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        showCancel={modalConfig.showCancel}
+        onConfirm={modalConfig.onConfirm}
+        onCancel={modalConfig.onCancel}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  header: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.primaryDark,
+    // Sticky header - stays at top
+  },
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 13,
+    color: COLORS.primaryLight,
+    marginBottom: 8,
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  userRole: {
+    fontSize: 11,
+    color: COLORS.primaryLight,
+  },
+  
+  // Quick Stats
+  quickStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    width: '100%',
+    marginTop: 8,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: COLORS.primaryLight,
+    textTransform: 'uppercase',
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 16,
+  },
+  
+  // Scrollable content
+  scrollContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  drawerScrollContent: {
+    flexGrow: 1,
+  },
+  drawerItems: {
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.white,
+    // Sticky footer - stays at bottom
+  },
+  
+  // Separator
+  drawerSeparator: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginBottom: 12,
+  },
+  
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.backgroundDark,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.error,
+  },
+  appInfo: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  appNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  appName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  version: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+});
+// Location: /apps/assessment/src/navigation/DrawerNavigator.js
+// Drawer navigation for authenticated users (UPDATED)
+
+import React, { useState, useEffect } from 'react';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS } from '../utils/constants';
+import { Platform, View, Text, StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+
+// Import Screens
+import HomeScreen from '../screens/Home/HomeScreen';
+import KidsStackNavigator from './KidsStackNavigator';
+import SettingsScreen from '../screens/Settings/SettingsScreen';
+import ProfileScreen from '../screens/Profile/ProfileScreen';
+import EditProfileScreen from '../screens/Profile/EditProfileScreen';
+import TeamsListScreen from '../screens/Teams/TeamsListScreen';
+import SQLiteDiagnosticScreen from '../screens/Debug/SQLiteDiagnosticScreen';
+import AppLogScreen from '../screens/Debug/AppLogScreen';
+
+// Stack Navigators
+import AssessmentStackNavigator from './AssessmentStackNavigator';
+import HistoryStackNavigator from './HistoryStackNavigator';
+import ReportsStackNavigator from './ReportsStackNavigator';
+import LeaderboardsStackNavigator from './LeaderboardsStackNavigator';
+
+// Drawer Content
+import CustomDrawerContent from './CustomDrawerContent';
+
+const Drawer = createDrawerNavigator();
+
+export default function DrawerNavigator({ onLogout }) {
+  const [pendingAssessments, setPendingAssessments] = useState(0);
+
+  // Helper to update browser tab title
+  const updatePageTitle = (routeName) => {
+    if (Platform.OS === 'web') {
+      const pageTitles = {
+        Home: 'Home',
+        Kids: 'Kids Management',
+        Teams: 'Teams',
+        AddEditKid: 'Add/Edit Kid',
+        History: 'Assessment History',
+        Profile: 'Profile',
+        EditProfile: 'Edit Profile',
+        Settings: 'Settings',
+        Assessment: 'Start Assessment',
+        AppLogs: 'App Logs',
+        DatabaseDiagnostics: 'Database Diagnostics',
+      };
+      const pageTitle = pageTitles[routeName] || routeName;
+      document.title = `AccellaX 361° | ${pageTitle}`;
+    }
+  };
+
+  // Set initial page title on mount
+  useEffect(() => {
+    updatePageTitle('Home');
+    loadPendingAssessments();
+  }, []);
+
+  // Load pending assessments count (optional feature)
+  const loadPendingAssessments = async () => {
+    try {
+      // TODO: Implement logic to count assessments due today
+      // For now, set to 0
+      setPendingAssessments(0);
+    } catch (error) {
+      console.error('Error loading pending assessments:', error);
+    }
+  };
+
+  // Badge component for drawer icons
+  const DrawerIconWithBadge = ({ iconName, iconLibrary = 'Ionicons', color, badgeCount = 0 }) => {
+    const IconComponent = iconLibrary === 'MaterialCommunityIcons' ? MaterialCommunityIcons : Ionicons;
+    
+    return (
+      <View style={styles.iconContainer}>
+        <IconComponent name={iconName} size={22} color={color} />
+        {badgeCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badgeCount > 9 ? '9+' : badgeCount}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <Drawer.Navigator
+      drawerContent={(props) => (
+        <CustomDrawerContent {...props} onLogout={onLogout} />
+      )}
+      screenOptions={({ route }) => ({
+        headerShown: false, // We use custom Header component
+        drawerActiveTintColor: COLORS.primary,
+        drawerInactiveTintColor: COLORS.textSecondary,
+        drawerLabelStyle: {
+          fontSize: 16,
+        },
+      })}
+      screenListeners={{
+        state: (e) => {
+          // Update page title when navigation state changes
+          const currentRoute = e.data?.state?.routes[e.data?.state?.index];
+          if (currentRoute) {
+            updatePageTitle(currentRoute.name);
+          }
+        },
+      }}
+    >
+      {/* 1. HOME - Dashboard overview */}
+      <Drawer.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: 'Home',
+          drawerIcon: ({ color }) => (
+            <Ionicons name="home" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 2. START ASSESSMENT - Primary action with optional badge */}
+      <Drawer.Screen
+        name="Assessment"
+        component={AssessmentStackNavigator}
+        options={{
+          title: 'Start Assessment',
+          drawerIcon: ({ color }) => (
+            <DrawerIconWithBadge
+              iconName="add-circle-outline"
+              iconLibrary="Ionicons"
+              color={color}
+              badgeCount={pendingAssessments}
+            />
+          ),
+        }}
+      />
+
+      {/* 3. KIDS - Athlete management */}
+      <Drawer.Screen
+        name="Kids"
+        component={KidsStackNavigator}
+        options={{
+          title: 'Kids',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="account-group" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 4. TEAMS - House team management ✅ NEW */}
+      <Drawer.Screen
+        name="Teams"
+        component={TeamsListScreen}
+        options={{
+          title: 'Teams',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="shield-account" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 5. HISTORY - Past assessments */}
+      <Drawer.Screen
+        name="History"
+        component={HistoryStackNavigator}
+        options={{
+          title: 'History',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="history" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 6. RANKINGS - Leaderboards (includes Comparison screen in its stack) */}
+      <Drawer.Screen
+        name="Leaderboards"
+        component={LeaderboardsStackNavigator}
+        options={{
+          title: 'Rankings',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="trophy-award" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 7. REPORTS - Data Export */}
+      <Drawer.Screen
+        name="Reports"
+        component={ReportsStackNavigator}
+        options={{
+          title: 'Reports',
+          drawerIcon: ({ color }) => (
+            <Ionicons name="stats-chart" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 8. MY PROFILE - User account */}
+      <Drawer.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: 'My Profile',
+          drawerIcon: ({ color }) => (
+            <Ionicons name="person-circle" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 9. SETTINGS - App configuration */}
+      <Drawer.Screen
+        name="Settings"
+        options={{
+          title: 'Settings',
+          drawerIcon: ({ color }) => (
+            <Ionicons name="settings" size={22} color={color} />
+          ),
+        }}
+      >
+        {(props) => <SettingsScreen {...props} onLogout={onLogout} />}
+      </Drawer.Screen>
+
+      {/* 10. APP LOGS - Comprehensive logging */}
+      <Drawer.Screen
+        name="AppLogs"
+        component={AppLogScreen}
+        options={{
+          title: 'App Logs',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="text-box-search" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* 11. DATABASE DIAGNOSTICS - SQLite inspection */}
+      <Drawer.Screen
+        name="DatabaseDiagnostics"
+        component={SQLiteDiagnosticScreen}
+        options={{
+          title: 'Database Diagnostics',
+          drawerIcon: ({ color }) => (
+            <MaterialCommunityIcons name="database-search" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* HIDDEN SCREENS - Not visible in drawer */}
+      <Drawer.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{
+          title: 'Edit Profile',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      </Drawer.Navigator>
+  );
+}
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    position: 'relative',
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: COLORS.white,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+});// UPDATED HistoryStackNavigator.js
+// Location: /apps/assessment/src/navigation/HistoryStackNavigator.js
+
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { COLORS } from '../utils/constants';
+
+// Import History Screens
+import HistoryScreen from '../screens/History/HistoryScreen';
+import KidProgressScreen from '../screens/KidProgress/KidProgressScreen';
+import ComparisonScreen from '../screens/Comparison/ComparisonScreen';
+import HistoryReportScreen from '../screens/History/HistoryReportScreen';
+import SportAssessmentReportScreen from '../screens/Reports/SportAssessmentReportScreen';
+
+const Stack = createStackNavigator();
+
+export default function HistoryStackNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { flex: 1, backgroundColor: COLORS.background },
+      }}
+    >
+      <Stack.Screen
+        name="HistoryMain"
+        component={HistoryScreen}
+        options={{ title: 'Assessment History' }}
+      />
+      <Stack.Screen
+        name="KidProgress"
+        component={KidProgressScreen}
+        options={{ title: 'Kid Progress' }}
+      />
+      <Stack.Screen
+        name="Comparison"
+        component={ComparisonScreen}
+        options={{ title: 'Compare Performance' }}
+      />
+      <Stack.Screen
+        name="HistoryReport"
+        component={HistoryReportScreen}
+        options={{ title: 'Full Report' }}
+      />
+      <Stack.Screen
+        name="SportReport"
+        component={SportAssessmentReportScreen}
+        options={{ title: 'Sport Report' }}
+      />
+    </Stack.Navigator>
+  );
+}// Location: /apps/assessment/src/navigation/KidsStackNavigator.js
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import KidsListScreen from '../screens/Kids/KidsListScreen';
+import AddEditKidScreen from '../screens/Kids/AddEditKidScreen';
+
+const Stack = createStackNavigator();
+
+export default function KidsStackNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { flex: 1 }, // ← CRITICAL: Allows children to fill space and scroll
+      }}
+    >
+      <Stack.Screen 
+        name="KidsList" 
+        component={KidsListScreen} 
+      />
+      <Stack.Screen 
+        name="AddEditKid" 
+        component={AddEditKidScreen} 
+      />
+    </Stack.Navigator>
+  );
+}// Location: /apps/assessment/src/navigation/LeaderboardsStackNavigator.js
+// Stack navigator for Rankings/Leaderboards section (UPDATED)
+
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { COLORS } from '../utils/constants';
+
+// Import screens
+import LeaderboardsScreen from '../screens/Leaderboards/LeaderboardsScreen';
+import MostImprovedScreen from '../screens/Leaderboards/MostImprovedScreen';
+import TopPerformersScreen from '../screens/Leaderboards/TopPerformersScreen';
+import TeamRankingsScreen from '../screens/Leaderboards/TeamRankingsScreen';
+import TeamDetailScreen from '../screens/Leaderboards/TeamDetailScreen'; // ✅ NEW
+import ComparisonScreen from '../screens/Comparison/ComparisonScreen';
+
+const Stack = createStackNavigator();
+
+export default function LeaderboardsStackNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false, // Using custom Header component in each screen
+        cardStyle: { backgroundColor: COLORS.background },
+      }}
+    >
+      {/* Main Leaderboards Hub */}
+      <Stack.Screen
+        name="LeaderboardsMain"
+        component={LeaderboardsScreen}
+        options={{ title: 'Rankings' }}
+      />
+
+      {/* Most Improved Athletes */}
+      <Stack.Screen
+        name="MostImproved"
+        component={MostImprovedScreen}
+        options={{ title: 'Most Improved' }}
+      />
+
+      {/* Top Performers */}
+      <Stack.Screen
+        name="TopPerformers"
+        component={TopPerformersScreen}
+        options={{ title: 'Top Performers' }}
+      />
+
+      {/* Team Rankings */}
+      <Stack.Screen
+        name="TeamRankings"
+        component={TeamRankingsScreen}
+        options={{ title: 'Team Rankings' }}
+      />
+
+      {/* Team Detail - NEW SCREEN */}
+      <Stack.Screen
+        name="TeamDetail"
+        component={TeamDetailScreen}
+        options={{ title: 'Team Details' }}
+      />
+
+      {/* Comparison Screen - Available from any leaderboard screen */}
+      <Stack.Screen
+        name="Comparison"
+        component={ComparisonScreen}
+        options={{ title: 'Comparison' }}
+      />
+    </Stack.Navigator>
+  );
+}
+// Location: /apps/assessment/src/navigation/ReportsStackNavigator.js
+// Stack navigator for Reports/Export screens
+
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { COLORS } from '../utils/constants';
+
+// Import Reports Screens
+import ReportsScreen from '../screens/Reports/ReportsScreen';
+import ExportDetailScreen from '../screens/Reports/ExportDetailScreen';
+import SportAssessmentReportScreen from '../screens/Reports/SportAssessmentReportScreen';
+import HistoryReportScreen from '../screens/History/HistoryReportScreen';
+
+const Stack = createStackNavigator();
+
+export default function ReportsStackNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { flex: 1, backgroundColor: COLORS.background },
+      }}
+    >
+      <Stack.Screen
+        name="ReportsMain"
+        component={ReportsScreen}
+        options={{ title: 'Export Data' }}
+      />
+      <Stack.Screen
+        name="SportReport"
+        component={SportAssessmentReportScreen}
+        options={{ title: 'Sport Report' }}
+      />
+      <Stack.Screen
+        name="HistoryReport"
+        component={HistoryReportScreen}
+        options={{ title: 'Full Report' }}
+      />
+      <Stack.Screen
+        name="ExportDetail"
+        component={ExportDetailScreen}
+        options={{ title: 'Export Preview' }}
+      />
+    </Stack.Navigator>
+  );
+}
+// Location: /apps/assessment/src/navigation/StackNavigator.js
+// Stack navigator for main app screens (if needed for sub-navigation)
+
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { COLORS } from '../utils/constants';
+
+// Import screens that need stack navigation
+import HomeScreen from '../screens/Home/HomeScreen';
+import SelectSportScreen from '../screens/SelectSport/SelectSportScreen';
+import SelectKidsScreen from '../screens/SelectKids/SelectKidsScreen';
+
+const Stack = createStackNavigator();
+
+export default function StackNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: COLORS.primary,
+        },
+        headerTintColor: COLORS.white,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <Stack.Screen
+        name="HomeMain"
+        component={HomeScreen}
+        options={{ title: 'Assessment Home' }}
+      />
+      <Stack.Screen
+        name="SelectSport"
+        component={SelectSportScreen}
+        options={{ title: 'Select Sport' }}
+      />
+      <Stack.Screen
+        name="SelectKids"
+        component={SelectKidsScreen}
+        options={{ title: 'Select Athletes' }}
+      />
+    </Stack.Navigator>
+  );
+}//src/navigation/AppNavigator.js
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import DrawerNavigator from './DrawerNavigator';
+import AuthChoiceScreen from '../screens/Auth/AuthChoiceScreen';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import OnboardingScreen from '../screens/Onboarding/OnboardingScreen';
+import { initDatabase } from '../database/db';
+import { initializeSync } from '../database/sync';
+import { getCurrentUser } from '../utils/auth';
+
+const Stack = createStackNavigator();
+
+const AppNavigator = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasUser, setHasUser] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); 
+
+  useEffect(() => {
+    checkUserStatus();
+  }, []);
+
+  const checkUserStatus = async () => {
+    try {
+      // Initialize database
+      await initDatabase();
+      
+      // Check if user account exists
+      const currentUser = await getCurrentUser();
+      
+      if (currentUser) {
+        console.log('✅ User found:', currentUser.fullName);
+        setHasUser(true);
+        
+        // Initialize Firebase sync system (but don't perform sync yet)
+        // Sync will happen after login in LoginScreen
+        await initializeSync();
+        
+        // Start auto-sync for future syncs
+        const { startAutoSync } = await import('../database/sync');
+        startAutoSync();
+      } else {
+        console.log('ℹ️ No user account found');
+        setHasUser(false);
+      }
+    } catch (error) {
+      console.error('Error checking user status:', error);
+      setHasUser(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    console.log('🔄 Handling logout - refreshing app state...');
+    setHasUser(false);
+    setRefreshKey(prev => prev + 1); // Force re-render
+  };
+
+  const handleAuthComplete = async () => {
+    // Reload user status
+    const currentUser = await getCurrentUser();
+    if (currentUser) {
+      setHasUser(true);
+      
+      // Don't call initializeSync again - it was already called in LoginScreen
+      // Just start auto-sync for future updates
+      const { startAutoSync } = await import('../database/sync');
+      startAutoSync();
+    }
+  };
+
+  // Make logout handler available globally
+  useEffect(() => {
+    // Store in global scope so ProfileScreen can access it
+    global.handleAppLogout = handleLogout;
+    
+    return () => {
+      delete global.handleAppLogout;
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' }}>
+        <ActivityIndicator size="large" color="#2196F3" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      {hasUser ? (
+        <DrawerNavigator />
+      ) : (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen 
+            name="AuthChoice" 
+            component={AuthChoiceScreen}
+          />
+          <Stack.Screen name="Login">
+            {props => (
+              <LoginScreen 
+                {...props} 
+                onAuthComplete={handleAuthComplete} 
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Onboarding">
+            {props => (
+              <OnboardingScreen 
+                {...props} 
+                onComplete={handleAuthComplete} 
+              />
+            )}
+          </Stack.Screen>
+        </Stack.Navigator>
+      )}
+    </NavigationContainer>
+  );
+};
+
+export default AppNavigator;import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { COLORS } from '../utils/constants';
+
+const CustomDrawerContent = ({ navigation, state }) => {
+  const routes = [
+    { name: 'HomeStack', label: 'Home', icon: '🏠', screen: 'Home' },
+    { name: 'MyKidsStack', label: 'My Kids', icon: '👶', screen: 'MyKids' },
+    { name: 'NotesStack', label: 'Notes', icon: '📝', screen: 'Notes' }, // ✅ ADD THIS
+    { name: 'HistoryStack', label: 'History', icon: '📅', screen: 'History' },
+    { name: 'Settings', label: 'Settings', icon: '⚙️' },
+  ];
+
+  const activeRoute = state.routes[state.index].name;
+
+  const handleNavigation = (route) => {
+    // For stack navigators, navigate to the initial screen within that stack
+    if (route.screen) {
+      navigation.navigate(route.name, { screen: route.screen });
+    } else {
+      navigation.navigate(route.name);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>AccellaX 361°</Text>
+        <Text style={styles.headerSubtitle}>Kids Attendance</Text>
+      </View>
+
+      <ScrollView style={styles.menuContainer}>
+        {routes.map((route) => {
+          const isActive = activeRoute === route.name;
+          
+          return (
+            <TouchableOpacity
+              key={route.name}
+              style={[styles.menuItem, isActive && styles.menuItemActive]}
+              onPress={() => handleNavigation(route)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.menuIcon}>{route.icon}</Text>
+              <Text style={[styles.menuLabel, isActive && styles.menuLabelActive]}>
+                {route.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Version 1.0.4</Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    backgroundColor: COLORS.primary,
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: COLORS.primaryLight,
+  },
+  menuContainer: {
+    flex: 1,
+    paddingTop: 20,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginHorizontal: 12,
+    marginVertical: 4,
+    borderRadius: 12,
+  },
+  menuItemActive: {
+    backgroundColor: COLORS.primaryLight,
+  },
+  menuIcon: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  menuLabel: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  menuLabelActive: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+});
+
+export default CustomDrawerContent;import React from 'react';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import CustomDrawerContent from './CustomDrawerContent';
+import StackNavigator from './StackNavigator';
+import MyKidsStackNavigator from './MyKidsStackNavigator';
+import HistoryStackNavigator from './HistoryStackNavigator';
+import NotesStackNavigator from './NotesStackNavigator'; // ✅ ADD THIS
+import ProfileScreen from '../screens/Profile/ProfileScreen';
+import SettingsScreen from '../screens/Settings/SettingsScreen';
+import SyncDiagnosticsScreen from '../screens/debug/SyncDiagnosticsScreen';
+
+const Drawer = createDrawerNavigator();
+
+const DrawerNavigator = () => {
+  return (
+    <Drawer.Navigator
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+        drawerStyle: {
+          width: 280,
+        },
+      }}
+    >
+      <Drawer.Screen 
+        name="HomeStack" 
+        component={StackNavigator}
+        options={{ title: 'Home' }}
+      />
+      <Drawer.Screen 
+        name="MyKidsStack" 
+        component={MyKidsStackNavigator}
+        options={{ title: 'My Kids' }}
+      />
+      <Drawer.Screen 
+        name="HistoryStack" 
+        component={HistoryStackNavigator}
+        options={{ title: 'History' }}
+      />
+      {/* ✅ ADD NOTES STACK */}
+      <Drawer.Screen 
+        name="NotesStack" 
+        component={NotesStackNavigator}
+        options={{ title: 'Notes' }}
+      />
+      <Drawer.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{ title: 'Profile' }}
+      />
+      <Drawer.Screen 
+        name="Settings" 
+        component={SettingsScreen}
+        options={{ title: 'Settings' }}
+      />
+      <Drawer.Screen 
+        name="SyncDiagnostics" 
+        component={SyncDiagnosticsScreen}
+        options={{ title: 'Sync Diagnostics' }}
+      />
+    </Drawer.Navigator>
+  );
+};
+
+export default DrawerNavigator;//src/navigation/HistoryStackNavigator.js
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import HistoryScreen from '../screens/History/HistoryScreen';
+import SessionDetailScreen from '../screens/History/SessionDetailScreen';
+import AttendanceDetailScreen from '../screens/History/AttendanceDetailScreen';
+import { SCREEN_NAMES } from '../utils/constants';
+
+const Stack = createStackNavigator();
+
+const HistoryStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name={SCREEN_NAMES.HISTORY} component={HistoryScreen} />
+      <Stack.Screen name={SCREEN_NAMES.SESSION_DETAIL} component={SessionDetailScreen} />
+      <Stack.Screen name="AttendanceDetail" component={AttendanceDetailScreen} />
+    </Stack.Navigator>
+  );
+};
+
+export default HistoryStackNavigator;//src/navigation/MyKidsStackNavigator.js
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import MyKidsScreen from '../screens/MyKids/MyKidsScreen';
+import AddEditKidScreen from '../screens/MyKids/AddEditKidScreen';
+import { SCREEN_NAMES } from '../utils/constants';
+
+const Stack = createStackNavigator();
+
+const MyKidsStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name={SCREEN_NAMES.MY_KIDS} component={MyKidsScreen} />
+      <Stack.Screen name={SCREEN_NAMES.ADD_EDIT_KID} component={AddEditKidScreen} />
+    </Stack.Navigator>
+  );
+};
+
+export default MyKidsStackNavigator;//app/src/navigation/NotesStackNavigator.js
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import NotesScreen from '../screens/Notes/NotesScreen';
+import AddEditNoteScreen from '../screens/Notes/AddEditNoteScreen';
+
+const Stack = createStackNavigator();
+
+const NotesStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Notes" component={NotesScreen} />
+      <Stack.Screen name="AddEditNote" component={AddEditNoteScreen} />
+    </Stack.Navigator>
+  );
+};
+
+export default NotesStackNavigator;// src/navigation/StackNavigator.js
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import HomeScreen from '../screens/Home/HomeScreen';
+import AgeGroupScreen from '../screens/AgeGroup/AgeGroupScreen';
+import AttendanceScreen from '../screens/Attendance/AttendanceScreen';
+import SummaryScreen from '../screens/Summary/SummaryScreen';
+import ProfileScreen from '../screens/Profile/ProfileScreen';
+import { SCREEN_NAMES } from '../utils/constants';
+
+const Stack = createStackNavigator();
+
+const StackNavigator = () => {
+  return (
+    <Stack.Navigator
+      initialRouteName={SCREEN_NAMES.HOME}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name={SCREEN_NAMES.HOME} component={HomeScreen} />
+      <Stack.Screen name={SCREEN_NAMES.AGE_GROUP} component={AgeGroupScreen} />
+      <Stack.Screen name={SCREEN_NAMES.ATTENDANCE} component={AttendanceScreen} />
+      <Stack.Screen name={SCREEN_NAMES.SUMMARY} component={SummaryScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+    </Stack.Navigator>
+  );
+};
+
+export default StackNavigator;

@@ -10,11 +10,54 @@ import { collection, doc, setDoc, getDocs, query, where, Timestamp } from 'fireb
 const isWeb = Platform.OS === 'web';
 const ACADEMY_ID = 'academy_accellax361_main';
 
+// Import validators
+import {
+  validateKidId,
+  validateMetricValue,
+  validateAssessmentData,
+  checkDuplicateAssessment
+} from '../utils/validators';
+
 // ========== HELPER FUNCTIONS ==========
 
 const getWebDB = async () => {
-  const data = await AsyncStorage.getItem('assessmentWebDB');
-  if (!data) {
+  try {
+    const data = await AsyncStorage.getItem('assessmentWebDB');
+    
+    // Handle null, undefined, or empty string
+    if (!data || data === 'undefined' || data === 'null') {
+      console.log('📦 Initializing empty web DB');
+      return { 
+        users: [],
+        kids: [],
+        sports: [],
+        metrics: [],
+        assessments: [], 
+        assessment_results: [],
+        benchmarks: [],
+        goals: [],
+        notes: []
+      };
+    }
+    
+    // Safe JSON parse
+    const parsed = JSON.parse(data);
+    
+    // Ensure all arrays exist
+    return {
+      users: parsed.users || [],
+      kids: parsed.kids || [],
+      sports: parsed.sports || [],
+      metrics: parsed.metrics || [],
+      assessments: parsed.assessments || [],
+      assessment_results: parsed.assessment_results || [],
+      benchmarks: parsed.benchmarks || [],
+      goals: parsed.goals || [],
+      notes: parsed.notes || []
+    };
+  } catch (error) {
+    console.error('❌ Error reading web DB:', error);
+    console.log('🔄 Returning empty DB structure');
     return { 
       users: [],
       kids: [],
@@ -27,7 +70,6 @@ const getWebDB = async () => {
       notes: []
     };
   }
-  return JSON.parse(data);
 };
 
 const saveWebDB = async (webDB) => {
@@ -58,7 +100,8 @@ export const saveAssessmentResult = async (resultData) => {
   });
   
   // ✅ VALIDATION: Validate kid_id format
-  if (!kid_id || typeof kid_id !== 'string') {
+  const kidIdValidation = validateKidId(kid_id);
+  if (!kidIdValidation.isValid) {
     console.error('❌ [saveAssessmentResult] INVALID kid_id - null or not a string!', {
       kid_id,
       type: typeof kid_id,
@@ -134,6 +177,7 @@ export const saveAssessmentResult = async (resultData) => {
       webDB.assessments = [...(webDB.assessments || []), assessment];
     } else {
       assessment.updated_at = new Date().toISOString();
+      assessment.firebase_synced = 0; // Mark as needing sync
     }
     
     // Add or update result
@@ -155,8 +199,33 @@ export const saveAssessmentResult = async (resultData) => {
       webDB.assessment_results = [...(webDB.assessment_results || []), result];
     }
     
-    await saveWebDB(webDB);
-    console.log('✅ Result saved to web storage');
+    await saveWebDB();
+    console.log('✅ Result saved to web storage (offline-first)');
+    
+    // SILENT BACKGROUND SYNC: Try Firebase but don't block or show errors
+    setTimeout(async () => {
+      try {
+        const { db } = await import('../config/firebase.js');
+        const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+        
+        const assessmentRef = doc(db, `academies/${ACADEMY_ID}/assessments`, assessment.id);
+        await setDoc(assessmentRef, {
+          ...assessment,
+          results: webDB.assessment_results?.filter(r => r.assessment_id === assessment.id) || [],
+          synced_at: Timestamp.now(),
+        });
+        
+        // Mark as synced silently
+        assessment.firebase_synced = 1;
+        assessment.synced_at = new Date().toISOString();
+        await saveWebDB();
+        console.log('✅ Silently synced to Firebase in background');
+      } catch (error) {
+        console.warn('⚠️ Firebase sync failed (will retry later):', error.message);
+        // Don't throw - user doesn't need to know
+      }
+    }, 100); // Sync after 100ms (non-blocking)
+    
     return { success: true, result };
   }
   
@@ -174,6 +243,7 @@ export const saveAssessmentResult = async (resultData) => {
     
     if (!existingAssessment) {
       const newId = generateId();
+      const status = metadata?.isDraft ? 'draft' : 'completed';
       await database.runAsync(
         'INSERT INTO assessments (id, kid_id, sport_id, assessment_date, year, term, assessment_type, week_number, location, assessor_name, general_notes, assessed_by, status, created_at, updated_at, firebase_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
@@ -189,7 +259,7 @@ export const saveAssessmentResult = async (resultData) => {
           metadata?.assessorName || 'Coach',
           metadata?.generalNotes || null,
           'current_user', 
-          'completed',
+          status,
           new Date().toISOString(), 
           new Date().toISOString(), 
           0
@@ -198,7 +268,7 @@ export const saveAssessmentResult = async (resultData) => {
       assessmentId = newId;
     } else {
       await database.runAsync(
-        'UPDATE assessments SET updated_at = ? WHERE id = ?',
+        'UPDATE assessments SET updated_at = ?, firebase_synced = 0 WHERE id = ?',
         [new Date().toISOString(), assessmentId]
       );
     }
@@ -221,10 +291,273 @@ export const saveAssessmentResult = async (resultData) => {
       );
     }
     
-    console.log('✅ Result saved to SQLite');
+    console.log('✅ Result saved to SQLite (offline-first)');
+    
+    // SILENT BACKGROUND SYNC: Try Firebase but don't block
+    setTimeout(async () => {
+      try {
+        const { db } = await import('../config/firebase.js');
+        const { doc, setDoc, Timestamp } = await import('firebase/firestore');
+        
+        const assessment = await database.getFirstAsync(
+          'SELECT * FROM assessments WHERE id = ?',
+          [assessmentId]
+        );
+        
+        const results = await database.getAllAsync(
+          'SELECT * FROM assessment_results WHERE assessment_id = ?',
+          [assessmentId]
+        );
+        
+        const assessmentRef = doc(db, `academies/${ACADEMY_ID}/assessments`, assessmentId);
+        await setDoc(assessmentRef, {
+          ...assessment,
+          results,
+          synced_at: Timestamp.now(),
+        });
+        
+        // Mark as synced
+        await database.runAsync(
+          'UPDATE assessments SET firebase_synced = 1, synced_at = ? WHERE id = ?',
+          [new Date().toISOString(), assessmentId]
+        );
+        
+        console.log('✅ Silently synced to Firebase in background');
+      } catch (error) {
+        console.warn('⚠️ Firebase sync failed (will retry later):', error.message);
+        // Don't throw - user doesn't need to know
+      }
+    }, 100);
+    
     return { success: true };
   } catch (error) {
     console.error('❌ Error saving result:', error);
+    throw error;
+  }
+};
+
+// ========== DRAFT ASSESSMENT FUNCTIONS (PHASE 2) ==========
+
+/**
+ * Save assessment as draft
+ * @param {Object} metadata - Assessment metadata
+ * @param {Object} partialResults - Partial results data
+ * @returns {Object} Draft assessment
+ */
+export const saveDraftAssessment = async (metadata, partialResults = {}) => {
+  console.log('💾 Saving draft assessment:', metadata);
+  
+  const { kid_id, sport_id, assessment_date } = metadata;
+  
+  // Calculate completion percentage
+  const totalMetrics = metadata.totalMetrics || Object.keys(partialResults).length;
+  const completedMetrics = Object.values(partialResults).filter(v => v !== null && v !== '').length;
+  const completionPercentage = totalMetrics > 0 ? Math.round((completedMetrics / totalMetrics) * 100) : 0;
+  
+  if (isWeb) {
+    const webDB = await getWebDB();
+    
+    // Find existing draft or create new
+    let assessment = webDB.assessments?.find(a => 
+      a.kid_id === kid_id && 
+      a.sport_id === sport_id && 
+      a.assessment_date === assessment_date.split('T')[0] &&
+      a.status === 'draft'
+    );
+    
+    if (!assessment) {
+      assessment = {
+        id: generateId(),
+        kid_id,
+        sport_id,
+        assessment_date: assessment_date.split('T')[0],
+        year: metadata.year || null,
+        term: metadata.term || null,
+        assessment_type: metadata.assessmentType || null,
+        week_number: metadata.weekNumber || null,
+        location: metadata.location || null,
+        assessor_name: metadata.assessorName || 'Coach',
+        general_notes: metadata.generalNotes || null,
+        assessed_by: 'current_user',
+        status: 'draft',
+        completion_percentage: completionPercentage,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        firebase_synced: 0,
+      };
+      webDB.assessments = [...(webDB.assessments || []), assessment];
+    } else {
+      assessment.completion_percentage = completionPercentage;
+      assessment.updated_at = new Date().toISOString();
+    }
+    
+    await saveWebDB(webDB);
+    return assessment;
+  }
+  
+  // SQLite
+  const database = getDatabase();
+  
+  try {
+    const existingDraft = await database.getFirstAsync(
+      'SELECT * FROM assessments WHERE kid_id = ? AND sport_id = ? AND assessment_date = ? AND status = ?',
+      [kid_id, sport_id, assessment_date.split('T')[0], 'draft']
+    );
+    
+    if (existingDraft) {
+      await database.runAsync(
+        'UPDATE assessments SET completion_percentage = ?, updated_at = ? WHERE id = ?',
+        [completionPercentage, new Date().toISOString(), existingDraft.id]
+      );
+      return existingDraft;
+    } else {
+      const newId = generateId();
+      await database.runAsync(
+        `INSERT INTO assessments 
+         (id, kid_id, sport_id, assessment_date, year, term, assessment_type, week_number, 
+          location, assessor_name, general_notes, assessed_by, status, completion_percentage, 
+          created_at, updated_at, firebase_synced) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          newId, kid_id, sport_id, assessment_date.split('T')[0],
+          metadata.year || null, metadata.term || null, metadata.assessmentType || null,
+          metadata.weekNumber || null, metadata.location || null, metadata.assessorName || 'Coach',
+          metadata.generalNotes || null, 'current_user', 'draft', completionPercentage,
+          new Date().toISOString(), new Date().toISOString(), 0
+        ]
+      );
+      return { id: newId };
+    }
+  } catch (error) {
+    console.error('❌ Error saving draft:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all draft assessments
+ * @returns {Array} List of draft assessments
+ */
+export const getDraftAssessments = async () => {
+  console.log('📋 Getting draft assessments...');
+  
+  if (isWeb) {
+    const webDB = await getWebDB();
+    const drafts = webDB.assessments?.filter(a => a.status === 'draft') || [];
+    
+    return drafts.map(draft => {
+      const kid = webDB.kids?.find(k => k.id === draft.kid_id);
+      const sport = webDB.sports?.find(s => s.id === draft.sport_id);
+      const results = webDB.assessment_results?.filter(r => r.assessment_id === draft.id) || [];
+      
+      return {
+        ...draft,
+        kidName: kid?.name || 'Unknown',
+        sportName: sport?.name || 'Unknown',
+        resultCount: results.length,
+      };
+    });
+  }
+  
+  const database = getDatabase();
+  
+  try {
+    const drafts = await database.getAllAsync(
+      `SELECT a.*, 
+              k.name as kid_name, 
+              s.name as sport_name,
+              COUNT(ar.id) as result_count
+       FROM assessments a
+       JOIN kids k ON a.kid_id = k.id
+       JOIN sports s ON a.sport_id = s.id
+       LEFT JOIN assessment_results ar ON a.id = ar.assessment_id
+       WHERE a.status = 'draft'
+       GROUP BY a.id
+       ORDER BY a.updated_at DESC`
+    );
+    
+    return drafts;
+  } catch (error) {
+    console.error('❌ Error getting drafts:', error);
+    return [];
+  }
+};
+
+/**
+ * Resume draft assessment
+ * @param {string} assessmentId - Draft assessment ID
+ * @returns {Object} Draft data with results
+ */
+export const resumeDraftAssessment = async (assessmentId) => {
+  console.log('▶️ Resuming draft:', assessmentId);
+  
+  if (isWeb) {
+    const webDB = await getWebDB();
+    const draft = webDB.assessments?.find(a => a.id === assessmentId);
+    
+    if (!draft) {
+      throw new Error('Draft not found');
+    }
+    
+    const results = webDB.assessment_results?.filter(r => r.assessment_id === assessmentId) || [];
+    
+    return {
+      ...draft,
+      results,
+    };
+  }
+  
+  const database = getDatabase();
+  
+  try {
+    const draft = await database.getFirstAsync(
+      'SELECT * FROM assessments WHERE id = ?',
+      [assessmentId]
+    );
+    
+    if (!draft) {
+      throw new Error('Draft not found');
+    }
+    
+    const results = await database.getAllAsync(
+      'SELECT * FROM assessment_results WHERE assessment_id = ?',
+      [assessmentId]
+    );
+    
+    return {
+      ...draft,
+      results,
+    };
+  } catch (error) {
+    console.error('❌ Error resuming draft:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete draft assessment
+ * @param {string} assessmentId - Draft ID
+ * @returns {boolean} Success status
+ */
+export const deleteDraftAssessment = async (assessmentId) => {
+  console.log('🗑️ Deleting draft:', assessmentId);
+  
+  if (isWeb) {
+    const webDB = await getWebDB();
+    webDB.assessments = webDB.assessments?.filter(a => a.id !== assessmentId) || [];
+    webDB.assessment_results = webDB.assessment_results?.filter(r => r.assessment_id !== assessmentId) || [];
+    await saveWebDB(webDB);
+    return true;
+  }
+  
+  const database = getDatabase();
+  
+  try {
+    await database.runAsync('DELETE FROM assessment_results WHERE assessment_id = ?', [assessmentId]);
+    await database.runAsync('DELETE FROM assessments WHERE id = ?', [assessmentId]);
+    return true;
+  } catch (error) {
+    console.error('❌ Error deleting draft:', error);
     throw error;
   }
 };

@@ -133,20 +133,26 @@ export const ASSESSMENTS_TABLE_SCHEMA = `
     year TEXT NOT NULL,
     term TEXT NOT NULL,
     assessment_type TEXT NOT NULL,
-    week_number INTEGER NOT NULL,
+    week_number INTEGER NOT NULL CHECK(week_number >= 1 AND week_number <= 12),
+    last_edited_by TEXT,
+    last_edited_at DATETIME,
+    edit_count INTEGER DEFAULT 0,
+    version INTEGER DEFAULT 1,
     location TEXT,
     assessor_name TEXT NOT NULL,
     general_notes TEXT,
     assessed_by TEXT NOT NULL,
     notes TEXT,
-    status TEXT DEFAULT 'completed',
+    status TEXT DEFAULT 'completed' CHECK(status IN ('draft', 'in_progress', 'completed', 'cancelled')),
     scheduled_date DATE,
+    completion_percentage INTEGER DEFAULT 0,
     rescheduled_reason TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     firebase_synced INTEGER DEFAULT 0,
     FOREIGN KEY (kid_id) REFERENCES kids(id),
-    FOREIGN KEY (sport_id) REFERENCES sports(id)
+    FOREIGN KEY (sport_id) REFERENCES sports(id),
+    UNIQUE(kid_id, sport_id, assessment_date, assessment_type)
   );
 `;
 
@@ -206,6 +212,23 @@ export const GOALS_TABLE_SCHEMA = `
 `;
 
 /**
+ * SQL schema for Assessment Templates table (PHASE 2)
+ */
+export const ASSESSMENT_TEMPLATES_TABLE_SCHEMA = `
+  CREATE TABLE IF NOT EXISTS assessment_templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    sport_id TEXT NOT NULL,
+    description TEXT,
+    metric_ids TEXT NOT NULL,
+    created_by TEXT,
+    is_default INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sport_id) REFERENCES sports(id)
+  );
+`;
+
+/**
  * SQL schema for Settings table (OPTIONAL)
  */
 export const SETTINGS_TABLE_SCHEMA = `
@@ -213,6 +236,36 @@ export const SETTINGS_TABLE_SCHEMA = `
     key TEXT PRIMARY KEY,
     value TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+/**
+ * SQL schema for Sync Queue table (PHASE 3)
+ */
+export const SYNC_QUEUE_TABLE_SCHEMA = `
+  CREATE TABLE IF NOT EXISTS sync_queue (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    data TEXT NOT NULL,
+    retry_count INTEGER DEFAULT 0,
+    last_error TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+/**
+ * SQL schema for Sync History table (PHASE 3)
+ */
+export const SYNC_HISTORY_TABLE_SCHEMA = `
+  CREATE TABLE IF NOT EXISTS sync_history (
+    id TEXT PRIMARY KEY,
+    operation_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    records_affected INTEGER DEFAULT 0,
+    error_message TEXT,
+    started_at DATETIME NOT NULL,
+    completed_at DATETIME
   );
 `;
 
@@ -229,7 +282,10 @@ export const CREATE_ALL_TABLES = `
   ${ASSESSMENT_RESULTS_TABLE_SCHEMA}
   ${BENCHMARKS_TABLE_SCHEMA}
   ${GOALS_TABLE_SCHEMA}
+  ${ASSESSMENT_TEMPLATES_TABLE_SCHEMA}
   ${SETTINGS_TABLE_SCHEMA}
+  ${SYNC_QUEUE_TABLE_SCHEMA}
+  ${SYNC_HISTORY_TABLE_SCHEMA}
 `;
 
 /**
@@ -257,6 +313,7 @@ export const DROP_ALL_TABLES = `
   DROP TABLE IF EXISTS benchmarks;
   DROP TABLE IF EXISTS assessment_results;
   DROP TABLE IF EXISTS assessments;
+  DROP TABLE IF EXISTS assessment_templates;
   DROP TABLE IF EXISTS metrics;
   DROP TABLE IF EXISTS sports;
   DROP TABLE IF EXISTS notes;

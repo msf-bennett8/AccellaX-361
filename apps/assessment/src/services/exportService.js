@@ -183,10 +183,73 @@ export const generateSummaryStats = (assessments) => {
   };
 };
 
+/**
+ * Export kid progress to CSV
+ * @param {string} kidId - Kid ID
+ * @param {Array} assessments - Kid's assessments
+ * @returns {string} CSV string
+ */
+export const exportKidProgressToCSV = async (kidId, assessments) => {
+  if (!assessments || assessments.length === 0) {
+    throw new Error('No assessments found for this kid');
+  }
+
+  const headers = ['Assessment Date', 'Sport', 'Metric', 'Value', 'Percentile'];
+  let csv = headers.join(',') + '\n';
+
+  assessments.forEach(assessment => {
+    assessment.results?.forEach(result => {
+      const row = [
+        assessment.assessment_date,
+        assessment.sportName || 'Unknown',
+        result.metric_name || result.metric_id,
+        result.value,
+        result.percentile || 'N/A',
+      ];
+      csv += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+  });
+
+  return csv;
+};
+
+/**
+ * Export metric comparison to CSV
+ * @param {string} metricId - Metric ID
+ * @param {Array} assessments - Assessments to compare
+ * @returns {string} CSV string
+ */
+export const exportMetricComparisonToCSV = async (metricId, assessments) => {
+  if (!assessments || assessments.length === 0) {
+    throw new Error('No assessments found');
+  }
+
+  const headers = ['Kid Name', 'Age Group', 'Assessment Date', 'Value', 'Percentile'];
+  let csv = headers.join(',') + '\n';
+
+  assessments.forEach(assessment => {
+    const result = assessment.results?.find(r => r.metric_id === metricId);
+    if (result) {
+      const row = [
+        assessment.kidName || 'Unknown',
+        assessment.kidAgeGroup || 'N/A',
+        assessment.assessment_date,
+        result.value,
+        result.percentile || 'N/A',
+      ];
+      csv += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
+    }
+  });
+
+  return csv;
+};
+
 export default {
   exportToCSV,
   exportToExcel,
   exportToPDF,
   exportData,
   generateSummaryStats,
+  exportKidProgressToCSV,
+  exportMetricComparisonToCSV,
 };
