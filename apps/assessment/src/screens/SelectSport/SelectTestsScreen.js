@@ -46,7 +46,7 @@ export default function SelectTestsScreen() {
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
-
+  const [modalConfig, setModalConfig] = useState({ visible: false, title: '', message: '', type: 'success' });
   // Determine mode
   const isTestByTestMode = assessmentMode === 'test_by_test';
   const isKidByKidMode = assessmentMode === 'kid_by_kid';
@@ -59,13 +59,13 @@ export default function SelectTestsScreen() {
   const loadMetrics = async () => {
     try {
       setLoading(true);
-      console.log('📊 Loading metrics for sport:', sport?.id);
+      //console.log('📊 Loading metrics for sport:', sport?.id);
       const sportMetrics = getMetricsBySport(sport.id);
-      console.log('✅ Loaded metrics:', sportMetrics.length, '| Sport:', sport?.name);
+      //console.log('✅ Loaded metrics:', sportMetrics.length, '| Sport:', sport?.name);
       
       // Log what type of metrics were loaded
       if (sport?.id === 'fitness' || sport?.id === 'general') {
-        console.log('🏃 Loaded ONLY fitness tests (no sport-specific)');
+        //console.log('🏃 Loaded ONLY fitness tests (no sport-specific)');
       } else {
         console.log('⚽ Loaded sport-specific + IQ tests (fitness excluded)');
       }
@@ -82,7 +82,7 @@ export default function SelectTestsScreen() {
     try {
       const sportTemplates = await getTemplates(sport.id);
       setTemplates(sportTemplates);
-      console.log('✅ Loaded templates:', sportTemplates.length);
+      //console.log('✅ Loaded templates:', sportTemplates.length);
     } catch (error) {
       console.error('❌ Error loading templates:', error);
     }
@@ -202,13 +202,6 @@ export default function SelectTestsScreen() {
     // Convert selected metric IDs to full metric objects
     const selectedMetrics = metrics.filter(m => selectedTests.includes(m.id));
 
-    console.log('🎯 Tests selected:', {
-      sport: sport?.name,
-      mode: assessmentMode,
-      testsCount: selectedMetrics.length,
-      hasKids: selectedKids.length > 0
-    });
-
     // CRITICAL FIX: Different navigation based on mode
     if (isKidByKidMode) {
       // Kid-by-Kid: Kids already selected, go to AssessmentEntry
@@ -222,7 +215,7 @@ export default function SelectTestsScreen() {
       });
     } else {
       // Test-by-Test: Navigate to SelectKids
-      console.log('➡️ Navigating to SelectKids (test-by-test mode)');
+      //console.log('➡️ Navigating to SelectKids (test-by-test mode)');
       navigation.navigate('SelectKids', {
         sport,
         assessmentMode,

@@ -10,19 +10,51 @@ const FIXED_ACADEMY_ID = 'academy_accellax361_main';
 
 // ========== HELPER: Get Web Database ==========
 
+// Safe JSON parse helper
+const safeJsonParse = (str, fallback = {}) => {
+  try {
+    if (!str || str === 'undefined' || str === 'null') {
+      return fallback;
+    }
+    return JSON.parse(str);
+  } catch (error) {
+    console.error('[queries] JSON parse error:', error);
+    return fallback;
+  }
+};
+
 const getWebDB = async () => {
-  const data = await AsyncStorage.getItem('assessmentWebDB');
-  return data ? JSON.parse(data) : {
-    users: [],
-    kids: [],
-    sports: [],
-    metrics: [],
-    assessments: [],
-    assessment_results: [],
-    benchmarks: [],
-    goals: [],
-    notes: [],
-  };
+  try {
+    const data = await AsyncStorage.getItem('assessmentWebDB');
+    if (!data || data === 'undefined' || data === 'null') {
+      console.warn('[queries] No valid webDB data, returning default structure');
+      return {
+        users: [],
+        kids: [],
+        sports: [],
+        metrics: [],
+        assessments: [],
+        assessment_results: [],
+        benchmarks: [],
+        goals: [],
+        notes: [],
+      };
+    }
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('[queries] Error parsing webDB:', error);
+    return {
+      users: [],
+      kids: [],
+      sports: [],
+      metrics: [],
+      assessments: [],
+      assessment_results: [],
+      benchmarks: [],
+      goals: [],
+      notes: [],
+    };
+  }
 };
 
 // ========== ASSESSMENT QUERIES ==========
@@ -518,7 +550,7 @@ export const getAssessmentsByDateRange = async (startDate, endDate, sportId = nu
       // ✅ CRITICAL FIX: Include results from assessment_results table
       const results = webDB.assessment_results?.filter(r => r.assessment_id === assessment.id) || [];
       
-      console.log(`📊 Assessment ${assessment.id} - Found ${results.length} results`);
+      //console.log(`📊 Assessment ${assessment.id} - Found ${results.length} results`);
       
       return {
         ...assessment,

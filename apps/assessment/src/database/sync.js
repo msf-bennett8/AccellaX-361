@@ -46,8 +46,25 @@ import {
   createUser,
   getUserById,
   updateUser,
-  getAssessmentResults,
 } from './db';
+
+/**
+ * Get assessment results (works for both web and SQLite)
+ * @param {string} assessmentId - Assessment ID
+ * @returns {Array} Assessment results
+ */
+const getAssessmentResults = async (assessmentId) => {
+  if (isWeb) {
+    const webDB = JSON.parse(await AsyncStorage.getItem('assessmentWebDB') || '{}');
+    return webDB.assessment_results?.filter(r => r.assessment_id === assessmentId) || [];
+  } else {
+    const db = getDatabase();
+    return await db.getAllAsync(
+      'SELECT * FROM assessment_results WHERE assessment_id = ?',
+      [assessmentId]
+    );
+  }
+};
 
 const isWeb = Platform.OS === 'web';
 
@@ -98,9 +115,11 @@ const debugLog = (category, message, data = null) => {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [ASSESSMENT_SYNC] [${category}] ${message}`;
   
-  console.log(logMessage);
+
+  //uncomment on debugging sync
+ // console.log(logMessage);
   if (data) {
-    console.log('Data:', JSON.stringify(data, null, 2));
+ //   console.log('Data:', JSON.stringify(data, null, 2));
   }
   
   storeSyncLog(category, message, data);
@@ -500,17 +519,30 @@ export const uploadAssessmentsToFirebase = async (userId, academyId) => {
   debugLog('ASSESSMENTS_UPLOAD', 'Starting assessments upload', { userId, academyId });
   
   try {
-    const { getAllAsync } = getDatabase ? { getAllAsync: async (query, params) => {
+    // ✅ CRITICAL FIX: Get unsynced assessments WITHOUT touching the cache
+    let unsyncedAssessments = [];
+
+    if (isWeb) {
+      // ✅ Read directly from AsyncStorage WITHOUT going through getWebDB() to avoid cache invalidation
+      const webDBStr = await AsyncStorage.getItem('assessmentWebDB');
+      const webDB = webDBStr && webDBStr !== 'undefined' && webDBStr !== 'null' 
+        ? JSON.parse(webDBStr) 
+        : { assessments: [] };
+      
+      // ✅ CRITICAL: Do NOT modify or save webDB during sync to prevent cache corruption
+      unsyncedAssessments = (webDB.assessments || []).filter(a => a.firebase_synced !== 1);
+      
+      console.log('📊 [uploadAssessments] Found assessments to sync:', {
+        total: webDB.assessments?.length || 0,
+        unsynced: unsyncedAssessments.length,
+      });
+    } else {
       const db = getDatabase();
-      return await db.getAllAsync(query, params);
-    }} : { getAllAsync: async () => {
-      const webDB = JSON.parse(await AsyncStorage.getItem('assessmentWebDB') || '{}');
-      return webDB.assessments || [];
-    }};
-    
-    const unsyncedAssessments = isWeb 
-      ? (JSON.parse(await AsyncStorage.getItem('assessmentWebDB') || '{}')).assessments?.filter(a => a.firebase_synced !== 1) || []
-      : await getAllAsync('SELECT * FROM assessments WHERE firebase_synced = 0', []);
+      unsyncedAssessments = await db.getAllAsync(
+        'SELECT * FROM assessments WHERE firebase_synced = 0', 
+        []
+      );
+    }
     
     const academyAssessments = unsyncedAssessments.filter(a => a.academy_id === academyId);
     
@@ -530,27 +562,137 @@ export const uploadAssessmentsToFirebase = async (userId, academyId) => {
     for (const assessment of academyAssessments) {
       const assessmentRef = doc(db, `academies/${academyId}/assessments`, assessment.id.toString());
       
-      // Check for existing version (optimistic locking)
-      const existingDoc = await getDoc(assessmentRef);
-      if (existingDoc.exists()) {
-        const { detectConflict } = await import('../services/conflictResolutionService');
-        const conflictCheck = detectConflict(assessment, existingDoc.data());
-        
-        if (conflictCheck.hasConflict) {
-          debugLog('ASSESSMENTS_UPLOAD', 'Conflict detected', { assessmentId: assessment.id });
-          const { queueConflict } = await import('../services/conflictResolutionService');
-          await queueConflict({
-            type: 'assessment',
-            localData: assessment,
-            firebaseData: existingDoc.data(),
-            ...conflictCheck
-          });
-          conflicts.push(assessment.id);
-          continue; // Skip upload, let user resolve
-        }
+      // ✅ CRITICAL FIX: Check if document already exists in Firebase
+      let existingDoc = null;
+      try {
+        existingDoc = await getDoc(assessmentRef);
+      } catch (error) {
+        console.log('📄 [uploadAssessments] Document does not exist yet:', assessment.id);
       }
       
-      // Get assessment results
+      if (existingDoc && existingDoc.exists()) {
+        const firebaseData = existingDoc.data();
+        
+        console.log('🔍 [uploadAssessments] Found existing Firebase document:', {
+          assessment_id: assessment.id,
+          firebase_results: firebaseData.results?.length || 0,
+        });
+        
+        // ✅ Get local results
+        const localResults = await getAssessmentResults(assessment.id);
+        const firebaseResults = firebaseData.results || [];
+        
+        console.log('🔍 [uploadAssessments] Comparing results:', {
+          local_results: localResults.length,
+          firebase_results: firebaseResults.length,
+        });
+        
+        // ✅ Check if we're adding NEW results to an existing assessment
+        const hasNewResults = localResults.some(localResult => 
+          !firebaseResults.some(fbResult => fbResult.metric_id === localResult.metric_id)
+        );
+        
+        if (!hasNewResults) {
+          // All results already exist in Firebase, skip this assessment
+          console.log('⏭️ [uploadAssessments] Skipping assessment (no new data):', assessment.id);
+          
+          // ✅ CRITICAL: Mark as synced locally to prevent re-processing
+          await markAsSynced('assessments', assessment.id);
+          
+          // Mark as synced locally
+          assessment.firebase_synced = 1;
+          assessment.synced_at = new Date().toISOString();
+          
+          if (isWeb) {
+            const webDB = JSON.parse(await AsyncStorage.getItem('assessmentWebDB') || '{}');
+            const idx = webDB.assessments?.findIndex(a => a.id === assessment.id);
+            if (idx !== -1 && webDB.assessments) {
+              webDB.assessments[idx] = assessment;
+              await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(webDB));
+            }
+          }
+          
+          continue;
+        }
+        
+        console.log('✏️ Merging new results into existing assessment:', {
+          assessmentId: assessment.id,
+          existingResults: firebaseResults.length,
+          newResults: localResults.length,
+        });
+        
+        // ✅ MERGE: Combine Firebase results + new local results
+        const mergedResults = [...firebaseResults];
+        
+        for (const localResult of localResults) {
+          const existingIndex = mergedResults.findIndex(r => r.metric_id === localResult.metric_id);
+          
+          if (existingIndex === -1) {
+            // New result - add it
+            mergedResults.push({
+              metric_id: localResult.metric_id.toString(),
+              value: localResult.value,
+              percentile: localResult.percentile || null,
+              notes: localResult.notes || null,
+            });
+          } else {
+            // Result exists - update it
+            mergedResults[existingIndex] = {
+              metric_id: localResult.metric_id.toString(),
+              value: localResult.value,
+              percentile: localResult.percentile || null,
+              notes: localResult.notes || null,
+            };
+          }
+        }
+        
+        // ✅ Update Firebase with merged data
+        console.log('✏️ [uploadAssessments] Merging results into existing document:', {
+          assessment_id: assessment.id,
+          merged_results: mergedResults.length,
+        });
+        
+        const assessmentData = {
+          ...firebaseData,
+          id: assessment.id.toString(), // ✅ CRITICAL: Keep the same ID
+          // Update metadata (in case it changed)
+          year: assessment.year || firebaseData.year || null,
+          term: assessment.term || firebaseData.term || null,
+          assessment_type: assessment.assessment_type || firebaseData.assessment_type || null,
+          week_number: assessment.week_number || firebaseData.week_number || null,
+          location: assessment.location || firebaseData.location || null,
+          assessor_name: assessment.assessor_name || firebaseData.assessor_name || 'Coach',
+          general_notes: assessment.general_notes || firebaseData.general_notes || null,
+          // Update tracking fields
+          version: (firebaseData.version || 0) + 1,
+          last_edited_by: userId,
+          last_edited_at: Timestamp.now(),
+          edit_count: (firebaseData.edit_count || 0) + 1,
+          updated_at: Timestamp.now(),
+          synced_at: Timestamp.now(),
+          // ✅ CRITICAL: Merged results
+          results: mergedResults,
+        };
+        
+        batch.set(assessmentRef, assessmentData);
+        uploadCount++;
+        
+        // ✅ CRITICAL: Mark as synced immediately to prevent duplicate processing
+        await markAsSynced('assessments', assessment.id);
+        
+        if (uploadCount % SYNC_CONFIG.batchSize === 0) {
+          await Promise.race([
+            batch.commit(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Batch commit timeout')), SYNC_CONFIG.syncTimeout)
+            )
+          ]);
+        }
+        
+        continue; // Skip conflict detection, we handled it
+      }
+      
+      // ✅ NEW ASSESSMENT: Continue with normal flow
       const results = await getAssessmentResults(assessment.id);
       
       const assessmentData = {
@@ -605,9 +747,29 @@ export const uploadAssessmentsToFirebase = async (userId, academyId) => {
       ]);
     }
     
+    // ✅ CRITICAL FIX: Mark assessments as synced WITHOUT invalidating the cache
     for (const assessment of academyAssessments) {
       if (!conflicts.includes(assessment.id)) {
-        await markAsSynced('assessments', assessment.id);
+        // ✅ Update sync flag directly in AsyncStorage without going through cache
+        if (isWeb) {
+          const currentWebDBStr = await AsyncStorage.getItem('assessmentWebDB');
+          const currentWebDB = currentWebDBStr && currentWebDBStr !== 'undefined' && currentWebDBStr !== 'null'
+            ? JSON.parse(currentWebDBStr)
+            : { assessments: [] };
+          
+          const assessmentIndex = currentWebDB.assessments?.findIndex(a => a.id === assessment.id);
+          if (assessmentIndex !== -1 && currentWebDB.assessments) {
+            currentWebDB.assessments[assessmentIndex].firebase_synced = 1;
+            currentWebDB.assessments[assessmentIndex].synced_at = new Date().toISOString();
+            await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(currentWebDB));
+            
+            // ✅ CRITICAL: Invalidate cache AFTER saving to force reload
+            const { getWebDB, saveWebDB } = await import('../services/assessmentService');
+            // Force cache refresh by setting lastCacheUpdate to 0 - this will be done automatically on next read
+          }
+        } else {
+          await markAsSynced('assessments', assessment.id);
+        }
       }
     }
     
@@ -936,17 +1098,18 @@ const downloadAssessmentsFromFirebase = async (academyId) => {
     let downloadCount = 0;
     
     // Get existing assessments to prevent duplicates
-    const { getAllAsync } = getDatabase ? { getAllAsync: async (query, params) => {
+    let localAssessments = [];
+
+    if (isWeb) {
+      const webDBStr = await AsyncStorage.getItem('assessmentWebDB');
+      const webDB = webDBStr && webDBStr !== 'undefined' && webDBStr !== 'null'
+        ? JSON.parse(webDBStr) 
+        : { assessments: [] };
+      localAssessments = webDB.assessments || [];
+    } else {
       const db = getDatabase();
-      return await db.getAllAsync(query, params);
-    }} : { getAllAsync: async () => {
-      const webDB = JSON.parse(await AsyncStorage.getItem('assessmentWebDB') || '{}');
-      return webDB.assessments || [];
-    }};
-    
-    const localAssessments = isWeb 
-      ? (JSON.parse(await AsyncStorage.getItem('assessmentWebDB') || '{}')).assessments || []
-      : await getAllAsync('SELECT * FROM assessments', []);
+      localAssessments = await db.getAllAsync('SELECT * FROM assessments', []);
+    }
     
     const localAssessmentIds = new Set(localAssessments.map(a => a.id.toString()));
     

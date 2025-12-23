@@ -7,6 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // For mobile (Android/iOS): use expo-sqlite
 
 let db;
+let dbReady = false;
+let dbInitPromise = null;
 const isWeb = Platform.OS === 'web';
 
 // Mock database for web testing
@@ -82,15 +84,20 @@ const initializeWebDB = async () => {
 // ========== INITIALIZATION ==========
 
 export const initDatabase = async () => {
-  if (isWeb) {
-    console.log('Using AsyncStorage for web (Assessment App mock database)');
-    await initializeWebDB();
-    return;
-  }
+  if (dbInitPromise) return dbInitPromise;
+  if (dbReady) return;
+  
+  dbInitPromise = (async () => {
+    if (isWeb) {
+      console.log('Using AsyncStorage for web (Assessment App mock database)');
+      await initializeWebDB();
+      dbReady = true;
+      return;
+    }
 
-  // Real SQLite for mobile (Android & iOS)
-  const SQLite = require('expo-sqlite');
-  db = await SQLite.openDatabaseAsync('accellax361_assessment.db');
+    // Real SQLite for mobile (Android & iOS)
+    const SQLite = require('expo-sqlite');
+    db = await SQLite.openDatabaseAsync('accellax361_assessment.db');
   
   await db.execAsync(`
     -- ========== SHARED TABLES (from Attendance App) ==========
@@ -211,10 +218,18 @@ export const initDatabase = async () => {
       kid_id TEXT NOT NULL,
       sport_id TEXT NOT NULL,
       assessment_date DATE NOT NULL,
+      year TEXT NOT NULL,
       term TEXT NOT NULL,
+      assessment_type TEXT,
+      week_number INTEGER,
+      location TEXT,
+      assessor_name TEXT,
+      general_notes TEXT,
       assessed_by TEXT NOT NULL,
       notes TEXT,
       status TEXT DEFAULT 'completed',
+      scheduled_date DATE,
+      rescheduled_reason TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       firebase_synced INTEGER DEFAULT 0,
@@ -363,80 +378,13 @@ export const initDatabase = async () => {
     }
   }
   
-  // ✅ NEW: Add metadata columns to assessments table
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN year TEXT;`);
-    console.log('✅ Migration: Added year column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
-  
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN assessment_type TEXT;`);
-    console.log('✅ Migration: Added assessment_type column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
-  
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN week_number INTEGER;`);
-    console.log('✅ Migration: Added week_number column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
-  
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN location TEXT;`);
-    console.log('✅ Migration: Added location column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
-  
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN assessor_name TEXT;`);
-    console.log('✅ Migration: Added assessor_name column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
-  
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN general_notes TEXT;`);
-    console.log('✅ Migration: Added general_notes column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
-  
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN scheduled_date DATE;`);
-    console.log('✅ Migration: Added scheduled_date column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
-  
-  try {
-    await db.execAsync(`ALTER TABLE assessments ADD COLUMN rescheduled_reason TEXT;`);
-    console.log('✅ Migration: Added rescheduled_reason column to assessments table');
-  } catch (error) {
-    if (!error.message.includes('duplicate column')) {
-      console.warn('⚠️ Migration warning:', error.message);
-    }
-  }
+  // All metadata columns are now in the main CREATE TABLE schema
   
   console.log('✅ SQLite database initialized for Assessment App with all tables');
+  dbReady = true;
+  })();
+  
+  return dbInitPromise;
 };
 
 // Save web DB to AsyncStorage
@@ -736,7 +684,7 @@ export const getAllKids = async () => {
     const localKids = webDB.kids || [];
     
     if (localKids.length > 0) {
-      console.log(`✅ [Web] Loaded ${localKids.length} kids from local storage (offline-first)`);
+      //console.log(`✅ [Web] Loaded ${localKids.length} kids from local storage (offline-first)`);
       return localKids.sort((a, b) => a.age_group.localeCompare(b.age_group) || a.name.localeCompare(b.name));
     }
     
@@ -870,7 +818,7 @@ export const updateKid = async (id, data) => {
           firebase_synced: 1,
           updated_at: Timestamp.now(),
         });
-        console.log('✅ Kid updated in academy Firebase collection');
+        //console.log('✅ Kid updated in academy Firebase collection');
       } catch (error) {
         console.warn('⚠️ Failed to update kid in Firebase:', error);
       }
@@ -1189,7 +1137,7 @@ export const getAllSports = async () => {
     );
     
     if (uniqueSports.length > 0) {
-      console.log(`✅ [Web] Loaded ${uniqueSports.length} sports from local storage (offline-first)`);
+      //console.log(`✅ [Web] Loaded ${uniqueSports.length} sports from local storage (offline-first)`);
       return uniqueSports;
     }
     
@@ -1430,10 +1378,12 @@ export const insertAssessment = async (assessmentData, userId) => {
         synced_at: Timestamp.now(),
       });
 
+
+      //uncomment on kid additition to firebase
       assessment.firebase_synced = 1;
-      console.log('✅ Assessment added to Firebase');
+      //console.log('✅ Assessment added to Firebase');
     } catch (error) {
-      console.error('⚠️ Failed to add assessment to Firebase:', error);
+      console.error('⚠️ Failed to add assessment to Firebase uncomment 1645:', error);
       assessment.firebase_synced = 0;
     }
 
@@ -1641,8 +1591,10 @@ export const insertAssessmentResult = async (resultData) => {
         results: arrayUnion(resultForFirebase)
       });
 
+
+      //uncomment on result assessment to firebase debug
       result.firebase_synced = 1;
-      console.log('✅ Assessment result added to Firebase');
+      //console.log('✅ Assessment result added to Firebase');
     } catch (error) {
       console.error('⚠️ Failed to add result to Firebase:', error);
       result.firebase_synced = 0;
@@ -2020,7 +1972,13 @@ export const calculatePercentile = async (kidId, metricId, value, ageGroup) => {
 
 // ========== UTILITY ==========
 
-export const getDatabase = () => db;
+export const getDatabase = () => {
+  if (!dbReady) {
+    console.warn('⚠️ Database not ready yet');
+    return null;
+  }
+  return db;
+};
 
 export const clearAllData = async () => {
   if (isWeb) {

@@ -9,6 +9,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -85,6 +86,20 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
   const [copyModal, setCopyModal] = useState(false);
   const [exportModal, setExportModal] = useState(false);
   const [batchProgressModal, setBatchProgressModal] = useState({ visible: false, message: '', progress: 0 });
+  
+  // ✅ ADD: Generic modal config for error handling
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info', // 'success', 'error', 'warning', 'info'
+    showCancel: false,
+    confirmText: 'OK',
+    cancelText: 'Cancel',
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
+  
   // Quick Filters
   const [activeFilter, setActiveFilter] = useState('all');
 
@@ -110,12 +125,6 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
       assessmentDate,
       sport.id
     );
-    
-    console.log('📊 [Summary] Loaded from database:', {
-      date: assessmentDate,
-      assessments: todaysAssessments.length,
-      sportId: sport.id,
-    });
 
     kids.forEach(kid => {
       const results = selectedTests.map(test => {
@@ -228,20 +237,36 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
 
   const handleExportCSV = async () => {
     try {
-      const assessmentIds = Object.keys(groupedData).map(kidId => groupedData[kidId].assessment?.id).filter(Boolean);
+      // ✅ Validate Platform import
+      if (!Platform) {
+        throw new Error('Platform module not available');
+      }
+      
+      const assessmentIds = Object.keys(groupedData)
+        .map(kidId => groupedData[kidId].assessment?.id)
+        .filter(Boolean);
+      
       const csvData = await exportToCSV(assessmentIds);
       
       if (Platform.OS === 'web') {
         downloadCSV(csvData, `assessments_${new Date().toISOString().split('T')[0]}.csv`);
       }
       
-      setExportModal(true);
+      setModalConfig({
+        visible: true,
+        title: 'Export Complete',
+        message: 'Assessment data exported successfully!',
+        type: 'success',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
     } catch (error) {
       console.error('❌ Export error:', error);
+      
+      // ✅ User-friendly error handling
       setModalConfig({
         visible: true,
         title: 'Export Failed',
-        message: 'Failed to export assessments. Please try again.',
+        message: error.message || 'Failed to export assessments. Please try again.',
         type: 'error',
         onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
       });
@@ -274,11 +299,24 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
       });
     } catch (error) {
       console.error('❌ Copy error:', error);
+      
+      // ✅ Log error with context
+      try {
+        const { logErrorWithContext } = await import('../../utils/errorHandlers');
+        logErrorWithContext(error, {
+          operation: 'bulk_copy_assessments',
+          kidCount: kids.length,
+          newDate
+        });
+      } catch (logError) {
+        console.warn('Failed to log error:', logError);
+      }
+      
       setBatchProgressModal({ visible: false, message: '', progress: 0 });
       setModalConfig({
         visible: true,
         title: 'Copy Failed',
-        message: 'Failed to copy assessments. Please try again.',
+        message: error.message || 'Failed to copy assessments. Please try again.',
         type: 'error',
         onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
       });
@@ -713,6 +751,54 @@ const AssessmentSummaryScreen = ({ route, navigation }) => {
             }
           }
         ]}
+      />
+
+      {/* ✅ ADD: Generic Modal for Error Handling */}
+      <CustomModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        icon={
+          modalConfig.type === 'success' ? 'checkmark-circle' :
+          modalConfig.type === 'error' ? 'alert-circle' :
+          modalConfig.type === 'warning' ? 'warning' :
+          'information-circle'
+        }
+        iconColor={
+          modalConfig.type === 'success' ? COLORS.success :
+          modalConfig.type === 'error' ? COLORS.error :
+          modalConfig.type === 'warning' ? COLORS.warning :
+          COLORS.primary
+        }
+        buttons={
+          modalConfig.showCancel
+            ? [
+                { 
+                  text: modalConfig.cancelText, 
+                  style: 'cancel',
+                  onPress: () => {
+                    modalConfig.onCancel();
+                    setModalConfig({ ...modalConfig, visible: false });
+                  }
+                },
+                { 
+                  text: modalConfig.confirmText,
+                  onPress: () => {
+                    modalConfig.onConfirm();
+                    setModalConfig({ ...modalConfig, visible: false });
+                  }
+                }
+              ]
+            : [
+                { 
+                  text: modalConfig.confirmText,
+                  onPress: () => {
+                    modalConfig.onConfirm();
+                    setModalConfig({ ...modalConfig, visible: false });
+                  }
+                }
+              ]
+        }
       />
 
       {/* Edit Confirmation Modal */}

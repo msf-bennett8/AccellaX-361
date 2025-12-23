@@ -364,13 +364,13 @@ export default function AssessmentSetupScreen() {
           <View style={styles.summaryRow}>
             <Ionicons name="calendar" size={16} color={COLORS.textSecondary} />
             <Text style={styles.summaryText}>
-              {year || 'Year not set'} • {TERM_OPTIONS.find(t => t.value === term)?.label || 'Term not set'}
+              {year || 'Year not set'} {'\u2022'} {TERM_OPTIONS.find(t => t.value === term)?.label || 'Term not set'}
             </Text>
           </View>
           <View style={styles.summaryRow}>
             <Ionicons name="clipboard" size={16} color={COLORS.textSecondary} />
             <Text style={styles.summaryText}>
-              {ASSESSMENT_TYPE_OPTIONS.find(t => t.value === assessmentType)?.label || 'Type not set'} • Week {weekNumber || '?'}
+              {ASSESSMENT_TYPE_OPTIONS.find(t => t.value === assessmentType)?.label || 'Type not set'} {'\u2022'} Week {weekNumber || '?'}
             </Text>
           </View>
           {location && (

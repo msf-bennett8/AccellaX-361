@@ -9,7 +9,7 @@ const DEBUG = true; // Set to false to disable debug logs
 
 const log = (message, data = null) => {
   if (DEBUG) {
-    console.log(`🏃 [SportService] ${message}`, data || '');
+    //console.log(`🏃 [SportService] ${message}`, data || '');
   }
 };
 

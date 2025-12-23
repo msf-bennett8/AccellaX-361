@@ -32,6 +32,10 @@ export const getQueuedOperations = async () => {
     }
 
     const db = getDatabase();
+    if (!db) {
+      console.log('⚠️ Database not initialized yet, returning empty queue');
+      return [];
+    }
     const operations = await db.getAllAsync(
       `SELECT * FROM sync_queue ORDER BY created_at ASC`
     );
@@ -64,6 +68,10 @@ export const queueOperation = async (operation) => {
       await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue));
     } else {
       const db = getDatabase();
+      if (!db) {
+        console.log('⚠️ Database not initialized yet, skipping queue operation');
+        return { success: false, error: 'Database not initialized' };
+      }
       await db.runAsync(
         `INSERT INTO sync_queue (id, type, data, retry_count, last_error, created_at, updated_at) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -161,6 +169,10 @@ const getOperationById = async (operationId) => {
     }
 
     const db = getDatabase();
+    if (!db) {
+      console.log('⚠️ Database not initialized yet');
+      return null;
+    }
     const operation = await db.getFirstAsync(
       `SELECT * FROM sync_queue WHERE id = ?`,
       [operationId]
@@ -194,6 +206,10 @@ const updateOperationError = async (operationId, error) => {
       }
     } else {
       const db = getDatabase();
+      if (!db) {
+        console.log('⚠️ Database not initialized yet, skipping error update');
+        return;
+      }
       await db.runAsync(
         `UPDATE sync_queue 
          SET retry_count = retry_count + 1, 
@@ -219,6 +235,10 @@ const removeFromQueue = async (operationId) => {
       await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(filtered));
     } else {
       const db = getDatabase();
+      if (!db) {
+        console.log('⚠️ Database not initialized yet, skipping queue removal');
+        return;
+      }
       await db.runAsync(`DELETE FROM sync_queue WHERE id = ?`, [operationId]);
     }
 
@@ -237,6 +257,10 @@ export const clearQueue = async () => {
       await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify([]));
     } else {
       const db = getDatabase();
+      if (!db) {
+        console.log('⚠️ Database not initialized yet');
+        return { success: false, error: 'Database not initialized' };
+      }
       await db.runAsync(`DELETE FROM sync_queue`);
     }
 

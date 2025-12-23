@@ -56,18 +56,6 @@ const Header = ({
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
-  // DEBUG: Log props on mount
-  useEffect(() => {
-    console.log('🔍 Header DEBUG - Props received:', {
-      propUserProfile: propUserProfile ? {
-        fullName: propUserProfile.fullName,
-        role: propUserProfile.role,
-        email: propUserProfile.email,
-      } : null,
-      showAvatar,
-      showAdminElevation,
-    });
-  }, []);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -85,7 +73,7 @@ const Header = ({
 
     // Add focus listener to reload profile when screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
-      console.log('🔄 Screen focused - reloading user profile');
+      //console.log('🔄 Screen focused - reloading user profile');
       loadUserProfile();
     });
 
@@ -111,7 +99,7 @@ const Header = ({
   const [clickTimer, setClickTimer] = useState(null);
 
   const loadUserProfile = async () => {
-  console.log('🔄 loadUserProfile called, propUserProfile:', propUserProfile ? 'EXISTS' : 'NULL');
+  //console.log('🔄 loadUserProfile called, propUserProfile:', propUserProfile ? 'EXISTS' : 'NULL');
   
   // If userProfile was passed as prop, use it
   if (propUserProfile) {
@@ -127,21 +115,19 @@ const Header = ({
     return;
   }
   
-  // Otherwise load from storage
-  console.log('📦 Loading user from storage...');
-  const profile = await getCurrentUser();
-  console.log('📦 Loaded from storage:', profile ? {
-    fullName: profile.fullName,
-    role: profile.role,
-    email: profile.email,
-  } : 'NULL');
-  setUserProfile(profile);
-  
-  // Check if user is admin/owner
-  const adminStatus = ['admin', 'super_admin', 'owner'].includes(profile?.role);
-    setIsAdmin(adminStatus);
-    console.log('👤 Header: User loaded from storage, isAdmin:', adminStatus, 'Role:', profile?.role);
-  };
+  // Otherwise, load from storage
+  try {
+    const profile = await getCurrentUser();
+    if (profile) {
+      setUserProfile(profile);
+      const adminStatus = ['admin', 'super_admin', 'owner'].includes(profile?.role);
+      setIsAdmin(adminStatus);
+      console.log('👤 Header: User loaded from storage, isAdmin:', adminStatus, 'Role:', profile?.role);
+    }
+  } catch (error) {
+    console.error('❌ Error loading user profile:', error);
+  }
+};
 
   const handleAvatarPress = () => {
   console.log('👆 Avatar pressed!');

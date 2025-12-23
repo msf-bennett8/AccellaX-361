@@ -82,7 +82,6 @@ export default function HomeScreen() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      console.log('📊 Loading dashboard data...');
       
       const profile = await getCurrentUser();
       setUserProfile(profile);
@@ -97,9 +96,7 @@ export default function HomeScreen() {
         loadDrafts(),
       ]);
       
-      console.log('✅ Dashboard data loaded');
     } catch (error) {
-      console.error('❌ Error loading dashboard:', error);
     } finally {
       setLoading(false);
     }
@@ -107,7 +104,7 @@ export default function HomeScreen() {
 
   const loadStats = async () => {
     try {
-      console.log('📊 Loading stats...');
+      //console.log('📊 Loading stats...');
       
       // Get kids count
       const kids = await getKidsWithSports();
@@ -130,7 +127,7 @@ export default function HomeScreen() {
         thisWeek: thisWeekAssessments.length,
       });
       
-      console.log('✅ Stats loaded:', { totalKids, activeSports, thisWeek: thisWeekAssessments.length });
+      //console.log('✅ Stats loaded:', { totalKids, activeSports, thisWeek: thisWeekAssessments.length });
     } catch (error) {
       console.error('❌ Error loading stats:', error);
     }
@@ -138,11 +135,8 @@ export default function HomeScreen() {
 
   const loadSports = async () => {
     try {
-      console.log('🏃 [HomeScreen] Loading sports...');
       
       const allSports = await getAllSportsWithFitness();
-      console.log('📊 [HomeScreen] Loaded sports:', allSports.length);
-      console.log('📋 [HomeScreen] Sport names:', allSports.map(s => s.name).join(', '));
       
       const SPORTS_CONFIG = {
         fitness: { icon: 'heart-pulse', color: '#E74C3C' },
@@ -162,9 +156,8 @@ export default function HomeScreen() {
   isActive: sport.is_active === 1,
 }));
 
-console.log('🎨 [HomeScreen] Mapped sports:', mappedSports);
 setSports(mappedSports);
-console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
+//console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
     } catch (error) {
       console.error('❌ Error loading sports:', error);
       setSports([]);
@@ -219,7 +212,6 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
 
   const loadRedFlags = async () => {
     try {
-      console.log('🚩 Loading red flags...');
       
       const allAssessments = await getAllAssessments();
       const kids = await getKidsWithSports();
@@ -263,16 +255,13 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
       }
       
       setRedFlags(flags.slice(0, 5));
-      console.log('✅ Red flags loaded:', flags.length);
     } catch (error) {
-      console.error('❌ Error loading red flags:', error);
       setRedFlags([]);
     }
   };
 
   const loadTopPerformers = async () => {
     try {
-      console.log('🏆 Loading top performers...');
       
       const allAssessments = await getAllAssessments();
       const kids = await getKidsWithSports();
@@ -311,16 +300,13 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
         .slice(0, 3);
       
       setTopPerformers(topPerformersArray);
-      console.log('✅ Top performers loaded:', topPerformersArray.length);
     } catch (error) {
-      console.error('❌ Error loading top performers:', error);
       setTopPerformers([]);
     }
   };
 
   const loadRecentActivity = async () => {
     try {
-      console.log('📋 Loading recent activity...');
       
       const allAssessments = await getAllAssessments();
       const allSports = await getAllSports();
@@ -348,7 +334,7 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
       }
       
       setRecentActivity(activities);
-      console.log('✅ Recent activity loaded:', activities.length);
+      //console.log('✅ Recent activity loaded:', activities.length);
     } catch (error) {
       console.error('❌ Error loading recent activity:', error);
       setRecentActivity([]);
@@ -451,7 +437,6 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
   };
 
   const handleSportPress = (sportName, sportId) => {
-    console.log('🎯 [HomeScreen] Sport pressed:', sportName, '| ID:', sportId);
     
     // Navigate to sport-specific report screen
     navigation.navigate('Reports', {
@@ -803,7 +788,6 @@ console.log('✅ [HomeScreen] Sports loaded:', mappedSports.length);
           <View style={styles.sportsGrid}>
             {/* Display all loaded sports (Fitness + default sports) */}
             {sports.map((sport, index) => {
-              console.log(`🎨 Rendering sport card: ${sport.name} (${sport.icon})`);
               
               return (
                 <TouchableOpacity

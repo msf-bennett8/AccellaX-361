@@ -18,7 +18,7 @@ export const triggerSyncOnChange = async (changeType = 'data_change') => {
     // Increment pending changes counter
     pendingChanges++;
     
-    console.log(`🔄 [AutoSync] Data changed (${changeType}), pending: ${pendingChanges}`);
+    //console.log(`🔄 [AutoSync] Data changed (${changeType}), pending: ${pendingChanges}`);
     
     // Check if we should sync immediately (max pending reached)
     if (pendingChanges >= MAX_PENDING_CHANGES) {
@@ -34,7 +34,7 @@ export const triggerSyncOnChange = async (changeType = 'data_change') => {
     
     // Set new debounced timeout
     syncTimeout = setTimeout(async () => {
-      console.log('🔄 [AutoSync] Debounce timer expired - triggering sync');
+      //console.log('🔄 [AutoSync] Debounce timer expired - triggering sync');
       await forceSyncNow();
     }, SYNC_DELAY);
     
@@ -62,7 +62,7 @@ const forceSyncNow = async () => {
       return;
     }
     
-    console.log('🔄 [AutoSync] Starting background sync...');
+    //console.log('🔄 [AutoSync] Starting background sync...');
     
     // Perform sync
     const result = await performFullSync(userId);
@@ -75,7 +75,8 @@ const forceSyncNow = async () => {
     }
     
   } catch (error) {
-    console.error('❌ [AutoSync] Sync error:', error);
+    console.error('❌ [AutoSync] Sync error:', error?.message || error);
+    console.error('❌ [AutoSync] Full error:', JSON.stringify(error, null, 2));
   }
 };
 

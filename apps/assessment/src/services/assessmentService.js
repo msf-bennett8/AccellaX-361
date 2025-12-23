@@ -20,14 +20,25 @@ import {
 
 // ========== HELPER FUNCTIONS ==========
 
+// ✅ CRITICAL: Single in-memory copy - source of truth
+let webDBInMemory = null;
+let isInitialized = false;
+
 const getWebDB = async () => {
   try {
+    // ✅ Use in-memory copy as source of truth
+    if (webDBInMemory && isInitialized) {
+      console.log('📦 Using in-memory DB (single source of truth)');
+      return webDBInMemory; // Return reference, not copy
+    }
+    
+    // ✅ First time - load from AsyncStorage
+    console.log('📦 Loading DB from AsyncStorage (first time)');
     const data = await AsyncStorage.getItem('assessmentWebDB');
     
-    // Handle null, undefined, or empty string
     if (!data || data === 'undefined' || data === 'null') {
       console.log('📦 Initializing empty web DB');
-      return { 
+      webDBInMemory = { 
         users: [],
         kids: [],
         sports: [],
@@ -38,13 +49,12 @@ const getWebDB = async () => {
         goals: [],
         notes: []
       };
+      isInitialized = true;
+      return webDBInMemory;
     }
     
-    // Safe JSON parse
     const parsed = JSON.parse(data);
-    
-    // Ensure all arrays exist
-    return {
+    webDBInMemory = {
       users: parsed.users || [],
       kids: parsed.kids || [],
       sports: parsed.sports || [],
@@ -55,10 +65,13 @@ const getWebDB = async () => {
       goals: parsed.goals || [],
       notes: parsed.notes || []
     };
+    isInitialized = true;
+    
+    console.log(`✅ Loaded DB from AsyncStorage: ${webDBInMemory.assessments.length} assessments`);
+    return webDBInMemory;
   } catch (error) {
     console.error('❌ Error reading web DB:', error);
-    console.log('🔄 Returning empty DB structure');
-    return { 
+    webDBInMemory = { 
       users: [],
       kids: [],
       sports: [],
@@ -69,11 +82,30 @@ const getWebDB = async () => {
       goals: [],
       notes: []
     };
+    isInitialized = true;
+    return webDBInMemory;
   }
 };
 
 const saveWebDB = async (webDB) => {
-  await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(webDB));
+  // ✅ CRITICAL: Update in-memory reference FIRST
+  webDBInMemory = { ...webDB };
+  
+  // ✅ Persist to AsyncStorage (async, but in-memory is source of truth)
+  try {
+    await AsyncStorage.setItem('assessmentWebDB', JSON.stringify(webDB));
+    console.log(`💾 Saved to AsyncStorage: ${webDB.assessments.length} assessments`);
+  } catch (error) {
+    console.error('❌ Error saving to AsyncStorage:', error);
+    throw error; // Re-throw to ensure caller knows save failed
+  }
+};
+
+// ✅ CRITICAL: Function to force cache invalidation (called after sync)
+export const invalidateCache = () => {
+  console.log('🔄 [Cache] Invalidating cache - next read will fetch fresh data');
+  webDBInMemory = null;
+  isInitialized = false;
 };
 
 const generateId = () => {
@@ -87,19 +119,74 @@ const generateId = () => {
  * @param {Object} resultData - { kid_id, sport_id, metric_id, value, assessment_date, metadata }
  * @param {Object} metadata - { year, term, assessmentType, weekNumber, location, assessorName, generalNotes }
  */
+// ✅ CRITICAL: In-memory lock to prevent race conditions
+const assessmentLocks = new Map();
+
+const acquireLock = async (lockKey) => {
+  const startTime = Date.now();
+  let waitCount = 0;
+  
+  while (assessmentLocks.has(lockKey)) {
+    waitCount++;
+    console.log(`⏳ [acquireLock] Waiting for lock (${waitCount}):`, {
+      lockKey,
+      waitTime: Date.now() - startTime
+    });
+    
+    // ✅ CRITICAL: Timeout after 5 seconds to prevent deadlock
+    if (Date.now() - startTime > 5000) {
+      console.error('❌ [acquireLock] LOCK TIMEOUT - forcing release:', lockKey);
+      assessmentLocks.delete(lockKey);
+      break;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 50)); // Increased from 10ms to 50ms
+  }
+  
+  console.log('✅ [acquireLock] Lock acquired:', {
+    lockKey,
+    waitTime: Date.now() - startTime,
+    waitCount
+  });
+  
+  assessmentLocks.set(lockKey, Date.now()); // Store timestamp instead of boolean
+};
+
+const releaseLock = (lockKey) => {
+  assessmentLocks.delete(lockKey);
+};
+
 export const saveAssessmentResult = async (resultData) => {
   const { kid_id, sport_id, metric_id, value, assessment_date, metadata } = resultData;
   
-  console.log('💾 [AssessmentService] Saving result:', {
-    kid_id,
-    sport_id,
+  // ✅ CRITICAL: Create lock key to prevent race conditions
+  const normalizedDate = assessment_date.split('T')[0];
+  const lockKey = `${kid_id}_${sport_id}_${normalizedDate}`;
+  
+  console.log('🔒 [saveAssessmentResult] Attempting to acquire lock:', {
+    lockKey,
     metric_id,
     value,
-    date: assessment_date,
-    metadata: metadata ? 'Present' : 'Missing',
+    currentLocks: assessmentLocks.size
   });
   
-  // ✅ VALIDATION: Validate kid_id format
+  // ✅ Acquire lock before proceeding
+  await acquireLock(lockKey);
+  
+  try {
+    //uncomment assessment result saving
+    console.log('💾 [AssessmentService] Saving result:', {
+      kid_id,
+      sport_id,
+      metric_id,
+      value,
+      date: assessment_date,
+      metadata: metadata ? 'Present' : 'Missing',
+    });
+
+    
+    
+    // ✅ VALIDATION: Validate kid_id format
   const kidIdValidation = validateKidId(kid_id);
   if (!kidIdValidation.isValid) {
     console.error('❌ [saveAssessmentResult] INVALID kid_id - null or not a string!', {
@@ -132,6 +219,7 @@ export const saveAssessmentResult = async (resultData) => {
     // Continue - don't throw, just warn
   }
   
+  //uncomment assessment result saving
   console.log('💾 Saving assessment result:', { 
     kid_id, 
     sport_id, 
@@ -143,19 +231,46 @@ export const saveAssessmentResult = async (resultData) => {
   if (isWeb) {
     const webDB = await getWebDB();
     
-    // Find or create assessment for today
+    // ✅ CRITICAL FIX: Normalize date to prevent mismatches
+    const normalizedDate = assessment_date.split('T')[0];
+    
+    console.log('🔍 [saveAssessmentResult] Searching for existing assessment:', {
+      kid_id,
+      sport_id,
+      date: normalizedDate,
+      total_assessments: webDB.assessments?.length || 0,
+      lockKey: lockKey,
+      lockAcquired: assessmentLocks.has(lockKey)
+    });
+
+    // ✅ Search for existing assessment directly in webDBInMemory
     let assessment = webDB.assessments?.find(a => 
       a.kid_id === kid_id && 
       a.sport_id === sport_id && 
-      a.assessment_date === assessment_date.split('T')[0]
+      a.assessment_date === normalizedDate
     );
     
+    if (assessment) {
+      console.log('✅ [saveAssessmentResult] FOUND existing assessment:', {
+        assessment_id: assessment.id,
+        existing_results: webDB.assessment_results?.filter(r => r.assessment_id === assessment.id).length || 0,
+      });
+    }
     
     if (!assessment) {
-      console.log('🔍 Creating NEW assessment with metadata:', metadata);
+      console.log('📝 [saveAssessmentResult] Creating NEW assessment for:', {
+        kid_id,
+        sport_id,
+        date: normalizedDate,
+        lockKey: lockKey,
+        timestamp: Date.now()
+      });
+      
+      const newAssessmentId = generateId();
+      console.log('🆔 [saveAssessmentResult] Generated new assessment ID:', newAssessmentId);
       
       assessment = {
-        id: generateId(),
+        id: newAssessmentId,
         kid_id,
         sport_id,
         assessment_date: assessment_date.split('T')[0],
@@ -175,12 +290,47 @@ export const saveAssessmentResult = async (resultData) => {
         firebase_synced: 0,
       };
       webDB.assessments = [...(webDB.assessments || []), assessment];
+      
+      console.log('💾 [saveAssessmentResult] Saving new assessment to storage immediately:', {
+        assessment_id: assessment.id,
+        kid_id,
+        sport_id,
+        date: normalizedDate,
+        total_assessments_before: (webDB.assessments?.length || 1) - 1,
+        total_assessments_after: webDB.assessments?.length || 0
+      });
+      
+      // ✅ Save immediately to prevent duplicates
+      await saveWebDB(webDB);
+      
+      console.log('💾 [saveAssessmentResult] Saved new assessment immediately to prevent duplicates:', {
+        assessment_id: assessment.id,
+        total_assessments_now: webDB.assessments.length,
+      });
     } else {
+      console.log('✏️ [saveAssessmentResult] Updating EXISTING assessment:', {
+        assessment_id: assessment.id,
+        kid_id,
+        sport_id,
+        date: assessment_date.split('T')[0],
+        current_results: webDB.assessment_results?.filter(r => r.assessment_id === assessment.id).length || 0,
+      });
+      
+      // ✅ CRITICAL: Mark as needing re-sync since we're adding data
       assessment.updated_at = new Date().toISOString();
-      assessment.firebase_synced = 0; // Mark as needing sync
+      assessment.firebase_synced = 0; // Force re-sync with new data
+      
+      // ✅ CRITICAL: Update the assessment in the array BEFORE continuing
+      const index = webDB.assessments.findIndex(a => a.id === assessment.id);
+      if (index !== -1) {
+        webDB.assessments[index] = assessment;
+        console.log('✅ [saveAssessmentResult] Updated assessment in array at index:', index);
+      } else {
+        console.error('❌ [saveAssessmentResult] Assessment not found in array!', assessment.id);
+      }
     }
     
-    // Add or update result
+    // ✅ FIX: Add or update result (prevent duplicate metrics)
     const existingResultIndex = webDB.assessment_results?.findIndex(r =>
       r.assessment_id === assessment.id && r.metric_id === metric_id
     ) ?? -1;
@@ -190,17 +340,20 @@ export const saveAssessmentResult = async (resultData) => {
       assessment_id: assessment.id,
       metric_id,
       value: String(value),
-      created_at: new Date().toISOString(),
+      created_at: existingResultIndex >= 0 ? webDB.assessment_results[existingResultIndex].created_at : new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     
     if (existingResultIndex >= 0) {
+      console.log('✏️ Updating existing result:', { assessment_id: assessment.id, metric_id });
       webDB.assessment_results[existingResultIndex] = result;
     } else {
+      console.log('➕ Adding NEW result:', { assessment_id: assessment.id, metric_id });
       webDB.assessment_results = [...(webDB.assessment_results || []), result];
     }
     
-    await saveWebDB();
-    console.log('✅ Result saved to web storage (offline-first)');
+    await saveWebDB(webDB); // ✅ FIX: Pass webDB explicitly
+    //console.log('✅ Result saved to web storage (offline-first)');
     
     // SILENT BACKGROUND SYNC: Try Firebase but don't block or show errors
     setTimeout(async () => {
@@ -218,8 +371,8 @@ export const saveAssessmentResult = async (resultData) => {
         // Mark as synced silently
         assessment.firebase_synced = 1;
         assessment.synced_at = new Date().toISOString();
-        await saveWebDB();
-        console.log('✅ Silently synced to Firebase in background');
+        await saveWebDB(webDB); // ✅ Pass webDB to ensure state is saved
+        //console.log('✅ Silently synced to Firebase in background');
       } catch (error) {
         console.warn('⚠️ Firebase sync failed (will retry later):', error.message);
         // Don't throw - user doesn't need to know
@@ -227,12 +380,13 @@ export const saveAssessmentResult = async (resultData) => {
     }, 100); // Sync after 100ms (non-blocking)
     
     return { success: true, result };
-  }
+  } // END if (isWeb)
   
   // SQLite implementation
   const database = getDatabase();
   
   try {
+    // ✅ No lock needed for SQLite - it has built-in transaction handling
     // Find or create assessment
     const existingAssessment = await database.getFirstAsync(
       'SELECT * FROM assessments WHERE kid_id = ? AND sport_id = ? AND assessment_date = ?',
@@ -334,7 +488,18 @@ export const saveAssessmentResult = async (resultData) => {
     console.error('❌ Error saving result:', error);
     throw error;
   }
-};
+  } catch (error) {
+    console.error('❌ Error in saveAssessmentResult:', error);
+    throw error;
+  } finally {
+      // ✅ CRITICAL: Always release lock, even if error occurs
+      console.log('🔓 [saveAssessmentResult] Releasing lock:', {
+        lockKey,
+        duration: Date.now() - (assessmentLocks.get(lockKey) || Date.now())
+      });
+      releaseLock(lockKey);
+    }
+}; // END saveAssessmentResult - lock released in outer finally block
 
 // ========== DRAFT ASSESSMENT FUNCTIONS (PHASE 2) ==========
 
@@ -570,7 +735,7 @@ export const deleteDraftAssessment = async (assessmentId) => {
  * @param {string} sportId - Sport ID
  */
 export const getLastAssessmentForKid = async (kidId, sportId) => {
-  console.log('🔍 Getting last assessment for kid:', kidId, sportId);
+  //console.log('🔍 Getting last assessment for kid:', kidId, sportId);
   
   if (isWeb) {
     const webDB = await getWebDB();
@@ -588,7 +753,7 @@ export const getLastAssessmentForKid = async (kidId, sportId) => {
       r.assessment_id === latestAssessment.id
     ) || [];
     
-    console.log('✅ Found last assessment:', latestAssessment.id, 'with', results.length, 'results');
+    //console.log('✅ Found last assessment:', latestAssessment.id, 'with', results.length, 'results');
     return { ...latestAssessment, results };
   }
   
@@ -624,7 +789,7 @@ export const getLastAssessmentForKid = async (kidId, sportId) => {
  * Get all assessments (with optional filters)
  */
 export const getAllAssessments = async (filters = {}) => {
-  console.log('📋 Getting all assessments with filters:', filters);
+  //console.log('📋 Getting all assessments with filters:', filters);
   
   if (isWeb) {
     const webDB = await getWebDB();
@@ -900,6 +1065,10 @@ export const syncFromFirebase = async () => {
     }
     
     console.log(`✅ Synced ${syncedCount} assessments from Firebase`);
+    
+    // ✅ CRITICAL: Invalidate in-memory cache after Firebase sync
+    invalidateCache();
+    
     return { success: true, count: syncedCount };
   } catch (error) {
     console.error('❌ Error syncing from Firebase:', error);

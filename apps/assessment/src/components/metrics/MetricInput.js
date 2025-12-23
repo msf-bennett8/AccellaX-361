@@ -1,7 +1,7 @@
 // Location: /apps/assessment/src/components/metrics/MetricInput.js
 // COMPLETE Universal Metric Input - Handles all metric types with previous values
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ const MetricInput = ({
 }) => {
   const [inputValue, setInputValue] = useState(value || '');
   const [isFocused, setIsFocused] = useState(false);
+  const debounceTimerRef = useRef(null); // ✅ ADD: Debounce timer
 
   // Update input value when value prop changes OR when prefill is enabled
   useEffect(() => {
@@ -37,9 +38,38 @@ const MetricInput = ({
     }
   }, []);
 
+  // ✅ ADD: Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        console.log('🧹 [MetricInput] Cleaned up debounce timer on unmount');
+      }
+    };
+  }, []);
+
   const handleChange = (text) => {
-    setInputValue(text);
-    onChange(text);
+    console.log('📝 [MetricInput] Input changed:', { 
+      metric: metric.id, 
+      value: text,
+      debouncing: true 
+    });
+    
+    setInputValue(text); // ✅ Update UI immediately
+    
+    // ✅ CRITICAL FIX: Debounce the onChange call to prevent race conditions
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      console.log('⏱️ [MetricInput] Cleared previous debounce timer');
+    }
+    
+    debounceTimerRef.current = setTimeout(() => {
+      console.log('💾 [MetricInput] Debounce timer expired - saving value:', {
+        metric: metric.id,
+        value: text
+      });
+      onChange(text); // ✅ Only save after 300ms of no typing
+    }, 300); // 300ms debounce delay
   };
 
   const handleFillPrevious = () => {

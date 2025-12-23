@@ -104,12 +104,12 @@ export const assignSportsToKid = async (kidId, sportsArray, primarySport) => {
  */
 export const getKidsWithSports = async () => {
   try {
-    console.log('🔄 Fetching kids from Firebase...');
+    //console.log('🔄 Fetching kids from Firebase...');
     
     const kidsRef = collection(db, `academies/${FIXED_ACADEMY_ID}/kids`);
     const snapshot = await getDocs(kidsRef);
     
-    console.log(`✅ Fetched ${snapshot.size} kids from Firebase`);
+    //console.log(`✅ Fetched ${snapshot.size} kids from Firebase`);
     
     if (snapshot.empty) {
       console.warn('⚠️ No kids found in Firebase');
@@ -143,7 +143,7 @@ export const getKidsWithSports = async () => {
       });
     });
     
-    console.log('📊 Kids loaded:', kids.length);
+    //console.log('📊 Kids loaded:', kids.length);
     return kids;
     
   } catch (error) {
@@ -160,20 +160,20 @@ export const getKidsWithSports = async () => {
  */
 export const getKidsBySport = async (sportId) => {
   try {
-    console.log(`👥 [KidService] Getting kids for sport: ${sportId}`);
+    //console.log(`👥 [KidService] Getting kids for sport: ${sportId}`);
     
     // SPECIAL CASE: Fitness = general fitness testing for ALL kids
     if (sportId === 'fitness' || sportId === 'general') {
-      console.log('🏃 [KidService] Fitness selected - returning ALL active kids');
+      //console.log('🏃 [KidService] Fitness selected - returning ALL active kids');
       const allKids = await getAllKids();
       const activeKids = allKids.filter(k => k.status === 'active' || !k.status);
-      console.log(`✅ [KidService] Fitness: ${activeKids.length} active kids (all)`);
+      //console.log(`✅ [KidService] Fitness: ${activeKids.length} active kids (all)`);
       return activeKids;
     }
     
     // Regular sport: Get kids enrolled in this specific sport
     const allKids = await getAllKids();
-    console.log(`📊 [KidService] Total kids loaded: ${allKids.length}`);
+   //console.log(`📊 [KidService] Total kids loaded: ${allKids.length}`);
     
     const enrolledKids = allKids.filter(kid => {
       // Skip inactive kids
@@ -208,7 +208,7 @@ export const getKidsBySport = async (sportId) => {
             if (Array.isArray(sports)) {
               const isEnrolled = sports.includes(sportId);
               if (isEnrolled) {
-                console.log(`  ✅ ${kid.name} - enrolled (parsed string)`);
+                //console.log(`  ✅ ${kid.name} - enrolled (parsed string)`);
               }
               return isEnrolled;
             }
@@ -232,13 +232,13 @@ export const getKidsBySport = async (sportId) => {
       return false;
     });
     
-    console.log(`✅ [KidService] ${sportId}: ${enrolledKids.length} enrolled kids`);
+    //console.log(`✅ [KidService] ${sportId}: ${enrolledKids.length} enrolled kids`);
     
     // Show which kids are enrolled (first 5)
     if (enrolledKids.length > 0) {
-      console.log(`📋 [KidService] Enrolled kids (first 5):`);
+      //console.log(`📋 [KidService] Enrolled kids (first 5):`);
       enrolledKids.slice(0, 5).forEach(kid => {
-        console.log(`  - ${kid.name}`);
+        //console.log(`  - ${kid.name}`);
       });
     }
     

@@ -42,30 +42,30 @@ export default function SelectSportScreen({ route }) {
     try {
       setLoading(true);
       
-      console.log('🏃 [SelectSport] Loading sports...');
+      //console.log('🏃 [SelectSport] Loading sports...');
       
       // Get all active sports (includes Fitness)
       const allSports = await getAllSportsWithFitness();
-      console.log('📊 [SelectSport] Loaded sports:', allSports.map(s => s.name).join(', '));
+      //console.log('📊 [SelectSport] Loaded sports:', allSports.map(s => s.name).join(', '));
 
       const activeSports = allSports.filter(s => s.is_active === 1 || s.isActive);
-      console.log('✅ [SelectSport] Active sports:', activeSports.length);
+      //console.log('✅ [SelectSport] Active sports:', activeSports.length);
       
       // Get kid counts per sport
       const counts = {};
       for (const sport of activeSports) {
-        console.log(`🔍 [SelectSport] Processing sport: ${sport.name} (${sport.id})`);
+        //console.log(`🔍 [SelectSport] Processing sport: ${sport.name} (${sport.id})`);
         
         // For 'fitness', count all kids
         if (sport.id === 'fitness') {
           const { getAllKids } = await import('../../database/db');
           const allKids = await getAllKids();
           counts[sport.id] = allKids.length;
-          console.log(`👥 [SelectSport] Fitness: ${allKids.length} kids (all)`);
+          //console.log(`👥 [SelectSport] Fitness: ${allKids.length} kids (all)`);
         } else {
           const kids = await getKidsBySport(sport.id);
           counts[sport.id] = kids.length;
-          console.log(`👥 [SelectSport] ${sport.name}: ${kids.length} kids`);
+          //console.log(`👥 [SelectSport] ${sport.name}: ${kids.length} kids`);
         }
       }
       
@@ -73,7 +73,7 @@ export default function SelectSportScreen({ route }) {
       setSportKidCounts(counts);
       setLoading(false);
       
-      console.log('✅ [SelectSport] Sports loaded successfully');
+      //console.log('✅ [SelectSport] Sports loaded successfully');
     } catch (error) {
       console.error('❌ [SelectSport] Error loading sports:', error);
       setLoading(false);
@@ -83,19 +83,12 @@ export default function SelectSportScreen({ route }) {
   const handleSportSelect = (sport) => {
     const kidCount = sportKidCounts[sport.id] || 0;
     
-    console.log('🎯 [SelectSport] Sport selected:', {
-      name: sport.name,
-      id: sport.id,
-      kidCount,
-      metadata: assessmentMetadata,
-    });
-    
     if (kidCount === 0) {
       alert(`No kids enrolled in ${sport.name}. Please assign kids to this sport first.`);
       return;
     }
     
-    console.log('🔍 [SelectSport] Passing metadata to AssessmentMode:', assessmentMetadata);
+    //console.log('🔍 [SelectSport] Passing metadata to AssessmentMode:', assessmentMetadata);
     
     // Navigate to Assessment Mode selection
     navigation.navigate('AssessmentMode', { 

@@ -47,7 +47,6 @@ const TEAMS = [
 
 const SelectKidsScreen = ({ route, navigation }) => {
   const { sport, assessmentMode, selectedTests = [], kidCount, assessmentMetadata } = route.params || {};
-   console.log('🔍 SelectTests - Received metadata:', assessmentMetadata);
   const [kids, setKids] = useState([]);
   const [filteredKids, setFilteredKids] = useState([]);
   const [selectedKids, setSelectedKids] = useState([]);
@@ -87,11 +86,9 @@ const SelectKidsScreen = ({ route, navigation }) => {
         return;
       }
       
-      console.log('🔄 Loading kids for sport:', sport.id);
       const kidsData = await getKidsBySport(sport.id);
       
       const validKidsData = Array.isArray(kidsData) ? kidsData : [];
-      console.log('✅ Loaded kids:', validKidsData.length);
       
       setKids(validKidsData);
       
@@ -209,13 +206,6 @@ const SelectKidsScreen = ({ route, navigation }) => {
 
     const selectedKidsData = filteredKids.filter(k => selectedKids.includes(k.id));
 
-    console.log('🎯 Kids selected:', {
-      sport: sport?.name,
-      mode: assessmentMode,
-      kidsCount: selectedKidsData.length,
-      hasTests: selectedTests.length > 0
-    });
-
     // CRITICAL FIX: Different navigation based on mode
     if (isKidByKidMode) {
       // Kid-by-Kid: Navigate to SelectTests to choose tests
@@ -229,7 +219,6 @@ const SelectKidsScreen = ({ route, navigation }) => {
       });
     } else {
       // Test-by-Test: Tests already selected, go directly to AssessmentEntry
-      console.log('➡️ Navigating to AssessmentEntry (test-by-test mode)');
       navigation.navigate('AssessmentEntry', {
         sport,
         kids: selectedKidsData,

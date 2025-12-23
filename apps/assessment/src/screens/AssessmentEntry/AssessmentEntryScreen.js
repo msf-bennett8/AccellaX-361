@@ -87,7 +87,7 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
     route.params?.sessionId || `assessment_${Date.now()}`
   ).current;
   
-  console.log('🔍 AssessmentEntry - Received metadata:', assessmentMetadata);
+  //console.log('🔍 AssessmentEntry - Received metadata:', assessmentMetadata);
   
   const [currentKidIndex, setCurrentKidIndex] = useState(initialKidIndex);
   const [currentTestIndex, setCurrentTestIndex] = useState(initialTestIndex);
@@ -118,12 +118,6 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
 
   // Validate data on mount
   useEffect(() => {
-    console.log('📊 AssessmentEntry params:', { 
-      sport: sport?.name, 
-      kidsCount: kids?.length, 
-      testsCount: selectedTests?.length,
-      mode 
-    });
 
     if (!kids || kids.length === 0) {
       setErrorModal({
@@ -348,8 +342,6 @@ const AssessmentEntryScreen = ({ route, navigation }) => {
         lastUpdated: new Date().toISOString(),
       };
       await AsyncStorage.setItem(`assessment_session_${sessionId}`, JSON.stringify(sessionState));
-      
-      console.log('✅ Auto-saved:', { kid: currentKid.name, metric: currentMetric.name, value });
       
       // Trigger background sync after saving
       await triggerSyncOnChange('assessment_result_saved');

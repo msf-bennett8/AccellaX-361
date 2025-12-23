@@ -1,6 +1,8 @@
 // Location: /apps/assessment/App.js
 // Root application component with authentication check
 
+//import './src/utils/logManager';
+
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SyncProvider } from './src/contexts/SyncContext';
@@ -32,7 +34,7 @@ export default function App() {
 
   const initializeApp = async () => {
     try {
-      console.log('🚀 Initializing Assessment App...');
+      console.log('Initializing AccellaX 361°...');
 
       // Initialize logger service
       const logger = (await import('./src/services/loggerService')).default;

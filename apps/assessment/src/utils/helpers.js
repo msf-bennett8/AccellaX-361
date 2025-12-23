@@ -734,6 +734,26 @@ export const safeDivide = (numerator, denominator, defaultValue = 0) => {
 };
 
 /**
+ * safeJsonParse
+ * @param 
+ * @param 
+ * @param 
+ * @returns 
+ */
+// src/utils/helpers.js
+export const safeJsonParse = (str, fallback = {}) => {
+  try {
+    if (!str || str === 'undefined' || str === 'null') {
+      return fallback;
+    }
+    return JSON.parse(str);
+  } catch (error) {
+    console.error('[helpers] JSON parse error:', error);
+    return fallback;
+  }
+};
+
+/**
  * Clamp value between min and max
  * @param {number} value - Value to clamp
  * @param {number} min - Minimum value
