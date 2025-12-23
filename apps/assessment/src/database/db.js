@@ -719,44 +719,34 @@ export const getAllKids = async () => {
         const kid = doc.data();
 
         // ✅ CRITICAL: Parse sports_enrolled properly
-      // ✅ FIX: Parse sports_enrolled properly - handle all formats
+      // ✅ Parse sports_enrolled properly - handle all formats
       let sportsEnrolled = kid.sports_enrolled;
-      
-      console.log(`[downloadKidsFromFirebase] Kid ${kid.name} sports_enrolled raw:`, typeof sportsEnrolled, sportsEnrolled);
       
       if (sportsEnrolled) {
         if (typeof sportsEnrolled === 'string') {
           try {
             // First parse
             sportsEnrolled = JSON.parse(sportsEnrolled);
-            console.log(`[downloadKidsFromFirebase] After first parse:`, typeof sportsEnrolled, sportsEnrolled);
             
             // Handle double-stringified data
             if (typeof sportsEnrolled === 'string') {
               sportsEnrolled = JSON.parse(sportsEnrolled);
-              console.log(`[downloadKidsFromFirebase] After second parse:`, typeof sportsEnrolled, sportsEnrolled);
             }
             
             // Ensure it's an array
             if (!Array.isArray(sportsEnrolled)) {
-              console.warn(`[downloadKidsFromFirebase] sports_enrolled is not an array after parsing, converting:`, sportsEnrolled);
               sportsEnrolled = [];
             }
           } catch (e) {
-            console.error(`[downloadKidsFromFirebase] Failed to parse sports_enrolled for kid ${kid.id}:`, e);
+            console.error(`❌ Failed to parse sports_enrolled for kid ${kid.name}:`, e.message);
             sportsEnrolled = [];
           }
         } else if (!Array.isArray(sportsEnrolled)) {
-          // If it's not a string and not an array, convert to empty array
-          console.warn(`[downloadKidsFromFirebase] sports_enrolled is unexpected type for kid ${kid.id}:`, typeof sportsEnrolled);
           sportsEnrolled = [];
         }
       } else {
-        // Null or undefined - set to empty array
         sportsEnrolled = [];
       }
-      
-      console.log(`[downloadKidsFromFirebase] Final sports_enrolled for ${kid.name}:`, sportsEnrolled);
       
       kids.push({
         id: kid.id,

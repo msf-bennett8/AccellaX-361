@@ -193,77 +193,45 @@ export const getKidsBySport = async (sportId) => {
     const enrolledKids = allKids.filter(kid => {
       // Skip inactive kids
       if (kid.status !== 'active' && kid.status) {
-        console.log(`  ⏭️ ${kid.name} - skipped (inactive)`);
         return false;
       }
       
-      // ✅ FIX: Robust sports_enrolled checking
+      // ✅ Robust sports_enrolled checking
       let sports = kid.sports_enrolled;
-      
-      console.log(`[getKidsBySport] Checking ${kid.name} for ${sportId}:`, {
-        sports_enrolled_raw: sports,
-        sports_enrolled_type: typeof sports,
-        primary_sport: kid.primary_sport
-      });
       
       // Handle null/undefined
       if (!sports) {
         // Fallback: Check if primary sport matches
-        if (kid.primary_sport === sportId) {
-          console.log(`  ✅ ${kid.name} - enrolled (primary sport only)`);
-          return true;
-        }
-        console.log(`  ⏭️ ${kid.name} - no sports enrolled`);
-        return false;
+        return kid.primary_sport === sportId;
       }
       
       try {
         // Case 1: Already an array
         if (Array.isArray(sports)) {
-          const isEnrolled = sports.includes(sportId);
-          console.log(`  ${isEnrolled ? '✅' : '⏭️'} ${kid.name} - ${isEnrolled ? 'enrolled' : 'not enrolled'} (array format, sports: ${JSON.stringify(sports)})`);
-          return isEnrolled;
+          return sports.includes(sportId);
         }
         
         // Case 2: String that needs parsing
         if (typeof sports === 'string') {
-          // First parse
           sports = JSON.parse(sports);
-          console.log(`  [getKidsBySport] After first parse:`, typeof sports, sports);
           
           // Handle double-stringified data
           if (typeof sports === 'string') {
             sports = JSON.parse(sports);
-            console.log(`  [getKidsBySport] After second parse:`, typeof sports, sports);
           }
           
           if (Array.isArray(sports)) {
-            const isEnrolled = sports.includes(sportId);
-            console.log(`  ${isEnrolled ? '✅' : '⏭️'} ${kid.name} - ${isEnrolled ? 'enrolled' : 'not enrolled'} (parsed string, sports: ${JSON.stringify(sports)})`);
-            return isEnrolled;
+            return sports.includes(sportId);
           }
         }
         
-        console.warn(`  ⚠️ ${kid.name} - Invalid sports_enrolled format:`, typeof sports, sports);
-        
         // Fallback: Check primary sport
-        if (kid.primary_sport === sportId) {
-          console.log(`  ✅ ${kid.name} - enrolled (primary sport fallback)`);
-          return true;
-        }
-        
-        return false;
+        return kid.primary_sport === sportId;
         
       } catch (e) {
-        console.error(`  ❌ ${kid.name} - Parse error:`, e.message, e.stack);
-        
+        console.error(`❌ Error parsing sports for ${kid.name}:`, e.message);
         // Fallback: Check primary sport
-        if (kid.primary_sport === sportId) {
-          console.log(`  ✅ ${kid.name} - enrolled (primary sport after error)`);
-          return true;
-        }
-        
-        return false;
+        return kid.primary_sport === sportId;
       }
     });
     

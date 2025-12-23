@@ -1221,7 +1221,7 @@ const downloadKidsFromFirebase = async (userId) => {
             parsedSports = JSON.parse(parsedSports);
           }
         } catch (e) {
-          console.warn(`[downloadKids] Failed to parse sports for ${firebaseKid.name}:`, e);
+          console.warn(`⚠️ Failed to parse sports for ${firebaseKid.name}`);
           parsedSports = [];
         }
       }
@@ -1229,8 +1229,6 @@ const downloadKidsFromFirebase = async (userId) => {
       if (!Array.isArray(parsedSports)) {
         parsedSports = [];
       }
-      
-      console.log(`[downloadKids] Inserting ${firebaseKid.name} with sports:`, parsedSports);
       
       try {
         const newKid = await insertKid(
@@ -1255,11 +1253,6 @@ const downloadKidsFromFirebase = async (userId) => {
           'UPDATE kids SET sports_enrolled = ?, primary_sport = ? WHERE id = ?',
           [JSON.stringify(parsedSports), firebaseKid.primary_sport || null, kidId]
         );
-        
-        console.log(`✅ [downloadKids] Updated sports for ${firebaseKid.name}:`, {
-          sports: parsedSports,
-          primary: firebaseKid.primary_sport
-        });
         
         insertedInThisRun.add(kidId);
         downloadCount++;
