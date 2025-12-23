@@ -68,6 +68,18 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
       // Initialize database first
       await initDatabase();
       console.log('✅ Database initialized');
+      
+      // ✅ FIX: Ensure Firebase is initialized
+      try {
+        const { auth } = await import('../../config/firebase');
+        if (auth) {
+          console.log('✅ Firebase auth ready');
+        } else {
+          console.warn('⚠️ Firebase auth not available, will use offline mode');
+        }
+      } catch (authError) {
+        console.warn('⚠️ Firebase auth initialization warning:', authError.message);
+      }
 
       // Attempt login
       const result = await loginUser(email.trim().toLowerCase(), password);
@@ -99,6 +111,11 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
           }
         })();
 
+        // ✅ CRITICAL: Invalidate assessment cache before navigation
+        console.log('🔄 Invalidating assessment cache after login...');
+        const { invalidateCache } = await import('../../services/assessmentService');
+        invalidateCache();
+        
         // Navigate immediately (don't wait for sync)
         console.log('🚀 Calling onAuthComplete to trigger navigation...');
         if (onAuthComplete) {

@@ -1,8 +1,9 @@
 // src/config/firebase.js
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getAuth, browserLocalPersistence, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -23,14 +24,33 @@ let auth;
 try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage)
-  });
+  
+  // ✅ FIX: Use correct persistence for web vs mobile
+  if (Platform.OS === 'web') {
+    auth = getAuth(app);
+    // Browser persistence is default for web
+  } else {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
+  }
+  
   console.log('✅ Firebase initialized successfully');
   console.log('📊 Project ID:', firebaseConfig.projectId);
+  console.log('🌐 Platform:', Platform.OS);
 } catch (error) {
   console.error('❌ Firebase initialization error:', error);
   console.error('Config used:', firebaseConfig);
+  
+  // Fallback initialization
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    console.log('✅ Firebase initialized with fallback method');
+  } catch (fallbackError) {
+    console.error('❌ Fallback initialization also failed:', fallbackError);
+  }
 }
 
 export { app, db, auth };

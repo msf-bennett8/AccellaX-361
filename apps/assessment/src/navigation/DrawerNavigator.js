@@ -64,15 +64,38 @@ export default function DrawerNavigator({ onLogout }) {
     updatePageTitle('Home');
     loadPendingAssessments();
   }, []);
+  
+  // ✅ Reload on every screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadPendingAssessments();
+    }, [])
+  );
 
   // Load pending assessments count (optional feature)
   const loadPendingAssessments = async () => {
     try {
-      // TODO: Implement logic to count assessments due today
-      // For now, set to 0
-      setPendingAssessments(0);
+      // ✅ Get actual assessment count
+      const { getAllAssessments } = await import('../services/assessmentService');
+      const { invalidateCache } = await import('../services/assessmentService');
+      
+      // Force fresh data
+      invalidateCache();
+      const assessments = await getAllAssessments();
+      
+      // Count assessments from this week
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      
+      const recentCount = assessments.filter(a => 
+        new Date(a.assessment_date) >= oneWeekAgo
+      ).length;
+      
+      setPendingAssessments(recentCount);
+      console.log(`✅ Drawer: ${recentCount} recent assessments`);
     } catch (error) {
       console.error('Error loading pending assessments:', error);
+      setPendingAssessments(0);
     }
   };
 

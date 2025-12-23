@@ -111,6 +111,18 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
       // Initialize database first
       await initDatabase();
       console.log('✅ Database initialized');
+      
+      // ✅ FIX: Ensure Firebase is initialized
+      try {
+        const { auth } = await import('../../config/firebase');
+        if (auth) {
+          console.log('✅ Firebase auth ready for registration');
+        } else {
+          console.warn('⚠️ Firebase auth not available, will register in offline mode');
+        }
+      } catch (authError) {
+        console.warn('⚠️ Firebase auth initialization warning:', authError.message);
+      }
 
       // Register user
       const result = await registerUser({

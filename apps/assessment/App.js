@@ -17,6 +17,15 @@ import { initDatabase } from './src/database/db';
 import { seedDatabaseIfNeeded } from './src/database/seeds';
 import { COLORS } from './src/utils/constants';
 
+// ✅ Suppress known deprecation warnings (optional)
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs([
+  '"shadow*" style props are deprecated',
+  'props.pointerEvents is deprecated',
+  'Animated: `useNativeDriver` is not supported'
+]);
+
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);

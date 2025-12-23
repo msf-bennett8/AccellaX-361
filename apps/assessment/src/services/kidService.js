@@ -114,9 +114,14 @@ export const getKidsWithSports = async () => {
     }
     
     // ✅ If no local kids, try Firebase (but check auth first)
-    const { auth } = await import('../config/firebase');
-    if (!auth.currentUser) {
-      console.log('⚠️ No local kids and user not authenticated - returning empty');
+    try {
+      const { auth } = await import('../config/firebase');
+      if (!auth || !auth.currentUser) {
+        console.log('⚠️ No local kids and user not authenticated - returning empty');
+        return [];
+      }
+    } catch (authError) {
+      console.log('⚠️ Firebase auth not available - returning empty');
       return [];
     }
     

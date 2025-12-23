@@ -59,6 +59,16 @@ export default function HomeScreen() {
   // Load data on mount and when screen focused
   useEffect(() => {
     const initialize = async () => {
+      // ✅ FIX: Ensure Firebase is ready before any operations
+      try {
+        const { auth } = await import('../../config/firebase');
+        if (auth) {
+          console.log('✅ Firebase ready for HomeScreen');
+        }
+      } catch (error) {
+        console.log('⚠️ Firebase not available, working offline');
+      }
+      
       // Ensure Basketball exists in database
       const { ensureBasketballExists } = await import('../../services/sportService');
       const user = await getCurrentUser();
@@ -104,7 +114,11 @@ export default function HomeScreen() {
 
   const loadStats = async () => {
     try {
-      //console.log('📊 Loading stats...');
+      console.log('📊 Loading stats...');
+      
+      // ✅ CRITICAL: Force cache refresh on HomeScreen load
+      const { invalidateCache } = await import('../../services/assessmentService');
+      invalidateCache();
       
       // Get kids count
       const kids = await getKidsWithSports();
@@ -545,7 +559,15 @@ setSports(mappedSports);
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={async () => {
+              console.log('🔄 Manual refresh triggered');
+              const { invalidateCache } = await import('../../services/assessmentService');
+              invalidateCache();
+              await onRefresh();
+            }} 
+          />
         }
         showsVerticalScrollIndicator={false}
       >
