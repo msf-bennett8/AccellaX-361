@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { Audio } from 'expo-audio';
 import { COLORS } from '../../utils/constants';
 
 // Beep Test Protocol - Official Multi-Stage Fitness Test

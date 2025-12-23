@@ -161,6 +161,21 @@ const KidsListScreen = () => {
     setRefreshing(true);
     setCachedPages({}); // Clear cache
     setCurrentPage(1);
+    
+    // ✅ CRITICAL: Force re-download kids from Firebase to local DB
+    try {
+      console.log('🔄 [Refresh] Forcing kids re-sync from Firebase...');
+      const { downloadKidsFromFirebase } = await import('../../database/sync');
+      const userId = await AsyncStorage.getItem('currentUserId');
+      
+      if (userId) {
+        const result = await downloadKidsFromFirebase(userId);
+        console.log(`✅ [Refresh] Downloaded ${result.count || 0} kids from Firebase`);
+      }
+    } catch (error) {
+      console.warn('⚠️ [Refresh] Firebase download failed, using cached data:', error);
+    }
+    
     await loadKids(1, false); // Don't use cache
     setRefreshing(false);
   };
@@ -208,8 +223,42 @@ const KidsListScreen = () => {
   };
 
   // Navigate to add/edit screen
+  // Navigate to add/edit screen
   const handleKidPress = (kid) => {
-    navigation.navigate('AddEditKid', { kid });
+    // ✅ CRITICAL: Ensure sports_enrolled is properly parsed before passing
+    let sportsEnrolled = kid.sports_enrolled;
+    
+    if (typeof sportsEnrolled === 'string') {
+      try {
+        sportsEnrolled = JSON.parse(sportsEnrolled);
+        // Handle double-stringified data
+        if (typeof sportsEnrolled === 'string') {
+          sportsEnrolled = JSON.parse(sportsEnrolled);
+        }
+      } catch (e) {
+        console.warn('Failed to parse sports_enrolled:', e);
+        sportsEnrolled = [];
+      }
+    }
+    
+    // Ensure it's an array
+    if (!Array.isArray(sportsEnrolled)) {
+      sportsEnrolled = [];
+    }
+    
+    // Pass kid with properly parsed sports
+    const enrichedKid = {
+      ...kid,
+      sports_enrolled: sportsEnrolled
+    };
+    
+    console.log(`✅ [KidsListScreen] Passing kid to AddEditKid:`, {
+      name: enrichedKid.name,
+      sports: enrichedKid.sports_enrolled,
+      primary: enrichedKid.primary_sport
+    });
+    
+    navigation.navigate('AddEditKid', { kid: enrichedKid });
   };
 
   const handleAddKid = () => {

@@ -144,6 +144,10 @@ class LoggerService {
     return this.addLog(LOG_LEVELS.INFO, module, action, message, details);
   }
 
+  warn(module, action, message, details) { // ✅ ADD THIS METHOD
+    return this.addLog(LOG_LEVELS.WARNING, module, action, message, details);
+  }
+
   warning(module, action, message, details) {
     return this.addLog(LOG_LEVELS.WARNING, module, action, message, details);
   }

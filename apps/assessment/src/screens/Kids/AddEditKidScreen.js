@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerSyncOnChange } from '../../services/autoSyncTrigger';
@@ -115,7 +116,30 @@ const AddEditKidScreen = () => {
       setProgramType(existingKid.programType || 'ELT');
       setHouseTeam(existingKid.house_team || null);
       
-      const sports = existingKid.sports_enrolled || [];
+      // ✅ CRITICAL FIX: Parse sports_enrolled properly
+      let sports = existingKid.sports_enrolled || [];
+      
+      // Handle string format (double-stringified JSON)
+      if (typeof sports === 'string') {
+        try {
+          sports = JSON.parse(sports);
+          // Handle double-stringified data
+          if (typeof sports === 'string') {
+            sports = JSON.parse(sports);
+          }
+        } catch (e) {
+          console.warn('Failed to parse sports_enrolled:', e);
+          sports = [];
+        }
+      }
+      
+      // Ensure it's an array
+      if (!Array.isArray(sports)) {
+        sports = [];
+      }
+      
+      console.log(`✅ [AddEditKid] Loaded ${sports.length} sports for ${existingKid.name}:`, sports);
+      
       setSelectedSports(sports);
       setPrimarySport(existingKid.primary_sport || (sports.length > 0 ? sports[0] : null));
     }
@@ -221,6 +245,12 @@ const AddEditKidScreen = () => {
         
         // ✅ Trigger sync after updating kid
         await triggerSyncOnChange('kid_updated');
+        
+        // ✅ CRITICAL: Force KidsListScreen to reload data
+        // Clear the cached pages to force fresh data load
+        if (navigation.getParent()) {
+          navigation.getParent().setParams({ refresh: Date.now() });
+        }
       } else {
         // Create new kid
         const newKid = await insertKid(

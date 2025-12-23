@@ -1,7 +1,8 @@
 // src/config/firebase.js
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -22,7 +23,9 @@ let auth;
 try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
-  auth = getAuth(app);
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
   console.log('✅ Firebase initialized successfully');
   console.log('📊 Project ID:', firebaseConfig.projectId);
 } catch (error) {

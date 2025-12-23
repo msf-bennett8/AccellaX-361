@@ -420,29 +420,42 @@ export const autoSeedDatabase = async (userId = 'system') => {
     
     // Always check Firebase (in case user has multiple devices)
     try {
-      const firebaseSeeded = await isFirebaseSeeded();
+      // ✅ CRITICAL: Check if user is authenticated FIRST
+      const { auth } = await import('../config/firebase');
+      const currentUser = auth.currentUser;
       
-      if (!firebaseSeeded) {
-        log('Firebase not fully seeded - seeding now...');
-        
-        const fbSportsResult = await seedFirebaseSports();
-        results.firebase.sports = fbSportsResult.added || 0;
-        if (!fbSportsResult.success) results.errors.push(`Firebase sports: ${fbSportsResult.error}`);
-        
-        const fbMetricsResult = await seedFirebaseMetrics();
-        results.firebase.metrics = fbMetricsResult.added || 0;
-        if (!fbMetricsResult.success) results.errors.push(`Firebase metrics: ${fbMetricsResult.error}`);
-        
-        const fbBenchmarksResult = await seedFirebaseBenchmarks();
-        results.firebase.benchmarks = fbBenchmarksResult.added || 0;
-        if (!fbBenchmarksResult.success) results.errors.push(`Firebase benchmarks: ${fbBenchmarksResult.error}`);
-        
+      if (!currentUser) {
+        log('⚠️ Firebase seeding skipped - user not authenticated yet');
+        log('   Firebase will be seeded after login via background sync');
+        // Don't add to errors - this is expected on first load
       } else {
-        log('✅ Firebase already fully seeded - skipping');
+        const firebaseSeeded = await isFirebaseSeeded();
+        
+        if (!firebaseSeeded) {
+          log('Firebase not fully seeded - seeding now...');
+          
+          const fbSportsResult = await seedFirebaseSports();
+          results.firebase.sports = fbSportsResult.added || 0;
+          if (!fbSportsResult.success) results.errors.push(`Firebase sports: ${fbSportsResult.error}`);
+          
+          const fbMetricsResult = await seedFirebaseMetrics();
+          results.firebase.metrics = fbMetricsResult.added || 0;
+          if (!fbMetricsResult.success) results.errors.push(`Firebase metrics: ${fbMetricsResult.error}`);
+          
+          const fbBenchmarksResult = await seedFirebaseBenchmarks();
+          results.firebase.benchmarks = fbBenchmarksResult.added || 0;
+          if (!fbBenchmarksResult.success) results.errors.push(`Firebase benchmarks: ${fbBenchmarksResult.error}`);
+          
+        } else {
+          log('✅ Firebase already fully seeded - skipping');
+        }
       }
     } catch (fbError) {
       log('⚠️  Firebase seeding skipped (offline or error)');
-      results.errors.push(`Firebase: ${fbError.message}`);
+      // Only add to errors if it's NOT an auth error
+      if (!fbError.message.includes('permissions')) {
+        results.errors.push(`Firebase: ${fbError.message}`);
+      }
     }
     
     log('========== AUTO-SEED COMPLETED ==========');

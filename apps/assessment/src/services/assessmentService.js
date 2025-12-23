@@ -271,6 +271,7 @@ export const saveAssessmentResult = async (resultData) => {
       
       assessment = {
         id: newAssessmentId,
+        academy_id: ACADEMY_ID,
         kid_id,
         sport_id,
         assessment_date: assessment_date.split('T')[0],
@@ -399,9 +400,10 @@ export const saveAssessmentResult = async (resultData) => {
       const newId = generateId();
       const status = metadata?.isDraft ? 'draft' : 'completed';
       await database.runAsync(
-        'INSERT INTO assessments (id, kid_id, sport_id, assessment_date, year, term, assessment_type, week_number, location, assessor_name, general_notes, assessed_by, status, created_at, updated_at, firebase_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO assessments (id, academy_id, kid_id, sport_id, assessment_date, year, term, assessment_type, week_number, location, assessor_name, general_notes, assessed_by, status, created_at, updated_at, firebase_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
-          newId, 
+          newId,
+          ACADEMY_ID,
           kid_id, 
           sport_id, 
           assessment_date.split('T')[0], 

@@ -62,3 +62,6 @@ web/backend/er->name*
 firebase-admin-key.json
 app/firebase-admin-key.json
 web/backend/google-services.json
+firebaseRules.txt
+*.txt
+firebaseRules.txt

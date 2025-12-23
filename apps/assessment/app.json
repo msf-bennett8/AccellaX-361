@@ -30,7 +30,8 @@
       "shortName": "AccellaX 361° SAS"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-audio"
     ],
     "extra": {
       "eas": {
