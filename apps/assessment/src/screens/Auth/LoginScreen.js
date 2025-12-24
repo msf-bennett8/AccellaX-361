@@ -1,7 +1,7 @@
 // src/screens/Auth/LoginScreen.js
 // User login screen with email and password
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { Modal } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { COLORS, APP_NAME } from '../../utils/constants';
 import { loginUser } from '../../utils/auth';
 import { initDatabase } from '../../database/db';
@@ -24,10 +26,13 @@ import ConfirmationModal from '../../components/modals/ConfirmationModal';
 const LoginScreen = ({ navigation, onAuthComplete }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const passwordInputRef = useRef(null);
+  const emailInputRef = useRef(null);
   const [modalConfig, setModalConfig] = useState({
     visible: false,
     title: '',
@@ -35,21 +40,43 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
     onConfirm: () => {},
   });
 
+  // Load remembered email on mount
+  useEffect(() => {
+    loadRememberedCredentials();
+  }, []);
+
+  const loadRememberedCredentials = async () => {
+    try {
+      const remembered = await AsyncStorage.getItem('rememberMe');
+      const rememberedEmail = await AsyncStorage.getItem('rememberedEmail');
+      
+      if (remembered === 'true' && rememberedEmail) {
+        setEmail(rememberedEmail);
+        setRememberMe(true);
+        console.log('✅ Loaded remembered email:', rememberedEmail);
+        
+        // Focus password field after a short delay
+        setTimeout(() => {
+          if (passwordInputRef.current) {
+            passwordInputRef.current.focus();
+          }
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error loading remembered credentials:', error);
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = 'Email, username, or phone is required';
     }
+    // Removed strict email validation - accept email, username, or phone
 
     if (!password) {
       newErrors.password = 'Password is required';
-    }
-
-    if (!agreedToTerms) {
-      newErrors.terms = 'You must agree to the Terms of Service and Privacy Policy';
     }
 
     setErrors(newErrors);
@@ -89,9 +116,15 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
         console.log('User ID:', result.userId);
         console.log('Migrated:', result.migrated || false);
         
-        // Mark onboarding as complete
-        await AsyncStorage.setItem('onboardingComplete', 'true');
-        console.log('✅ Onboarding marked complete');
+        // Save remember me preference
+        if (rememberMe) {
+          await AsyncStorage.setItem('rememberMe', 'true');
+          await AsyncStorage.setItem('rememberedEmail', email.trim().toLowerCase());
+          console.log('✅ Remember me preference saved');
+        } else {
+          await AsyncStorage.removeItem('rememberMe');
+          await AsyncStorage.removeItem('rememberedEmail');
+        }
         
         // Trigger sync in background
         const syncPromise = (async () => {
@@ -168,6 +201,67 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
     navigation.navigate('Register');
   };
 
+  const handleGoogleLogin = async () => {
+    // TODO: Implement Google OAuth authentication
+    try {
+      const state = await NetInfo.fetch();
+      
+      if (!state.isConnected) {
+        setShowOfflineModal(true);
+        return;
+      }
+
+      // TODO: Implement Google Sign-In
+      // 1. Initialize Google Sign-In
+      // 2. Get Google credentials
+      // 3. Sign in with Firebase Auth using Google credentials
+      // 4. Create/update user profile in local database
+      // 5. Trigger sync
+      
+      console.log('Google login will be implemented here');
+      setModalConfig({
+        visible: true,
+        title: 'Coming Soon',
+        message: 'Google authentication will be available in the next update.',
+        type: 'info',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
+    } catch (error) {
+      console.error('Google login error:', error);
+    }
+  };
+
+  const handleStravaLogin = async () => {
+    // TODO: Implement Strava OAuth authentication
+    try {
+      const state = await NetInfo.fetch();
+      
+      if (!state.isConnected) {
+        setShowOfflineModal(true);
+        return;
+      }
+
+      // TODO: Implement Strava OAuth
+      // 1. Open Strava OAuth authorization URL
+      // 2. Handle callback with authorization code
+      // 3. Exchange code for access token
+      // 4. Get athlete data from Strava API
+      // 5. Create/update user profile in local database
+      // 6. Trigger sync
+      
+      console.log('Strava login will be implemented here');
+      setModalConfig({
+        visible: true,
+        title: 'Coming Soon',
+        message: 'Strava authentication will be available in the next update.',
+        type: 'info',
+        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+      });
+    } catch (error) {
+      console.error('Strava login error:', error);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -177,6 +271,8 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        nestedScrollEnabled={false}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -211,12 +307,13 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
             </View>
           )}
 
-          {/* Email Input */}
+          {/* Email/Username Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={styles.label}>Email, Username, or Phone</Text>
             <TextInput
+              ref={emailInputRef}
               style={[styles.input, errors.email && styles.inputError]}
-              placeholder="your.email@example.com"
+              placeholder="email@example.com or username"
               placeholderTextColor={COLORS.textSecondary}
               value={email}
               onChangeText={(text) => {
@@ -225,10 +322,12 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
                   setErrors({ ...errors, email: null });
                 }
               }}
-              keyboardType="email-address"
+              keyboardType="default"
               autoCapitalize="none"
               autoCorrect={false}
+              autoFocus={!rememberMe}
               editable={!isLoading}
+              textContentType="username"
             />
             {errors.email && (
               <Text style={styles.inputErrorText}>{errors.email}</Text>
@@ -240,6 +339,7 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordContainer}>
               <TextInput
+                ref={passwordInputRef}
                 style={[
                   styles.input,
                   styles.passwordInput,
@@ -285,31 +385,21 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
-          {/* Terms and Privacy Checkbox */}
+          {/* Remember Me Checkbox */}
           <TouchableOpacity
             style={styles.checkboxContainer}
-            onPress={() => {
-              setAgreedToTerms(!agreedToTerms);
-              if (errors.terms) {
-                setErrors({ ...errors, terms: null });
-              }
-            }}
+            onPress={() => setRememberMe(!rememberMe)}
             activeOpacity={0.7}
           >
-            <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-              {agreedToTerms && (
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && (
                 <Ionicons name="checkmark" size={18} color={COLORS.white} />
               )}
             </View>
             <Text style={styles.checkboxText}>
-              I agree to the{' '}
-              <Text style={styles.checkboxLink}>Terms of Service</Text> and{' '}
-              <Text style={styles.checkboxLink}>Privacy Policy</Text>
+              Remember me on this device
             </Text>
           </TouchableOpacity>
-          {errors.terms && (
-            <Text style={styles.termsErrorText}>{errors.terms}</Text>
-          )}
 
           {/* Login Button */}
           <TouchableOpacity
@@ -336,6 +426,41 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
             </Text>
           </View>
 
+          {/* Social Login Buttons */}
+          <View style={styles.socialLoginContainer}>
+            {/* Google Login Button */}
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleLogin}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={require('../../assets/logos/google-logo.png')}
+                style={styles.socialLogo}
+                resizeMode="contain"
+                onError={() => console.log('Google logo failed to load')}
+              />
+              <Text style={styles.socialButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
+
+            {/* Strava Login Button */}
+            <TouchableOpacity
+              style={[styles.socialButton, styles.stravaButton]}
+              onPress={handleStravaLogin}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={require('../../assets/logos/strava-logo.png')}
+                style={styles.socialLogo}
+                resizeMode="contain"
+                onError={() => console.log('Strava logo failed to load')}
+              />
+              <Text style={[styles.socialButtonText, styles.stravaButtonText]}>
+                Continue with Strava
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -355,13 +480,33 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
           </View>
         </View>
         <ConfirmationModal
-        visible={modalConfig.visible}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-        onConfirm={modalConfig.onConfirm}
-      />
+          visible={modalConfig.visible}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          onConfirm={modalConfig.onConfirm}
+        />
       </ScrollView>
+
+      {/* Offline Modal */}
+      <Modal visible={showOfflineModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.offlineModalContent}>
+            <Ionicons name="cloud-offline" size={64} color={COLORS.textSecondary} />
+            <Text style={styles.offlineModalTitle}>You're Offline</Text>
+            <Text style={styles.offlineModalMessage}>
+              Social login requires an internet connection. Please use email, username, or phone to sign in locally.
+            </Text>
+            <TouchableOpacity
+              style={styles.offlineModalButton}
+              onPress={() => setShowOfflineModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.offlineModalButtonText}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -504,13 +649,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '600',
   },
-  termsErrorText: {
-    color: COLORS.error,
-    fontSize: 12,
-    marginTop: -16,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
   passwordContainer: {
     position: 'relative',
   },
@@ -608,6 +746,93 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.primary,
     fontWeight: 'bold',
+  },
+  socialLoginContainer: {
+    marginBottom: 24,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  stravaButton: {
+    borderColor: '#FC4C02',
+  },
+  socialLogo: {
+    width: 24,
+    height: 24,
+    marginRight: 12,
+  },
+  socialButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  stravaButtonText: {
+    color: '#FC4C02',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  offlineModalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 32,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  offlineModalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  offlineModalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  offlineModalButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  offlineModalButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
 });
 

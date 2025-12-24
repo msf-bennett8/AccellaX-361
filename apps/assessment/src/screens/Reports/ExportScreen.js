@@ -184,6 +184,41 @@ export default function ExportScreen({ route, navigation }) {
     }
   };
 
+  const handleNavigateToExportDetail = () => {
+    // Prepare data for ExportDetailScreen
+    const kidsToExport = filteredAssessments.map(assessment => {
+      const kid = kids.find(k => k.id === assessment.kid_id);
+      const sport = sports.find(s => s.id === assessment.sport_id);
+      
+      return {
+        ...kid,
+        latestAssessment: assessment,
+        metricValues: assessment.results?.reduce((acc, result) => {
+          acc[result.metric_id] = result.value;
+          return acc;
+        }, {}) || {},
+      };
+    });
+
+    console.log('✅ Navigating to ExportDetailScreen with:', kidsToExport.length, 'records');
+
+    navigation.navigate('Reports', {
+      screen: 'ExportDetail',
+      params: {
+      filteredData: kidsToExport,
+      filters: {
+        year: 'all',
+        term: 'all',
+        sport: selectedSport,
+        ageGroup: 'all',
+      },
+      format: 'csv',
+        sports: sports,
+        metrics: [],
+      },
+    });
+  };
+
   const handlePreview = async () => {
     try {
       setLoading(true);
@@ -218,7 +253,7 @@ export default function ExportScreen({ route, navigation }) {
         title="Export Assessments"
         subtitle={`${filteredAssessments.length} assessments selected`}
         leftIcon="←"
-        onLeftPress={() => navigation.goBack()}
+        onLeftPress={() => navigation.navigate('History')}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -417,6 +452,22 @@ export default function ExportScreen({ route, navigation }) {
       </Modal>
 
       {loading && <LoadingSpinner overlay text="Processing..." />}
+
+      {/* Floating Action Button - Navigate to Export Detail */}
+      {filteredAssessments.length > 0 && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleNavigateToExportDetail}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="download-outline" size={28} color={COLORS.white} />
+          {filteredAssessments.length > 0 && (
+            <View style={styles.fabBadge}>
+              <Text style={styles.fabBadgeText}>{filteredAssessments.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -632,5 +683,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.white,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 1000,
+  },
+  fabBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF5252',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  fabBadgeText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

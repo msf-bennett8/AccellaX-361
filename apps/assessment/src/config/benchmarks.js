@@ -124,6 +124,69 @@ export const VERTICAL_JUMP_BENCHMARKS = [
   { metricId: 'vertical_jump', ageGroup: '13+', gender: 'female', excellent: 52, good: 45, fair: 38, poor: 32, source: 'Youth Power Test' },
 ];
 
+// ========== REACTION TIME BENCHMARKS ==========
+
+export const REACTION_AUDITORY_BENCHMARKS = [
+  // Age 7-9 (milliseconds - lower is better)
+  { metricId: 'reaction_auditory', ageGroup: '7-9', gender: 'male', excellent: 250, good: 300, fair: 350, poor: 400, source: 'Youth Reaction Standard' },
+  { metricId: 'reaction_auditory', ageGroup: '7-9', gender: 'female', excellent: 270, good: 320, fair: 370, poor: 420, source: 'Youth Reaction Standard' },
+  
+  // Age 10-13
+  { metricId: 'reaction_auditory', ageGroup: '10-13', gender: 'male', excellent: 220, good: 270, fair: 320, poor: 370, source: 'Youth Reaction Standard' },
+  { metricId: 'reaction_auditory', ageGroup: '10-13', gender: 'female', excellent: 240, good: 290, fair: 340, poor: 390, source: 'Youth Reaction Standard' },
+  
+  // Age 13+
+  { metricId: 'reaction_auditory', ageGroup: '13+', gender: 'male', excellent: 200, good: 240, fair: 280, poor: 320, source: 'Youth Reaction Standard' },
+  { metricId: 'reaction_auditory', ageGroup: '13+', gender: 'female', excellent: 220, good: 260, fair: 300, poor: 340, source: 'Youth Reaction Standard' },
+];
+
+export const REACTION_VISUAL_SIMPLE_BENCHMARKS = [
+  // Age 7-9
+  { metricId: 'reaction_visual_simple', ageGroup: '7-9', gender: 'male', excellent: 280, good: 330, fair: 380, poor: 430, source: 'Youth Reaction Standard' },
+  { metricId: 'reaction_visual_simple', ageGroup: '7-9', gender: 'female', excellent: 300, good: 350, fair: 400, poor: 450, source: 'Youth Reaction Standard' },
+  
+  // Age 10-13
+  { metricId: 'reaction_visual_simple', ageGroup: '10-13', gender: 'male', excellent: 250, good: 300, fair: 350, poor: 400, source: 'Youth Reaction Standard' },
+  { metricId: 'reaction_visual_simple', ageGroup: '10-13', gender: 'female', excellent: 270, good: 320, fair: 370, poor: 420, source: 'Youth Reaction Standard' },
+  
+  // Age 13+
+  { metricId: 'reaction_visual_simple', ageGroup: '13+', gender: 'male', excellent: 230, good: 270, fair: 310, poor: 350, source: 'Youth Reaction Standard' },
+  { metricId: 'reaction_visual_simple', ageGroup: '13+', gender: 'female', excellent: 250, good: 290, fair: 330, poor: 370, source: 'Youth Reaction Standard' },
+];
+
+export const REACTION_COLOR_CHOICE_BENCHMARKS = [
+  // Age 7-9
+  { metricId: 'reaction_color_choice', ageGroup: '7-9', gender: null, excellent: 500, good: 600, fair: 700, poor: 800, source: 'Choice Reaction Standard' },
+  
+  // Age 10-13
+  { metricId: 'reaction_color_choice', ageGroup: '10-13', gender: null, excellent: 450, good: 550, fair: 650, poor: 750, source: 'Choice Reaction Standard' },
+  
+  // Age 13+
+  { metricId: 'reaction_color_choice', ageGroup: '13+', gender: null, excellent: 400, good: 500, fair: 600, poor: 700, source: 'Choice Reaction Standard' },
+];
+
+export const REACTION_DIRECTION_CHOICE_BENCHMARKS = [
+  // Age 7-9
+  { metricId: 'reaction_direction_choice', ageGroup: '7-9', gender: null, excellent: 550, good: 650, fair: 750, poor: 850, source: 'Choice Reaction Standard' },
+  
+  // Age 10-13
+  { metricId: 'reaction_direction_choice', ageGroup: '10-13', gender: null, excellent: 500, good: 600, fair: 700, poor: 800, source: 'Choice Reaction Standard' },
+  
+  // Age 13+
+  { metricId: 'reaction_direction_choice', ageGroup: '13+', gender: null, excellent: 450, good: 550, fair: 650, poor: 750, source: 'Choice Reaction Standard' },
+];
+
+export const REACTION_GO_NOGO_BENCHMARKS = [
+  // Age 7-9
+  { metricId: 'reaction_go_nogo', ageGroup: '7-9', gender: null, excellent: 600, good: 700, fair: 800, poor: 900, source: 'Inhibition Control Standard' },
+  
+  // Age 10-13
+  { metricId: 'reaction_go_nogo', ageGroup: '10-13', gender: null, excellent: 550, good: 650, fair: 750, poor: 850, source: 'Inhibition Control Standard' },
+  
+  // Age 13+
+  { metricId: 'reaction_go_nogo', ageGroup: '13+', gender: null, excellent: 500, good: 600, fair: 700, poor: 800, source: 'Inhibition Control Standard' },
+];
+
 // ========== RATING BENCHMARKS (1-10 scale for sport-specific skills) ==========
 
 export const RATING_BENCHMARKS = [
@@ -145,6 +208,11 @@ export const ALL_BENCHMARKS = [
   ...FLEXIBILITY_BENCHMARKS,
   ...AGILITY_TTEST_BENCHMARKS,
   ...VERTICAL_JUMP_BENCHMARKS,
+  ...REACTION_AUDITORY_BENCHMARKS,
+  ...REACTION_VISUAL_SIMPLE_BENCHMARKS,
+  ...REACTION_COLOR_CHOICE_BENCHMARKS,
+  ...REACTION_DIRECTION_CHOICE_BENCHMARKS,
+  ...REACTION_GO_NOGO_BENCHMARKS,
   ...RATING_BENCHMARKS,
 ];
 

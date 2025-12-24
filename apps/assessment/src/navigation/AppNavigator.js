@@ -56,9 +56,8 @@ export default function AppNavigator({ isAuthenticated, onAuthComplete, onLogout
       ) : (
         // Main App Stack
         <Stack.Screen name="Main">
-          {(props) => (
+          {() => (
             <DrawerNavigator 
-              {...props} 
               onLogout={onLogout}
             />
           )}

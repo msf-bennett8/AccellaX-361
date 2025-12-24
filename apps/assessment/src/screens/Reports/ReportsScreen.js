@@ -1,7 +1,7 @@
 // Location: /apps/assessment/src/screens/Reports/ReportsScreen.js
 // Export Data Screen - Flexible filtering and data export
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  Animated,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -26,7 +28,7 @@ export default function ReportsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedTerm, setSelectedTerm] = useState('all');
-  const [selectedSport, setSelectedSport] = useState('all');
+  const [selectedSport, setSelectedSport] = useState('football');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('all');
   const [selectedFormat, setSelectedFormat] = useState('csv');
   
@@ -38,9 +40,17 @@ export default function ReportsScreen() {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [selectedSort, setSelectedSort] = useState('none');
   
+  // Lazy loading state
+  const [displayedKids, setDisplayedKids] = useState([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+  
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [showFilters, setShowFilters] = useState(true);
   const [scrollY, setScrollY] = useState(0);
+  const filtersOpacity = useRef(new Animated.Value(1)).current;
+  const filtersTranslateY = useRef(new Animated.Value(0)).current;
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -79,7 +89,7 @@ export default function ReportsScreen() {
 
       // Load sports (from constants for now - can be fetched from DB)
       const sportsData = [
-        { id: 'general', name: 'General Fitness' },
+        { id: 'fitness', name: 'General Fitness' },
         { id: 'football', name: 'Football' },
         { id: 'athletics', name: 'Athletics' },
         { id: 'rugby', name: 'Rugby' },
@@ -90,15 +100,22 @@ export default function ReportsScreen() {
       setSports(sportsData);
       console.log('✅ REPORTS: Sports loaded:', sportsData.length);
 
-      // Load assessments (last 2 years)
+      // Load assessments (last 2 years) WITHOUT results - lazy load later
       const currentYear = new Date().getFullYear();
       const startDate = `${currentYear - 2}-01-01`;
       const endDate = `${currentYear + 1}-12-31`;
       console.log('🔄 REPORTS: Loading assessments from', startDate, 'to', endDate);
       const allAssessments = await getAssessmentsByDateRange(startDate, endDate);
-      console.log('✅ REPORTS: Assessments loaded:', allAssessments.length);
       
-      setAssessments(allAssessments);
+      // Enrich assessments without loading full results yet
+      const enrichedAssessments = allAssessments.map(assessment => ({
+        ...assessment,
+        // NO results field - will be loaded on-demand when needed
+      }));
+      
+      console.log('✅ REPORTS: Assessments loaded (lazy):', enrichedAssessments.length);
+      
+      setAssessments(enrichedAssessments);
 
       // Generate year options dynamically from actual assessment data
       const assessmentYears = new Set();
@@ -146,6 +163,17 @@ export default function ReportsScreen() {
   const selectAll = () => {
     const allKids = filteredData.kids || [];
     setSelectedRecords(selectedRecords.length === allKids.length ? [] : allKids.map(k => k.id));
+  };
+
+  const loadAssessmentResults = async (assessmentId) => {
+    try {
+      const { getAssessmentResultsLazy } = await import('../../database/queries');
+      const results = await getAssessmentResultsLazy(assessmentId);
+      return results;
+    } catch (error) {
+      console.error('Error loading assessment results:', error);
+      return [];
+    }
   };
 
   const applyFilters = async () => {
@@ -197,7 +225,7 @@ export default function ReportsScreen() {
       : [];
 
     // Combine kids with their LATEST assessment per kid
-    const dataWithLatestValues = filtered.map(kid => {
+    const dataWithLatestValues = await Promise.all(filtered.map(async (kid) => {
       const kidAssessments = relevantAssessments.filter(a => a.kid_id === kid.id);
       
       if (kidAssessments.length === 0) {
@@ -209,10 +237,13 @@ export default function ReportsScreen() {
         new Date(b.assessment_date) - new Date(a.assessment_date)
       )[0];
 
+      // Lazy load results only when needed
+      const results = await loadAssessmentResults(latestAssessment.id);
+      
       // Extract metric values from latest assessment
       const metricValues = {};
-      if (latestAssessment.results) {
-        latestAssessment.results.forEach(result => {
+      if (results && results.length > 0) {
+        results.forEach(result => {
           metricValues[result.metric_id] = result.value;
         });
       }
@@ -222,16 +253,44 @@ export default function ReportsScreen() {
         latestAssessment,
         metricValues,
       };
-    }).filter(Boolean);
+    }));
+
+    const validDataWithLatestValues = dataWithLatestValues.filter(Boolean);
 
     // Apply sorting
-    let sortedData = dataWithLatestValues;
+    let sortedData = validDataWithLatestValues;
     if (selectedSort !== 'none') {
-      sortedData = applySorting(dataWithLatestValues, selectedSort);
+      sortedData = applySorting(validDataWithLatestValues, selectedSort);
     }
 
     setFilteredData({ kids: sortedData, metrics: sportMetrics });
+    
+    // Initialize lazy loading with first page
+    setCurrentPage(1);
+    setDisplayedKids(sortedData.slice(0, ITEMS_PER_PAGE));
   };
+
+  // Load more kids for lazy loading
+  const loadMoreKids = useCallback(() => {
+    if (loadingMore) return;
+    
+    const allKids = filteredData.kids || [];
+    const nextPage = currentPage + 1;
+    const startIndex = currentPage * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    
+    if (startIndex >= allKids.length) return; // No more data
+    
+    setLoadingMore(true);
+    
+    // Simulate loading delay for smooth UX
+    setTimeout(() => {
+      const newKids = allKids.slice(startIndex, endIndex);
+      setDisplayedKids(prev => [...prev, ...newKids]);
+      setCurrentPage(nextPage);
+      setLoadingMore(false);
+    }, 300);
+  }, [filteredData.kids, currentPage, loadingMore]);
 
   const applySorting = (data, sortType) => {
     const sorted = [...data];
@@ -288,9 +347,9 @@ export default function ReportsScreen() {
       metricValues: kid.metricValues,
     }));
     
-    console.log('✅ Navigating to ExportDetailScreen with:', exportPayload.length, 'records');
+    console.log('✅ Navigating to ExportScreen with:', exportPayload.length, 'records');
     
-    navigation.navigate('ExportDetail', {
+    navigation.navigate('Export', {
       filteredData: exportPayload,
       filters: {
         year: selectedYear,
@@ -366,16 +425,47 @@ export default function ReportsScreen() {
             if (Math.abs(scrollDifference) > 30) {
               if (scrollDifference > 0 && currentScrollY > 50) {
                 setShowFilters(false);
+                Animated.parallel([
+                  Animated.timing(filtersOpacity, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(filtersTranslateY, {
+                    toValue: -50,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
               } else if (scrollDifference < 0) {
                 setShowFilters(true);
+                Animated.parallel([
+                  Animated.timing(filtersOpacity, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(filtersTranslateY, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
               }
             }
           }}
           scrollEventThrottle={16}
         >
         {/* Search Bar */}
-        {showFilters && (
-        <View style={styles.searchContainer}>
+        <Animated.View 
+          style={[
+            styles.searchContainer,
+            {
+              opacity: filtersOpacity,
+              transform: [{ translateY: filtersTranslateY }],
+            }
+          ]}
+        >
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -391,8 +481,7 @@ export default function ReportsScreen() {
           >
             <Text style={styles.searchButtonText}>Search</Text>
           </TouchableOpacity>
-        </View>
-        )}
+        </Animated.View>
 
         {/* Filter Chips - Horizontal Scroll */}
         <View style={styles.filtersContainer}>
@@ -591,8 +680,16 @@ export default function ReportsScreen() {
         </View>
 
         {/* Select Mode / Filter Summary Controls */}
-        {showFilters && filteredData.kids && filteredData.kids.length > 0 && (
-          <View style={styles.selectAllContainer}>
+        {filteredData.kids && filteredData.kids.length > 0 && (
+          <Animated.View 
+            style={[
+              styles.selectAllContainer,
+              {
+                opacity: filtersOpacity,
+                transform: [{ translateY: filtersTranslateY }],
+              }
+            ]}
+          >
             {!isSelectMode ? (
               <>
                 <TouchableOpacity 
@@ -632,7 +729,7 @@ export default function ReportsScreen() {
                 </TouchableOpacity>
               </>
             )}
-          </View>
+          </Animated.View>
         )}
 
         {/* Data Preview Table */}
@@ -642,11 +739,9 @@ export default function ReportsScreen() {
           {!filteredData.kids || filteredData.kids.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="document-outline" size={48} color={COLORS.textSecondary} />
-              <Text style={styles.emptyText}>No data matches your filters</Text>
+              <Text style={styles.emptyText}>No assessments found</Text>
               <Text style={styles.emptyHint}>
-                {selectedSport === 'all' 
-                  ? 'Select a specific sport to view metric columns'
-                  : 'Try adjusting your filter criteria'}
+                No {sportOptions.find(s => s.value === selectedSport)?.label || 'sport'} assessments recorded yet
               </Text>
             </View>
           ) : (
@@ -667,8 +762,8 @@ export default function ReportsScreen() {
                       Age
                     </Text>
                     
-                    {/* DYNAMIC METRIC COLUMNS */}
-                    {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 0 ? (
+                    {/* DYNAMIC METRIC COLUMNS - Always show when metrics available */}
+                    {filteredData.metrics && filteredData.metrics.length > 0 ? (
                       filteredData.metrics.slice(0, 8).map((metric) => (
                         <View key={metric.id} style={[styles.tableCell, styles.tableHeader, styles.metricColumn]}>
                           <Text style={styles.tableHeaderText} numberOfLines={2}>
@@ -680,22 +775,17 @@ export default function ReportsScreen() {
                         </View>
                       ))
                     ) : (
-                      <>
-                        <Text style={[styles.tableCell, styles.tableHeader, styles.sportColumn]}>
-                          Sport
-                        </Text>
-                        <Text style={[styles.tableCell, styles.tableHeader, styles.termColumn]}>
-                          Term
-                        </Text>
-                        <Text style={[styles.tableCell, styles.tableHeader, styles.assessmentsColumn]}>
-                          Last Assessment
-                        </Text>
-                      </>
+                      <Text style={[styles.tableCell, styles.tableHeader, styles.metricsColumn]}>
+                        No Metrics
+                      </Text>
                     )}
                   </View>
 
-                  {/* Table Rows */}
-                  {filteredData.kids.map((kid, index) => {
+                  {/* Table Rows with Lazy Loading */}
+                  <FlatList
+                    data={displayedKids}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item: kid, index }) => {
                     const isSelected = selectedRecords.includes(kid.id);
                     
                     const formatMetricValue = (metric, value) => {
@@ -740,34 +830,43 @@ export default function ReportsScreen() {
                           {kid.age}
                         </Text>
                         
-                        {/* DYNAMIC METRIC VALUES */}
-                        {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 0 ? (
+                        {/* DYNAMIC METRIC VALUES - Always show when available */}
+                        {filteredData.metrics && filteredData.metrics.length > 0 ? (
                           filteredData.metrics.slice(0, 8).map((metric) => (
                             <Text key={metric.id} style={[styles.tableCell, styles.metricColumn]}>
                               {formatMetricValue(metric, kid.metricValues[metric.id])}
                             </Text>
                           ))
                         ) : (
-                          <>
-                            <Text style={[styles.tableCell, styles.sportColumn]}>
-                              {kid.latestAssessment?.sport_id || 'N/A'}
-                            </Text>
-                            <Text style={[styles.tableCell, styles.termColumn]}>
-                              {kid.latestAssessment?.term || 'N/A'}
-                            </Text>
-                            <Text style={[styles.tableCell, styles.assessmentsColumn]}>
-                              {kid.latestAssessment?.assessment_date || 'N/A'}
-                            </Text>
-                          </>
+                          <Text style={[styles.tableCell, styles.metricsColumn]}>—</Text>
                         )}
                       </TouchableOpacity>
                     );
-                  })}
+                  }}
+                  onEndReached={loadMoreKids}
+                  onEndReachedThreshold={0.5}
+                  ListFooterComponent={() => 
+                    loadingMore ? (
+                      <View style={styles.loadingFooter}>
+                        <LoadingSpinner size="small" color="#2196F3" />
+                        <Text style={styles.loadingText}>Loading more...</Text>
+                      </View>
+                    ) : displayedKids.length < (filteredData.kids?.length || 0) ? (
+                      <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreKids}>
+                        <Text style={styles.loadMoreText}>
+                          Load More ({filteredData.kids.length - displayedKids.length} remaining)
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null
+                  }
+                  scrollEnabled={false}
+                  nestedScrollEnabled={false}
+                />
                 </View>
               </ScrollView>
 
               {/* Metrics Note */}
-              {selectedSport !== 'all' && filteredData.metrics && filteredData.metrics.length > 8 && (
+              {filteredData.metrics && filteredData.metrics.length > 8 && (
                 <View style={styles.metricsNote}>
                   <Ionicons name="information-circle" size={16} color="#FF9800" />
                   <Text style={styles.metricsNoteText}>
@@ -1116,6 +1215,9 @@ const styles = StyleSheet.create({
   assessmentsColumn: {
     width: 100,
   },
+  metricsColumn: {
+    width: 100,
+  },
   bottomPadding: {
     height: 32,
   },
@@ -1364,5 +1466,29 @@ const styles = StyleSheet.create({
   },
   modalButtonFull: {
     width: '100%',
+  },
+  loadingFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  loadMoreButton: {
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2196F3',
   },
 });

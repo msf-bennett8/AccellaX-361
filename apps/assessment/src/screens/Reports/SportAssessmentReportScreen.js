@@ -197,33 +197,7 @@ export default function SportAssessmentReportScreen() {
     setRefreshing(false);
   };
 
-  const handleShare = async () => {
-    if (filteredAssessments.length === 0) {
-      setShowNoDataModal(true);
-      return;
-    }
-
-    try {
-      // Get metrics for export
-      const { getMetricsBySport } = await import('../../config/metrics');
-      const metrics = getMetricsBySport(sportId);
-
-      // Use exportService
-      const { exportToCSV } = await import('../../services/exportService');
-      await exportToCSV(filteredAssessments, metrics, {
-        sport: sportId,
-        year: selectedYear,
-        term: selectedTerm,
-        ageGroup: selectedAgeGroup,
-      });
-
-      setShowSuccessModal(true);
-    } catch (error) {
-      console.error('❌ Export error:', error);
-      setErrorMessage(error.message || 'Could not export data');
-      setShowErrorModal(true);
-    }
-  };
+  // handleShare function removed - export functionality moved to HistoryReport screen
 
   const handleViewFullHistory = () => {
     navigation.navigate('HistoryReport', {
@@ -242,10 +216,16 @@ export default function SportAssessmentReportScreen() {
     <TouchableOpacity
       key={assessment.id}
       style={styles.assessmentCard}
-      onPress={() => navigation.navigate('History', {
-        screen: 'KidProgress',
-        params: { kidId: assessment.kid_id, sportId: assessment.sport_id }
-      })}
+      onPress={() => {
+        navigation.navigate('History', {
+          screen: 'AssessmentDetail',
+          params: { 
+            assessmentId: assessment.id,
+            kidId: assessment.kid_id, 
+            sportId: assessment.sport_id 
+          }
+        });
+      }}
       activeOpacity={0.7}
     >
       <View style={styles.cardContent}>
@@ -482,27 +462,15 @@ export default function SportAssessmentReportScreen() {
         </View>
       </ScrollView>
 
-      {/* Floating Action Buttons */}
+      {/* Floating Action Button */}
       {filteredAssessments.length > 0 && (
-        <>
-          {/* View Full History Button (Top) */}
-          <TouchableOpacity
-            style={[styles.fab, styles.fabHistory]}
-            onPress={handleViewFullHistory}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="list-outline" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-
-          {/* Share/Export Button (Bottom) */}
-          <TouchableOpacity
-            style={[styles.fab, styles.fabShare]}
-            onPress={handleShare}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="share-outline" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-        </>
+        <TouchableOpacity
+          style={[styles.fab, styles.fabHistory]}
+          onPress={handleViewFullHistory}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="list-outline" size={24} color={COLORS.white} />
+        </TouchableOpacity>
       )}
 
       {/* No Data Modal */}
@@ -796,12 +764,8 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   fabHistory: {
-    bottom: 104,
-    backgroundColor: '#FF9800',
-  },
-  fabShare: {
     bottom: 24,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#FF9800',
   },
   
   // Modal Styles

@@ -1,7 +1,7 @@
 // src/screens/Auth/RegistrationScreen.js
 // User registration screen for Assessment App
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,17 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import NetInfo from '@react-native-community/netinfo';
 import { COLORS, APP_NAME, USER_ROLES } from '../../utils/constants';
 import { registerUser } from '../../utils/auth';
 import { initDatabase } from '../../database/db';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+
+import LegalDocumentBottomSheet from '../../components/modals/LegalDocumentBottomSheet';
+import {
+  recordLegalAcceptance,
+  saveLegalAcceptanceToDatabase,
+} from '../../utils/legalTracker';
 
 const RegistrationScreen = ({ navigation, onAuthComplete }) => {
   const [formData, setFormData] = useState({
@@ -35,9 +42,16 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [emailUpdates, setEmailUpdates] = useState(false);
+  const [termsRead, setTermsRead] = useState(false);
+  const [privacyRead, setPrivacyRead] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [userName, setUserName] = useState('');
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const emailInputRef = useRef(null);
 
   const updateFormData = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -90,9 +104,13 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    // Terms agreement validation
+    // Terms agreement validation (must have READ both documents)
+    if (!termsRead || !privacyRead) {
+      newErrors.terms = 'You must read both Terms of Service and Privacy Policy';
+    }
+
     if (!agreedToTerms) {
-      newErrors.terms = 'You must agree to the Terms of Service and Privacy Policy';
+      newErrors.terms = 'You must accept both Terms of Service and Privacy Policy';
     }
 
     setErrors(newErrors);
@@ -143,6 +161,23 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
         // Mark onboarding as complete
         await AsyncStorage.setItem('onboardingComplete', 'true');
         console.log('✅ Onboarding marked complete');
+
+        // Record legal acceptance
+        await recordLegalAcceptance(result.userId, formData.email.trim().toLowerCase());
+        await saveLegalAcceptanceToDatabase(result.userId, {
+          termsVersion: '1.0.0',
+          privacyVersion: '1.0.0',
+          acceptedAt: new Date().toISOString(),
+        });
+
+        // Save preferences
+        if (rememberMe) {
+          await AsyncStorage.setItem('rememberMe', 'true');
+          await AsyncStorage.setItem('rememberedEmail', formData.email.trim().toLowerCase());
+        }
+        if (emailUpdates) {
+          await AsyncStorage.setItem('emailUpdates', 'true');
+        }
 
         // Trigger sync in background if online
         if (!result.offlineMode) {
@@ -201,6 +236,64 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
     navigation.navigate('Login');
   };
 
+  const handleGoogleSignUp = async () => {
+    // TODO: Implement Google OAuth registration
+    try {
+      const state = await NetInfo.fetch();
+      
+      if (!state.isConnected) {
+        setShowOfflineModal(true);
+        return;
+      }
+
+      // TODO: Implement Google Sign-Up
+      // 1. Initialize Google Sign-In
+      // 2. Get Google credentials and user info
+      // 3. Check if email already exists
+      // 4. Create new user with Google credentials
+      // 5. Create user profile in local database
+      // 6. Record legal acceptance
+      // 7. Trigger sync
+      
+      console.log('Google sign up will be implemented here');
+      setErrors({ 
+        general: 'Google authentication will be available in the next update.' 
+      });
+    } catch (error) {
+      console.error('Google sign up error:', error);
+    }
+  };
+
+  const handleStravaSignUp = async () => {
+    // TODO: Implement Strava OAuth registration
+    try {
+      const state = await NetInfo.fetch();
+      
+      if (!state.isConnected) {
+        setShowOfflineModal(true);
+        return;
+      }
+
+      // TODO: Implement Strava Sign-Up
+      // 1. Open Strava OAuth authorization URL
+      // 2. Handle callback with authorization code
+      // 3. Exchange code for access token
+      // 4. Get athlete data from Strava API
+      // 5. Check if athlete already registered
+      // 6. Create new user with Strava data
+      // 7. Create user profile in local database
+      // 8. Record legal acceptance
+      // 9. Trigger sync
+      
+      console.log('Strava sign up will be implemented here');
+      setErrors({ 
+        general: 'Strava authentication will be available in the next update.' 
+      });
+    } catch (error) {
+      console.error('Strava sign up error:', error);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -210,6 +303,8 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        nestedScrollEnabled={false}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -270,15 +365,18 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
               Email Address <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
+              ref={emailInputRef}
               style={[styles.input, errors.email && styles.inputError]}
               placeholder="your.email@example.com"
               placeholderTextColor={COLORS.textSecondary}
               value={formData.email}
               onChangeText={(text) => updateFormData('email', text)}
-              keyboardType="email-address"
+              keyboardType="default"
               autoCapitalize="none"
               autoCorrect={false}
+              autoFocus={true}
               editable={!isLoading}
+              textContentType="emailAddress"
             />
             {errors.email && (
               <Text style={styles.inputErrorText}>{errors.email}</Text>
@@ -410,28 +508,80 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
             </View>
           </View>
 
-          {/* Terms and Privacy Checkbox */}
+          {/* Read Terms and Privacy Button */}
           <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => {
-              setAgreedToTerms(!agreedToTerms);
-              if (errors.terms) {
-                setErrors({ ...errors, terms: null });
-              }
-            }}
+            style={[
+              styles.readTermsButton,
+              (termsRead && privacyRead) && { borderColor: COLORS.success }
+            ]}
+            onPress={() => setShowLegalModal(true)}
             activeOpacity={0.7}
           >
-            <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-              {agreedToTerms && (
+            <View style={styles.readTermsContent}>
+              <Ionicons name="document-text" size={24} color={COLORS.primary} />
+              <View style={styles.readTermsTextContainer}>
+                <Text style={styles.readTermsTitle}>Read Legal Documents</Text>
+                <Text style={styles.readTermsSubtitle}>
+                  {termsRead && privacyRead
+                    ? '✓ Both documents read'
+                    : 'Tap to read Terms & Privacy Policy'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Agreement Checkbox (only appears after reading) */}
+          {termsRead && privacyRead && (
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => {
+                setAgreedToTerms(!agreedToTerms);
+                if (errors.terms) {
+                  setErrors({ ...errors, terms: null });
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                {agreedToTerms && (
+                  <Ionicons name="checkmark" size={18} color={COLORS.white} />
+                )}
+              </View>
+              <Text style={styles.checkboxText}>
+                I agree to the Terms of Service and Privacy Policy
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Remember Me Checkbox */}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setRememberMe(!rememberMe)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && (
                 <Ionicons name="checkmark" size={18} color={COLORS.white} />
               )}
             </View>
-            <Text style={styles.checkboxText}>
-              I agree to the{' '}
-              <Text style={styles.checkboxLink}>Terms of Service</Text> and{' '}
-              <Text style={styles.checkboxLink}>Privacy Policy</Text>
-            </Text>
+            <Text style={styles.checkboxText}>Remember me on this device</Text>
           </TouchableOpacity>
+
+          {/* Email Updates Checkbox */}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setEmailUpdates(!emailUpdates)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, emailUpdates && styles.checkboxChecked]}>
+              {emailUpdates && (
+                <Ionicons name="checkmark" size={18} color={COLORS.white} />
+              )}
+            </View>
+            <Text style={styles.checkboxText}>Email me about important updates</Text>
+          </TouchableOpacity>
+
           {errors.terms && (
             <Text style={styles.termsErrorText}>{errors.terms}</Text>
           )}
@@ -453,6 +603,41 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
             )}
           </TouchableOpacity>
 
+          {/* Social Registration Buttons */}
+          <View style={styles.socialLoginContainer}>
+            {/* Google Sign Up Button */}
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleSignUp}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={require('../../assets/logos/google-logo.png')}
+                style={styles.socialLogo}
+                resizeMode="contain"
+                onError={() => console.log('Google logo failed to load')}
+              />
+              <Text style={styles.socialButtonText}>Sign up with Google</Text>
+            </TouchableOpacity>
+
+            {/* Strava Sign Up Button */}
+            <TouchableOpacity
+              style={[styles.socialButton, styles.stravaButton]}
+              onPress={handleStravaSignUp}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={require('../../assets/logos/strava-logo.png')}
+                style={styles.socialLogo}
+                resizeMode="contain"
+                onError={() => console.log('Strava logo failed to load')}
+              />
+              <Text style={[styles.socialButtonText, styles.stravaButtonText]}>
+                Sign up with Strava
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -468,7 +653,40 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
             </TouchableOpacity>
           </View>
         </View>
+        {/* Legal Document Bottom Sheet */}
+        <LegalDocumentBottomSheet
+          visible={showLegalModal}
+          onClose={() => setShowLegalModal(false)}
+          onAcceptBoth={() => {
+            setAgreedToTerms(true);
+            setShowLegalModal(false);
+          }}
+          termsRead={termsRead}
+          privacyRead={privacyRead}
+          setTermsRead={setTermsRead}
+          setPrivacyRead={setPrivacyRead}
+        />
       </ScrollView>
+
+      {/* Offline Modal */}
+      <Modal visible={showOfflineModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.offlineModalContent}>
+            <Ionicons name="cloud-offline" size={64} color={COLORS.textSecondary} />
+            <Text style={styles.offlineModalTitle}>You're Offline</Text>
+            <Text style={styles.offlineModalMessage}>
+              Social registration requires an internet connection. Please use email to create your account locally, and it will sync when you're back online.
+            </Text>
+            <TouchableOpacity
+              style={styles.offlineModalButton}
+              onPress={() => setShowOfflineModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.offlineModalButtonText}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Welcome Modal */}
       <Modal visible={showWelcomeModal} transparent animationType="fade">
@@ -826,6 +1044,113 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   modalButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
+  readTermsButton: {
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+readTermsContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  padding: 16,
+},
+readTermsTextContainer: {
+  flex: 1,
+  marginLeft: 12,
+},
+readTermsTitle: {
+  fontSize: 15,
+  fontWeight: '600',
+  color: COLORS.text,
+  marginBottom: 4,
+},
+readTermsSubtitle: {
+  fontSize: 12,
+  color: COLORS.textSecondary,
+},
+  socialLoginContainer: {
+    marginBottom: 24,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  stravaButton: {
+    borderColor: '#FC4C02',
+  },
+  socialLogo: {
+    width: 24,
+    height: 24,
+    marginRight: 12,
+  },
+  socialButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  stravaButtonText: {
+    color: '#FC4C02',
+  },
+  offlineModalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 32,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  offlineModalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  offlineModalMessage: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  offlineModalButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  offlineModalButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.white,

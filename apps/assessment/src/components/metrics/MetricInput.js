@@ -13,6 +13,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../utils/constants';
 
+//ReactionTime Tests
+import ReactionAuditoryInput from './ReactionAuditoryInput';
+import ReactionVisualSimpleInput from './ReactionVisualSimpleInput';
+import ReactionColorChoiceInput from './ReactionColorChoiceInput';
+import ReactionDirectionChoiceInput from './ReactionDirectionChoiceInput';
+import ReactionGoNoGoInput from './ReactionGoNoGoInput';
+
 const MetricInput = ({ 
   metric, 
   value, 
@@ -421,6 +428,16 @@ const MetricInput = ({
         return renderBeepTestInput();
       case 'cooper_test':
         return renderNumericInput(); // Simple numeric input for distance in meters
+      case 'reaction_auditory':
+        return <ReactionAuditoryInput value={inputValue} onChange={onChange} metric={metric} />;
+      case 'reaction_visual_simple':
+        return <ReactionVisualSimpleInput value={inputValue} onChange={onChange} metric={metric} />;
+      case 'reaction_color_choice':
+        return <ReactionColorChoiceInput value={inputValue} onChange={onChange} metric={metric} />;
+      case 'reaction_direction_choice':
+        return <ReactionDirectionChoiceInput value={inputValue} onChange={onChange} metric={metric} />;
+      case 'reaction_go_nogo':
+        return <ReactionGoNoGoInput value={inputValue} onChange={onChange} metric={metric} />;
       default:
         return renderDefaultInput();
     }

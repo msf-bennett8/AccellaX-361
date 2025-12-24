@@ -17,7 +17,6 @@ import { COLORS, APP_NAME } from '../../utils/constants';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const AuthChoiceScreen = ({ navigation }) => {
-  const [agreedToTerms, setAgreedToTerms] = React.useState(false);
   const [modalConfig, setModalConfig] = React.useState({
     visible: false,
     title: '',
@@ -26,30 +25,10 @@ const AuthChoiceScreen = ({ navigation }) => {
   });
 
   const handleCreateAccount = () => {
-    if (!agreedToTerms) {
-      setModalConfig({
-        visible: true,
-        title: 'Terms Required',
-        message: 'Please agree to the Terms of Service and Privacy Policy to continue.',
-        type: 'warning',
-        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
-      });
-      return;
-    }
     navigation.navigate('Register');
   };
 
   const handleSignIn = () => {
-    if (!agreedToTerms) {
-      setModalConfig({
-        visible: true,
-        title: 'Terms Required',
-        message: 'Please agree to the Terms of Service and Privacy Policy to continue.',
-        type: 'warning',
-        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
-      });
-      return;
-    }
     navigation.navigate('Login');
   };
 
@@ -88,24 +67,6 @@ const AuthChoiceScreen = ({ navigation }) => {
             Professional sports assessment and athlete development platform
           </Text>
         </View>
-
-        {/* Terms and Privacy Checkbox */}
-        <TouchableOpacity
-          style={styles.checkboxContainer}
-          onPress={() => setAgreedToTerms(!agreedToTerms)}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-            {agreedToTerms && (
-              <Ionicons name="checkmark" size={18} color={COLORS.white} />
-            )}
-          </View>
-          <Text style={styles.checkboxText}>
-            I agree to the{' '}
-            <Text style={styles.checkboxLink}>Terms of Service</Text> and{' '}
-            <Text style={styles.checkboxLink}>Privacy Policy</Text>
-          </Text>
-        </TouchableOpacity>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
@@ -268,38 +229,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
     lineHeight: 24,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-    paddingHorizontal: 4,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    marginRight: 12,
-    marginTop: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  checkboxText: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.text,
-    lineHeight: 20,
-  },
-  checkboxLink: {
-    color: COLORS.primary,
-    fontWeight: '600',
   },
   buttonContainer: {
     marginBottom: 32,

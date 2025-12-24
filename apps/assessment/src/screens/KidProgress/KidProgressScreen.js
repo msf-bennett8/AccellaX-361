@@ -10,15 +10,27 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import LineChart from '../../components/charts/LineChart';
-import RadarChart from '../../components/charts/RadarChart';
-import PercentileChart from '../../components/charts/PercentileChart';
-import ProgressChart from '../../components/charts/ProgressChart';
+
+// Charts are only imported on web platform to avoid React Native compatibility issues
+// Web-only chart components (lazy loaded)
+let LineChart, RadarChart, PercentileChart, ProgressChart;
+if (Platform.OS === 'web') {
+  try {
+    LineChart = require('../../components/charts/LineChart').default;
+    RadarChart = require('../../components/charts/RadarChart').default;
+    PercentileChart = require('../../components/charts/PercentileChart').default;
+    ProgressChart = require('../../components/charts/ProgressChart').default;
+  } catch (error) {
+    console.log('Chart components not available');
+  }
+}
+
 import { COLORS } from '../../utils/constants';
 import { getKidByIdFromFirebase } from '../../services/kidService';
 import { getSportById } from '../../database/db';
@@ -28,6 +40,51 @@ import { format, parseISO } from 'date-fns';
 
 const { width } = Dimensions.get('window');
 const SMALL_SCREEN = width < 400;
+
+// ============================================================================
+// MOBILE-FRIENDLY METRIC CARD (Works on all platforms)
+// ============================================================================
+const MiniProgressCard = ({ metricName, data, currentValue, trend }) => {
+  if (!data || data.length === 0) return null;
+
+  const getChangePercentage = () => {
+    if (data.length < 2) return null;
+    const first = data[0].value;
+    const last = data[data.length - 1].value;
+    const change = ((last - first) / first * 100).toFixed(1);
+    return change;
+  };
+
+  const change = getChangePercentage();
+  
+  return (
+    <View style={mobileStyles.miniProgressCard}>
+      <View style={mobileStyles.miniProgressHeader}>
+        <Text style={mobileStyles.miniProgressMetric} numberOfLines={1}>{metricName}</Text>
+        <Ionicons 
+          name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'} 
+          size={20} 
+          color={trend === 'up' ? COLORS.success : trend === 'down' ? COLORS.error : COLORS.textSecondary}
+        />
+      </View>
+      <Text style={mobileStyles.miniProgressValue}>{currentValue || '—'}</Text>
+      
+      <View style={mobileStyles.miniProgressFooter}>
+        <Text style={mobileStyles.miniProgressRange}>
+          {data.length} assessment{data.length !== 1 ? 's' : ''}
+        </Text>
+        {change !== null && (
+          <Text style={[
+            mobileStyles.miniProgressChange,
+            { color: change > 0 ? COLORS.success : change < 0 ? COLORS.error : COLORS.textSecondary }
+          ]}>
+            {change > 0 ? `+${change}%` : `${change}%`}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+};
 
 export default function KidProgressScreen() {
   const route = useRoute();
@@ -249,6 +306,16 @@ export default function KidProgressScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+        {/* Platform Feature Notice */}
+        {Platform.OS !== 'web' && (
+          <View style={styles.platformNotice}>
+            <Ionicons name="information-circle" size={20} color={COLORS.primary} />
+            <Text style={styles.platformNoticeText}>
+              📊 View advanced charts and comparisons on the web version
+            </Text>
+          </View>
+        )}
+        
         {/* Kid Info Card */}
         <View style={styles.kidInfoCard}>
           <View style={styles.kidInfoHeader}>
@@ -357,55 +424,84 @@ export default function KidProgressScreen() {
         {/* Charts View */}
         {viewMode === 'charts' && (
           <>
-            {/* Progress Charts Grid */}
-            <View style={styles.chartsSection}>
-              <Text style={styles.sectionTitle}>Performance Metrics</Text>
-              {Object.entries(progressData).slice(0, 4).map(([metricId, data]) => (
-                <ProgressChart
-                  key={metricId}
-                  data={data}
-                  label={metricId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  currentValue={getLatestValue(metricId)}
-                  trend={getTrend(metricId)}
-                />
-              ))}
-            </View>
+            {Platform.OS === 'web' && ProgressChart ? (
+              <>
+                {/* Web: Advanced Charts */}
+                <View style={styles.chartsSection}>
+                  <Text style={styles.sectionTitle}>Performance Metrics</Text>
+                  {Object.entries(progressData).slice(0, 4).map(([metricId, data]) => (
+                    <ProgressChart
+                      key={metricId}
+                      data={data}
+                      label={metricId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      currentValue={getLatestValue(metricId)}
+                      trend={getTrend(metricId)}
+                    />
+                  ))}
+                </View>
 
-            {/* Detailed Line Chart */}
-            {selectedMetric && progressData[selectedMetric] && (
-              <View style={styles.detailedChartSection}>
-                <Text style={styles.sectionTitle}>Detailed Progress</Text>
-                <LineChart
-                  data={progressData[selectedMetric]}
-                  metricName={selectedMetric.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  height={280}
-                  showGrid={true}
-                />
-              </View>
-            )}
+                {/* Detailed Line Chart */}
+                {selectedMetric && progressData[selectedMetric] && LineChart && (
+                  <View style={styles.detailedChartSection}>
+                    <Text style={styles.sectionTitle}>Detailed Progress</Text>
+                    <LineChart
+                      data={progressData[selectedMetric]}
+                      metricName={selectedMetric.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      height={280}
+                      showGrid={true}
+                    />
+                  </View>
+                )}
 
-            {/* Skills Radar Chart */}
-            {radarData.length > 0 && (
-              <View style={styles.radarSection}>
-                <RadarChart
-                  data={radarData}
-                  title="Skills Profile"
-                  height={320}
-                />
-              </View>
-            )}
+                {/* Skills Radar Chart */}
+                {radarData.length > 0 && RadarChart && (
+                  <View style={styles.radarSection}>
+                    <RadarChart
+                      data={radarData}
+                      title="Skills Profile"
+                      height={320}
+                    />
+                  </View>
+                )}
 
-            {/* Percentile Chart (Example for one metric) */}
-            {assessments.length > 0 && (
-              <View style={styles.percentileSection}>
-                <PercentileChart
-                  percentile={72}
-                  metricName="Speed"
-                  kidValue={getLatestValue('speed') || '—'}
-                  unit="seconds"
-                  ageGroup={kid.age_group}
-                />
-              </View>
+                {/* Percentile Chart */}
+                {assessments.length > 0 && PercentileChart && (
+                  <View style={styles.percentileSection}>
+                    <PercentileChart
+                      percentile={72}
+                      metricName="Speed"
+                      kidValue={getLatestValue('speed') || '—'}
+                      unit="seconds"
+                      ageGroup={kid.age_group}
+                    />
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Mobile: Simplified metric cards */}
+                <View style={styles.chartsSection}>
+                  <Text style={styles.sectionTitle}>Performance Metrics</Text>
+                  <View style={mobileStyles.metricsGrid}>
+                    {Object.entries(progressData).map(([metricId, data]) => (
+                      <MiniProgressCard
+                        key={metricId}
+                        metricName={metricId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        data={data}
+                        currentValue={getLatestValue(metricId)}
+                        trend={getTrend(metricId)}
+                      />
+                    ))}
+                  </View>
+                  
+                  {Object.keys(progressData).length === 0 && (
+                    <View style={styles.emptyCharts}>
+                      <Ionicons name="bar-chart-outline" size={48} color={COLORS.textSecondary} />
+                      <Text style={styles.emptyChartsText}>No metrics data available</Text>
+                    </View>
+                  )}
+                </View>
+              </>
             )}
           </>
         )}
@@ -445,15 +541,16 @@ export default function KidProgressScreen() {
         )}
 
         {/* Empty State */}
-        {assessments.length === 0 && (
+        {assessments.length === 0 && viewMode === 'charts' && (
           <View style={styles.emptyState}>
             <Ionicons name="analytics-outline" size={64} color={COLORS.textSecondary} />
-            <Text style={styles.emptyText}>No assessments yet</Text>
-            <Text style={styles.emptySubtext}>Start by creating an assessment</Text>
+            <Text style={styles.emptyText}>No assessments yet for {kid.name}</Text>
+            <Text style={styles.emptySubtext}>Create an assessment to start tracking progress</Text>
             <TouchableOpacity
               style={styles.emptyButton}
-              onPress={() => navigation.navigate('Assessment')}
+              onPress={() => navigation.navigate('NewAssessment', { kidId, sportId })}
             >
+              <Ionicons name="add-circle" size={20} color={COLORS.white} style={{ marginRight: 8 }} />
               <Text style={styles.emptyButtonText}>Create Assessment</Text>
             </TouchableOpacity>
           </View>
@@ -468,9 +565,21 @@ export default function KidProgressScreen() {
       {assessments.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => navigation.navigate('Comparison', { kidId, sportId })}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              navigation.navigate('Comparison', { kidId, sportId });
+            } else {
+              setErrorMessage('Advanced comparisons are available on the web version for the best experience.');
+              setErrorModalVisible(true);
+            }
+          }}
         >
           <Ionicons name="stats-chart" size={24} color={COLORS.white} />
+          {Platform.OS !== 'web' && (
+            <View style={styles.fabBadge}>
+              <Text style={styles.fabBadgeText}>WEB</Text>
+            </View>
+          )}
         </TouchableOpacity>
       )}
 
@@ -572,11 +681,21 @@ export default function KidProgressScreen() {
               style={styles.menuOption}
               onPress={() => {
                 setMenuModalVisible(false);
-                navigation.navigate('Comparison', { kidId, sportId });
+                if (Platform.OS === 'web') {
+                  navigation.navigate('Comparison', { kidId, sportId });
+                } else {
+                  setErrorMessage('Advanced comparisons are available on the web version for the best experience with interactive charts.');
+                  setErrorModalVisible(true);
+                }
               }}
             >
               <Ionicons name="stats-chart" size={24} color={COLORS.primary} />
-              <Text style={styles.menuOptionText}>Compare</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.menuOptionText}>Compare</Text>
+                {Platform.OS !== 'web' && (
+                  <Text style={styles.menuOptionSubtext}>Available on web</Text>
+                )}
+              </View>
             </TouchableOpacity>
 
             <View style={styles.menuDivider} />
@@ -721,6 +840,15 @@ const styles = StyleSheet.create({
   activeViewModeText: { color: COLORS.white },
 
   chartsSection: { marginHorizontal: 20, marginBottom: 20 },
+  emptyCharts: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyChartsText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 12,
+  },
   detailedChartSection: { marginHorizontal: 20, marginBottom: 20 },
   radarSection: { marginHorizontal: 20, marginBottom: 20 },
   percentileSection: { marginHorizontal: 20, marginBottom: 20 },
@@ -750,12 +878,34 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginTop: 16 },
   emptySubtext: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8, marginBottom: 24 },
   emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   emptyButtonText: { fontSize: 16, fontWeight: 'bold', color: COLORS.white },
+
+  platformNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary + '15',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+    gap: 10,
+  },
+  platformNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 18,
+  },
 
   fab: {
     position: 'absolute',
@@ -772,6 +922,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
+  },
+  fabBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.warning,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  fabBadgeText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
 
   bottomPadding: { height: 100 },
@@ -878,6 +1044,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
+  menuOptionSubtext: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
   menuDivider: {
     height: 1,
     backgroundColor: COLORS.border,
@@ -888,5 +1059,60 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.error,
     textAlign: 'center',
+  },
+});
+
+// Mobile-friendly metric card styles
+const mobileStyles = StyleSheet.create({
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  miniProgressCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    width: SMALL_SCREEN ? '100%' : (width - 64) / 2,
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  miniProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  miniProgressMetric: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    flex: 1,
+    marginRight: 8,
+  },
+  miniProgressValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 12,
+  },
+  miniProgressFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  miniProgressRange: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  miniProgressChange: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

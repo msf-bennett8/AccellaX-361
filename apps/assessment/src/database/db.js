@@ -330,6 +330,51 @@ export const initDatabase = async () => {
     CREATE INDEX IF NOT EXISTS idx_results_metric_value ON assessment_results(metric_id, value);
     CREATE INDEX IF NOT EXISTS idx_assessments_date_status ON assessments(assessment_date, status);
   `);
+
+  // Add legal acceptance columns to users table if they don't exist
+  try {
+    await db.execAsync(`
+      ALTER TABLE users ADD COLUMN agreed_to_terms_version TEXT;
+    `);
+    console.log('✅ Migration: Added agreed_to_terms_version column to users table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+
+  try {
+    await db.execAsync(`
+      ALTER TABLE users ADD COLUMN agreed_to_terms_at DATETIME;
+    `);
+    console.log('✅ Migration: Added agreed_to_terms_at column to users table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+
+  try {
+    await db.execAsync(`
+      ALTER TABLE users ADD COLUMN agreed_to_privacy_version TEXT;
+    `);
+    console.log('✅ Migration: Added agreed_to_privacy_version column to users table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
+
+  try {
+    await db.execAsync(`
+      ALTER TABLE users ADD COLUMN agreed_to_privacy_at DATETIME;
+    `);
+    console.log('✅ Migration: Added agreed_to_privacy_at column to users table');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) {
+      console.warn('⚠️ Migration warning:', error.message);
+    }
+  }
   
   // Add sports columns to kids table if they don't exist
   try {

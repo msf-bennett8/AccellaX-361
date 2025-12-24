@@ -192,106 +192,152 @@ export default function HistoryReportScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Filter Summary Card */}
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryHeader}>
-              <Ionicons name="filter" size={20} color={COLORS.primary} />
-              <Text style={styles.summaryTitle}>Applied Filters</Text>
+          {/* Filter summary removed - clean data view */}
+
+          {/* Assessment Data Table */}
+          <View style={styles.tableContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Assessment Records</Text>
+              <Text style={styles.sectionCount}>{filteredAssessments.length}</Text>
             </View>
-            <Text style={styles.summaryText}>{getFilterSummary()}</Text>
-          </View>
 
-          {/* Export Format Selector */}
-          <View style={styles.formatCard}>
-            <Text style={styles.formatLabel}>Export Format:</Text>
-            <View style={styles.formatOptions}>
-              {formatOptions.map(option => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.formatOption,
-                    exportFormat === option.value && styles.formatOptionActive,
-                  ]}
-                  onPress={() => setExportFormat(option.value)}
-                >
-                  <Ionicons 
-                    name={option.icon} 
-                    size={20} 
-                    color={exportFormat === option.value ? COLORS.white : COLORS.primary} 
-                  />
-                  <Text style={[
-                    styles.formatOptionText,
-                    exportFormat === option.value && styles.formatOptionTextActive,
-                  ]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Data Table Preview */}
-          <View style={styles.tableCard}>
-            <Text style={styles.tableTitle}>Data Preview</Text>
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-              <View>
-                {/* Table Header */}
-                <View style={styles.tableRow}>
-                  <Text style={[styles.tableCell, styles.tableHeader, styles.nameColumn]}>Kid Name</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader, styles.sportColumn]}>Sport</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader, styles.dateColumn]}>Date</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader, styles.yearColumn]}>Year</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader, styles.termColumn]}>Term</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader, styles.metricsColumn]}>Metrics</Text>
-                </View>
-
-                {/* Table Rows */}
-                {filteredAssessments.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="document-outline" size={48} color={COLORS.textSecondary} />
-                    <Text style={styles.emptyText}>No assessments to display</Text>
+            {filteredAssessments.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="document-text-outline" size={64} color={COLORS.textSecondary} />
+                <Text style={styles.emptyText}>No assessments found</Text>
+                <Text style={styles.emptySubtext}>Try adjusting your filters</Text>
+              </View>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                <View style={styles.table}>
+                  {/* Table Header - Dynamic based on metrics */}
+                  <View style={styles.tableHeaderRow}>
+                    <Text style={[styles.tableHeaderCell, styles.nameColumn]}>Kid Name</Text>
+                    <Text style={[styles.tableHeaderCell, styles.dateColumn]}>Date</Text>
+                    <Text style={[styles.tableHeaderCell, styles.yearColumn]}>Year</Text>
+                    <Text style={[styles.tableHeaderCell, styles.termColumn]}>Term</Text>
+                    <Text style={[styles.tableHeaderCell, styles.ageColumn]}>Age</Text>
+                    
+                    {/* Dynamic Metric Columns with Units */}
+                    {(() => {
+                      // Get all unique metric IDs from assessments
+                      const metricMap = new Map();
+                      filteredAssessments.forEach(a => {
+                        if (a.results) {
+                          a.results.forEach(r => {
+                            if (!metricMap.has(r.metric_id)) {
+                              metricMap.set(r.metric_id, {
+                                id: r.metric_id,
+                                name: r.metric_name || r.metric_id.replace(/_/g, ' '),
+                                type: r.metric?.type || r.type,
+                                unit: r.metric?.unit || r.unit,
+                              });
+                            }
+                          });
+                        }
+                      });
+                      
+                      const metrics = Array.from(metricMap.values());
+                      
+                      return metrics.map(metric => (
+                        <View key={metric.id} style={[styles.tableHeaderCell, styles.metricColumn]}>
+                          <Text style={styles.tableHeaderText} numberOfLines={2}>
+                            {metric.name.toUpperCase()}
+                          </Text>
+                          {(metric.unit || metric.type) && (
+                            <Text style={styles.headerSubtext}>
+                              {metric.type === 'rating' ? '/10' : 
+                               metric.type === 'timed' ? 'sec' :
+                               metric.type === 'counted' ? 'reps' :
+                               metric.unit || ''}
+                            </Text>
+                          )}
+                        </View>
+                      ));
+                    })()}
                   </View>
-                ) : (
-                  filteredAssessments.slice(0, 20).map((assessment, index) => (
-                    <View
-                      key={assessment.id}
-                      style={[
-                        styles.tableRow,
-                        index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
-                      ]}
-                    >
-                      <Text style={[styles.tableCell, styles.nameColumn]}>
-                        {assessment.kidName}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.sportColumn]}>
-                        {assessment.sportName}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.dateColumn]}>
-                        {format(parseISO(assessment.assessment_date), 'MMM dd, yyyy')}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.yearColumn]}>
-                        {assessment.year || 'N/A'}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.termColumn]}>
-                        {assessment.term || 'N/A'}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.metricsColumn]}>
-                        {assessment.results?.length || 0}
-                      </Text>
-                    </View>
-                  ))
-                )}
-              </View>
-            </ScrollView>
 
-            {filteredAssessments.length > 20 && (
-              <View style={styles.previewNote}>
-                <Ionicons name="information-circle" size={16} color="#FF9800" />
-                <Text style={styles.previewNoteText}>
-                  Showing first 20 of {filteredAssessments.length} records. Full data in export.
-                </Text>
-              </View>
+                  {/* Table Rows - Dynamic metric values */}
+                  {filteredAssessments.map((assessment, index) => {
+                    // Get all unique metric IDs from all assessments
+                    const metricMap = new Map();
+                    filteredAssessments.forEach(a => {
+                      if (a.results) {
+                        a.results.forEach(r => {
+                          if (!metricMap.has(r.metric_id)) {
+                            metricMap.set(r.metric_id, {
+                              id: r.metric_id,
+                              type: r.metric?.type || r.type,
+                            });
+                          }
+                        });
+                      }
+                    });
+                    const metrics = Array.from(metricMap.values());
+                    
+                    // Build metric values map for this assessment
+                    const metricValues = {};
+                    if (assessment.results) {
+                      assessment.results.forEach(r => {
+                        metricValues[r.metric_id] = r.value;
+                      });
+                    }
+                    
+                    return (
+                      <TouchableOpacity
+                        key={assessment.id}
+                        style={[
+                          styles.tableRow,
+                          index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
+                        ]}
+                        onPress={() => {
+                          navigation.navigate('History', {
+                            screen: 'AssessmentDetail',
+                            params: { 
+                              assessmentId: assessment.id,
+                              kidId: assessment.kid_id, 
+                              sportId: assessment.sport_id 
+                            }
+                          });
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.tableCell, styles.nameColumn]}>{assessment.kidName || 'Unknown'}</Text>
+                        <Text style={[styles.tableCell, styles.dateColumn]}>
+                          {format(parseISO(assessment.assessment_date), 'MMM dd, yyyy')}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.yearColumn]}>{assessment.year || 'N/A'}</Text>
+                        <Text style={[styles.tableCell, styles.termColumn]}>{assessment.term || 'N/A'}</Text>
+                        <Text style={[styles.tableCell, styles.ageColumn]}>
+                          {assessment.kidAgeGroup || assessment.age_group || 'N/A'}
+                        </Text>
+                        
+                        {/* Dynamic Metric Value Columns */}
+                        {metrics.map(metric => (
+                          <Text key={metric.id} style={[styles.tableCell, styles.metricColumn]}>
+                            {(() => {
+                              const value = metricValues[metric.id];
+                              if (!value) return '—';
+                              
+                              // Format based on metric type
+                              switch (metric.type) {
+                                case 'rating':
+                                  return `${value}/10`;
+                                case 'timed':
+                                  return `${parseFloat(value).toFixed(2)}s`;
+                                case 'counted':
+                                  return `${value} reps`;
+                                default:
+                                  return value;
+                              }
+                            })()}
+                          </Text>
+                        ))}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
             )}
           </View>
 
@@ -299,37 +345,14 @@ export default function HistoryReportScreen() {
         </ScrollView>
       </View>
 
-      {/* Floating Action Buttons */}
-      {filteredAssessments.length > 0 && (
-        <>
-          <TouchableOpacity
-            style={[styles.fab, styles.fabShare]}
-            onPress={handleShare}
-            activeOpacity={0.8}
-            disabled={loading}
-          >
-            <Ionicons name="share-outline" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.fab, styles.fabDownload]}
-            onPress={handleExport}
-            activeOpacity={0.8}
-            disabled={loading}
-          >
-            {loading ? (
-              <LoadingSpinner size="small" color={COLORS.white} />
-            ) : (
-              <>
-                <Ionicons name="download" size={24} color={COLORS.white} />
-                <View style={styles.fabBadge}>
-                  <Text style={styles.fabBadgeText}>{filteredAssessments.length}</Text>
-                </View>
-              </>
-            )}
-          </TouchableOpacity>
-        </>
-      )}
+      {/* Feedback FAB */}
+      <TouchableOpacity
+        style={styles.feedbackFab}
+        onPress={() => setShowComingSoonModal(true)}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={28} color={COLORS.white} />
+      </TouchableOpacity>
 
       {/* No Data Modal */}
       <Modal visible={showNoDataModal} transparent animationType="fade">
@@ -350,15 +373,18 @@ export default function HistoryReportScreen() {
         </View>
       </Modal>
 
-      {/* Coming Soon Modal */}
+      {/* Feedback Modal */}
       <Modal visible={showComingSoonModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Ionicons name="information-circle" size={48} color={COLORS.primary} />
+              <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
             </View>
-            <Text style={styles.modalTitle}>Coming Soon</Text>
-            <Text style={styles.modalMessage}>{comingSoonFeature} will be available soon</Text>
+            <Text style={styles.modalTitle}>Satisfied?</Text>
+            <Text style={styles.modalMessage}>
+              Contact support if you need additional features.{'\n\n'}
+              You can download or view full history on the History screen.
+            </Text>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalButtonFull]}
               onPress={() => setShowComingSoonModal(false)}
@@ -425,156 +451,29 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 32,
   },
-  summaryCard: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  summaryText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
-  formatCard: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  formatLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 12,
-  },
-  formatOptions: {
-    gap: 8,
-  },
-  formatOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
-    gap: 12,
-  },
-  formatOptionActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  formatOptionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  formatOptionTextActive: {
-    color: COLORS.white,
-  },
-  tableCard: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  tableTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 12,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  tableRowEven: {
-    backgroundColor: COLORS.white,
-  },
-  tableRowOdd: {
-    backgroundColor: COLORS.backgroundDark,
-  },
-  tableCell: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    fontSize: 13,
-    color: COLORS.text,
-  },
-  tableHeader: {
-    fontWeight: 'bold',
-    backgroundColor: COLORS.primary,
-    color: COLORS.white,
-  },
-  nameColumn: { width: 150 },
-  sportColumn: { width: 120 },
-  dateColumn: { width: 120 },
-  yearColumn: { width: 100 },
-  termColumn: { width: 80 },
-  metricsColumn: { width: 80 },
+  // Summary card styles removed - clean view
+  // Format selector styles removed
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.text,
     marginTop: 16,
-  },
-  previewNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
-  },
-  previewNoteText: {
-    fontSize: 13,
-    color: '#F57C00',
-    flex: 1,
   },
   bottomPadding: {
     height: 32,
   },
-  fab: {
+  feedbackFab: {
     position: 'absolute',
     right: 24,
+    bottom: 24,
     width: 56,
     height: 56,
     borderRadius: 28,
+    backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
@@ -583,33 +482,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     zIndex: 1000,
-  },
-  fabShare: {
-    bottom: 104,
-    backgroundColor: '#4CAF50',
-  },
-  fabDownload: {
-    bottom: 24,
-    backgroundColor: '#2196F3',
-  },
-  fabBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#FF5252',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-  fabBadgeText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   
   // Modal Styles
@@ -663,5 +535,105 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  
+  // Table Styles
+  tableContainer: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  sectionCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  table: {
+    width: '100%',
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+  },
+  tableHeaderCell: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+  tableHeaderText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  headerSubtext: {
+    fontSize: 10,
+    color: '#E3F2FD',
+    marginTop: 2,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  tableRowEven: {
+    backgroundColor: COLORS.white,
+  },
+  tableRowOdd: {
+    backgroundColor: '#F5F5F5',
+  },
+  tableCell: {
+    fontSize: 13,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  nameColumn: {
+    width: 150,
+    textAlign: 'left',
+  },
+  dateColumn: {
+    width: 110,
+  },
+  yearColumn: {
+    width: 90,
+  },
+  termColumn: {
+    width: 70,
+  },
+  ageColumn: {
+    width: 60,
+  },
+  metricColumn: {
+    width: 100,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

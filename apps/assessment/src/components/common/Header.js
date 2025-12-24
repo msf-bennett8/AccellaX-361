@@ -358,9 +358,7 @@ const Header = ({
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={[styles.iconText, { color: iconColor }]}>
-                {rightIcon}
-              </Text>
+              <Ionicons name={rightIcon} size={24} color={iconColor} />
             </TouchableOpacity>
           )}
           {showAvatar && userProfile && (

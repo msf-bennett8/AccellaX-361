@@ -1,7 +1,7 @@
 // Location: /apps/assessment/src/screens/History/HistoryScreen.js
 // Hybrid assessment history with list/calendar views and advanced filters
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Modal,
+  Animated,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -39,9 +40,11 @@ export default function HistoryScreen() {
   // Search
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Scroll behavior
+  // Scroll behavior with animation
   const [showControls, setShowControls] = useState(true);
   const [scrollY, setScrollY] = useState(0);
+  const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const controlsTranslateY = useRef(new Animated.Value(0)).current;
   
   // Filter dropdowns
   const [showYearDropdown, setShowYearDropdown] = useState(false);
@@ -66,14 +69,6 @@ export default function HistoryScreen() {
     performance: 'all', // 'all', 'excellent', 'good', 'needsWork'
     customStartDate: null,
     customEndDate: null,
-  });
-
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    thisWeek: 0,
-    thisMonth: 0,
-    lastAssessmentDate: null,
   });
 
   // PHASE 5: Pagination state
@@ -180,8 +175,7 @@ export default function HistoryScreen() {
       setCurrentPage(page);
       setTotalCount(result.total);
       setTotalPages(Math.ceil(result.total / PAGE_SIZE));
-      
-      calculateStats(enrichedAssessments);
+   
       setLoading(false);
       setLoadingMore(false);
 
@@ -228,23 +222,6 @@ export default function HistoryScreen() {
     setRefreshing(true);
     await loadHistory();
     setRefreshing(false);
-  };
-
-  const calculateStats = (data) => {
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = startOfMonth(now);
-
-    const thisWeek = data.filter(a => new Date(a.assessment_date) >= oneWeekAgo).length;
-    const thisMonth = data.filter(a => new Date(a.assessment_date) >= oneMonthAgo).length;
-    const lastDate = data.length > 0 ? data.sort((a, b) => new Date(b.assessment_date) - new Date(a.assessment_date))[0].assessment_date : null;
-
-    setStats({
-      total: data.length,
-      thisWeek,
-      thisMonth,
-      lastAssessmentDate: lastDate,
-    });
   };
 
   const applyFilters = () => {
@@ -408,15 +385,9 @@ console.log('🔍 Year filter debug:', {
     <TouchableOpacity
       key={assessment.id}
       style={styles.assessmentCard}
-      onPress={async () => {
-        // PHASE 5: Lazy load results before navigation
-        if (!assessment.results) {
-          console.log('🔄 Lazy loading results for assessment:', assessment.id);
-          const results = await getAssessmentResultsLazy(assessment.id);
-          assessment.results = results;
-        }
-        
-        navigation.navigate('KidProgress', { 
+      onPress={() => {
+        navigation.push('AssessmentDetail', { 
+          assessmentId: assessment.id,
           kidId: assessment.kid_id, 
           sportId: assessment.sport_id 
         });
@@ -450,6 +421,75 @@ console.log('🔍 Year filter debug:', {
       <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
     </TouchableOpacity>
   );
+
+  const renderGridView = () => {
+    // Group assessments by kid to show latest metrics per kid
+    const kidsMap = new Map();
+    
+    filteredAssessments.forEach(assessment => {
+      if (!kidsMap.has(assessment.kid_id) || 
+          new Date(assessment.assessment_date) > new Date(kidsMap.get(assessment.kid_id).assessment_date)) {
+        kidsMap.set(assessment.kid_id, assessment);
+      }
+    });
+    
+    const latestAssessments = Array.from(kidsMap.values());
+    
+    return (
+      <View style={styles.gridContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <View>
+            {/* Table Header */}
+            <View style={styles.tableRow}>
+              <Text style={[styles.tableCell, styles.tableHeader, styles.nameColumn]}>
+                Name
+              </Text>
+              <Text style={[styles.tableCell, styles.tableHeader, styles.sportColumn]}>
+                Sport
+              </Text>
+              <Text style={[styles.tableCell, styles.tableHeader, styles.dateColumn]}>
+                Date
+              </Text>
+              <Text style={[styles.tableCell, styles.tableHeader, styles.metricsColumn]}>
+                Metrics
+              </Text>
+            </View>
+
+            {/* Table Rows */}
+            {latestAssessments.map((assessment, index) => (
+              <TouchableOpacity
+                key={assessment.id}
+                style={[
+                  styles.tableRow,
+                  index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
+                ]}
+                onPress={() => {
+                  navigation.push('AssessmentDetail', { 
+                    assessmentId: assessment.id,
+                    kidId: assessment.kid_id, 
+                    sportId: assessment.sport_id 
+                  });
+                }}
+              >
+                <Text style={[styles.tableCell, styles.nameColumn]}>
+                  {assessment.kidName}
+                </Text>
+                <Text style={[styles.tableCell, styles.sportColumn]}>
+                  {assessment.sportName}
+                </Text>
+                <Text style={[styles.tableCell, styles.dateColumn]}>
+                  {format(parseISO(assessment.assessment_date), 'MMM dd, yyyy')}
+                </Text>
+                <Text style={[styles.tableCell, styles.metricsColumn]}>
+                  {assessment.result_count || 0}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -490,43 +530,52 @@ console.log('🔍 Year filter debug:', {
             
             if (Math.abs(scrollDifference) > 30) {
               if (scrollDifference > 0 && currentScrollY > 50) {
-                // Scrolling down - hide controls
+                // Scrolling down - hide controls with animation
                 setShowControls(false);
+                Animated.parallel([
+                  Animated.timing(controlsOpacity, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(controlsTranslateY, {
+                    toValue: -50,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
               } else if (scrollDifference < 0) {
-                // Scrolling up - show controls
+                // Scrolling up - show controls with animation
                 setShowControls(true);
+                Animated.parallel([
+                  Animated.timing(controlsOpacity, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(controlsTranslateY, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
               }
             }
           }}
           scrollEventThrottle={16}
         >
-        {/* Stats Cards - Horizontal Scroll */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsScrollContainer}
-          style={styles.statsContainer}
-        >
-          <View style={styles.statCard}>
-            <Ionicons name="calendar" size={24} color={COLORS.primary} />
-            <Text style={styles.statNumber}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="trending-up" size={24} color={COLORS.success} />
-            <Text style={styles.statNumber}>{stats.thisWeek}</Text>
-            <Text style={styles.statLabel}>This Week</Text>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="calendar-month" size={24} color="#2196F3" />
-            <Text style={styles.statNumber}>{stats.thisMonth}</Text>
-            <Text style={styles.statLabel}>This Month</Text>
-          </View>
-        </ScrollView>
+        {/* Stats Cards removed - available in Home screen and Drawer */}
 
         {/* Search Bar */}
-        {showControls && (
-        <View style={styles.searchContainer}>
+        <Animated.View 
+          style={[
+            styles.searchContainer,
+            {
+              opacity: controlsOpacity,
+              transform: [{ translateY: controlsTranslateY }],
+            }
+          ]}
+        >
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -542,12 +591,18 @@ console.log('🔍 Year filter debug:', {
           >
             <Text style={styles.searchButtonText}>Search</Text>
           </TouchableOpacity>
-        </View>
-        )}
+        </Animated.View>
 
         {/* Controls Row: Grid/List + View Full Report + Filters */}
-        {showControls && (
-          <View style={styles.controlsContainer}>
+        <Animated.View 
+          style={[
+            styles.controlsContainer,
+            {
+              opacity: controlsOpacity,
+              transform: [{ translateY: controlsTranslateY }],
+            }
+          ]}
+        >
             {/* Grid/List Toggle */}
             <View style={styles.viewToggle}>
               <TouchableOpacity
@@ -575,7 +630,7 @@ console.log('🔍 Year filter debug:', {
             {/* View Full Report Button */}
             <TouchableOpacity
               style={styles.reportButton}
-              onPress={() => navigation.navigate('Export', {
+              onPress={() => navigation.navigate('Reports', {
                 preSelectedAssessments: filteredAssessments,
               })}
             >
@@ -590,12 +645,19 @@ console.log('🔍 Year filter debug:', {
             >
               <Ionicons name="filter" size={20} color="#2196F3" />
             </TouchableOpacity>
-          </View>
-        )}
+          </Animated.View>
 
         {/* Filter Chips - Horizontal Scroll */}
-        {showControls && showFilterChips && (
-          <View style={styles.filtersContainer}>
+        {showFilterChips && (
+          <Animated.View 
+            style={[
+              styles.filtersContainer,
+              {
+                opacity: controlsOpacity,
+                transform: [{ translateY: controlsTranslateY }],
+              }
+            ]}
+          >
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
@@ -757,7 +819,7 @@ console.log('🔍 Year filter debug:', {
                 ))}
               </View>
             )}
-          </View>
+          </Animated.View>
         )}
 
         {/* Active Filters Display */}
@@ -788,7 +850,7 @@ console.log('🔍 Year filter debug:', {
           </View>
         )}
 
-        {/* Assessment List */}
+        {/* Assessment List/Grid */}
         {filteredAssessments.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="document-text-outline" size={64} color={COLORS.textSecondary} />
@@ -796,6 +858,30 @@ console.log('🔍 Year filter debug:', {
             <Text style={styles.emptySubtext}>
               {getActiveFilterCount() > 0 ? 'Try adjusting your filters' : 'Start by creating an assessment'}
             </Text>
+          </View>
+        ) : viewMode === 'calendar' ? (
+          <View style={styles.assessmentsList}>
+            {renderGridView()}
+            
+            {/* PHASE 5: Load More Button */}
+            {currentPage < totalPages && (
+              <TouchableOpacity
+                style={styles.loadMoreButton}
+                onPress={loadMoreAssessments}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <Text style={styles.loadMoreText}>Loading...</Text>
+                ) : (
+                  <>
+                    <Text style={styles.loadMoreText}>
+                      Load More ({filteredAssessments.length} of {totalCount})
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#2196F3" />
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <View style={styles.assessmentsList}>
@@ -829,19 +915,12 @@ console.log('🔍 Year filter debug:', {
       {filteredAssessments.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => navigation.navigate('HistoryReport', {
-            filteredAssessments,
-            filters: {
-              year: selectedYear,
-              term: selectedTerm,
-              sport: selectedSport,
-              ageGroup: selectedAgeGroup,
-              sort: selectedSort,
-            },
+          onPress={() => navigation.navigate('Export', {
+            preSelectedAssessments: filteredAssessments,
           })}
           activeOpacity={0.8}
         >
-          <Ionicons name="share-outline" size={28} color={COLORS.white} />
+          <Ionicons name="list-outline" size={28} color={COLORS.white} />
         </TouchableOpacity>
       )}
 
@@ -917,23 +996,6 @@ const styles = StyleSheet.create({
   },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textSecondary },
-  
-  statsContainer: { paddingHorizontal: 12, paddingVertical: 16 },
-  statsScrollContainer: { gap: 12, paddingHorizontal: 8 },
-  statCard: { 
-    width: 120,
-    backgroundColor: COLORS.white, 
-    padding: 16, 
-    borderRadius: 12, 
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  statNumber: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginVertical: 8 },
-  statLabel: { fontSize: 12, color: COLORS.textSecondary },
   
   searchContainer: {
     flexDirection: 'row',
@@ -1210,5 +1272,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#2196F3',
+  },
+  gridContainer: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  tableRowEven: {
+    backgroundColor: COLORS.white,
+  },
+  tableRowOdd: {
+    backgroundColor: COLORS.backgroundDark,
+  },
+  tableCell: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  tableHeader: {
+    fontWeight: 'bold',
+    backgroundColor: COLORS.primary,
+    color: COLORS.white,
+  },
+  nameColumn: {
+    width: 150,
+  },
+  sportColumn: {
+    width: 120,
+  },
+  dateColumn: {
+    width: 120,
+  },
+  metricsColumn: {
+    width: 80,
   },
 });

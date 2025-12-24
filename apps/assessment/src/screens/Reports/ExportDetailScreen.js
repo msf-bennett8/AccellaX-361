@@ -1,7 +1,7 @@
 // Location: /apps/assessment/src/screens/Reports/ExportDetailScreen.js
 // Export Detail Screen - Interactive preview with dynamic sport-specific columns
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Alert,
   Platform,
   Share,
+  Animated,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -47,14 +49,26 @@ export default function ExportDetailScreen() {
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [exporting, setExporting] = useState(false);
+  
+  // Animation refs for smooth hide/show
+  const [showFilters, setShowFilters] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
+  const filtersOpacity = useRef(new Animated.Value(1)).current;
+  const filtersTranslateY = useRef(new Animated.Value(0)).current;
 
   // Filter state
   const [selectedYear, setSelectedYear] = useState(filters.year || 'all');
   const [selectedTerm, setSelectedTerm] = useState(filters.term || 'all');
-  const [selectedSport, setSelectedSport] = useState(filters.sport || 'all');
+  const [selectedSport, setSelectedSport] = useState(filters.sport || 'football');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState(filters.ageGroup || 'all');
   const [selectedFormat, setSelectedFormat] = useState(format || 'csv');
   const [selectedSort, setSelectedSort] = useState('none');
+
+  // Lazy loading state
+  const [displayedKids, setDisplayedKids] = useState([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   // Options
   const [yearOptions, setYearOptions] = useState([]);
@@ -180,11 +194,11 @@ export default function ExportDetailScreen() {
       console.log('👶 After age group filter:', filtered.length);
     }
 
-    // Get metrics for selected sport
+    // Get metrics for selected sport (default to football)
     const { getMetricsBySport } = await import('../../config/metrics');
-    const sportMetrics = selectedSport !== 'all' 
+    const sportMetrics = selectedSport && selectedSport !== 'all' 
       ? getMetricsBySport(selectedSport)
-      : [];
+      : getMetricsBySport('football');
     
     console.log('📊 Loaded metrics for sport:', sportMetrics.length);
 
@@ -196,6 +210,10 @@ export default function ExportDetailScreen() {
 
     console.log('✅ Final filtered data:', filtered.length, 'kids');
     setFilteredData({ kids: filtered, metrics: sportMetrics });
+    
+    // Initialize lazy loading with first page
+    setCurrentPage(1);
+    setDisplayedKids(filtered.slice(0, ITEMS_PER_PAGE));
   };
 
   // Apply sorting logic
@@ -226,6 +244,28 @@ export default function ExportDetailScreen() {
     }
   };
 
+  // Load more kids for lazy loading
+  const loadMoreKids = useCallback(() => {
+    if (loadingMore) return;
+    
+    const allKids = filteredData.kids || [];
+    const nextPage = currentPage + 1;
+    const startIndex = currentPage * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    
+    if (startIndex >= allKids.length) return; // No more data
+    
+    setLoadingMore(true);
+    
+    // Simulate loading delay for smooth UX
+    setTimeout(() => {
+      const newKids = allKids.slice(startIndex, endIndex);
+      setDisplayedKids(prev => [...prev, ...newKids]);
+      setCurrentPage(nextPage);
+      setLoadingMore(false);
+    }, 300);
+  }, [filteredData.kids, currentPage, loadingMore]);
+
   // Calculate average metric value for sorting
   const calculateAverageMetric = (kid) => {
     const values = Object.values(kid.metricValues || {}).filter(v => v != null);
@@ -253,7 +293,7 @@ export default function ExportDetailScreen() {
 
   // Format metric value for display
   const formatMetricValue = (metric, value) => {
-    if (!value) return '--';
+    if (!value) return '—';
 
     switch (metric.type) {
       case 'numeric':
@@ -263,7 +303,7 @@ export default function ExportDetailScreen() {
       case 'timed':
         return `${parseFloat(value).toFixed(2)}s`;
       case 'counted':
-        return `${value}`;
+        return `${value} reps`;
       default:
         return value.toString();
     }
@@ -694,9 +734,61 @@ export default function ExportDetailScreen() {
         onLeftPress={() => navigation.goBack()}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        onScroll={(e) => {
+          const currentScrollY = e.nativeEvent.contentOffset.y;
+          const scrollDifference = currentScrollY - scrollY;
+          
+          setScrollY(currentScrollY);
+          
+          if (Math.abs(scrollDifference) > 30) {
+            if (scrollDifference > 0 && currentScrollY > 50) {
+              // Scrolling down - hide filters
+              setShowFilters(false);
+              Animated.parallel([
+                Animated.timing(filtersOpacity, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(filtersTranslateY, {
+                  toValue: -50,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+              ]).start();
+            } else if (scrollDifference < 0) {
+              // Scrolling up - show filters
+              setShowFilters(true);
+              Animated.parallel([
+                Animated.timing(filtersOpacity, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(filtersTranslateY, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+              ]).start();
+            }
+          }
+        }}
+        scrollEventThrottle={16}
+      >
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        <Animated.View 
+          style={[
+            styles.searchContainer,
+            {
+              opacity: filtersOpacity,
+              transform: [{ translateY: filtersTranslateY }],
+            }
+          ]}
+        >
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -712,10 +804,18 @@ export default function ExportDetailScreen() {
           >
             <Text style={styles.searchButtonText}>Search</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Filter Chips - Horizontal Scroll */}
-        <View style={styles.filtersContainer}>
+        <Animated.View 
+          style={[
+            styles.filtersContainer,
+            {
+              opacity: filtersOpacity,
+              transform: [{ translateY: filtersTranslateY }],
+            }
+          ]}
+        >
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -921,10 +1021,18 @@ export default function ExportDetailScreen() {
               ))}
             </View>
           )}
-        </View>
+        </Animated.View>
 
         {/* Active Filters Summary */}
-        <View style={styles.filtersSection}>
+        <Animated.View 
+          style={[
+            styles.filtersSection,
+            {
+              opacity: filtersOpacity,
+              transform: [{ translateY: filtersTranslateY }],
+            }
+          ]}
+        >
           <Text style={styles.filtersLabel}>Active Filters:</Text>
           <View style={styles.filterChips}>
             {selectedSport && selectedSport !== 'all' && (
@@ -950,10 +1058,18 @@ export default function ExportDetailScreen() {
               </View>
             )}
           </View>
-        </View>
+        </Animated.View>
 
         {/* Select Mode Controls */}
-        <View style={styles.selectAllContainer}>
+        <Animated.View 
+          style={[
+            styles.selectAllContainer,
+            {
+              opacity: filtersOpacity,
+              transform: [{ translateY: filtersTranslateY }],
+            }
+          ]}
+        >
           {!isSelectMode ? (
             <TouchableOpacity
               onPress={() => setIsSelectMode(true)}
@@ -983,14 +1099,14 @@ export default function ExportDetailScreen() {
               </TouchableOpacity>
             </>
           )}
-        </View>
+        </Animated.View>
 
         {/* Data Preview Table */}
         <View style={styles.previewCard}>
           <Text style={styles.previewTitle}>Data Preview</Text>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-            <View>
+            <View style={styles.tableContainer}>
               {/* Table Header */}
               <View style={styles.tableRow}>
                 {isSelectMode && (
@@ -1005,21 +1121,26 @@ export default function ExportDetailScreen() {
                   Age
                 </Text>
 
-                {/* Dynamic Metric Columns */}
+                {/* Dynamic Metric Columns with Units */}
                 {(filteredData.metrics || []).slice(0, 8).map((metric) => (
                   <View key={metric.id} style={[styles.tableCell, styles.tableHeader, styles.metricColumn]}>
                     <Text style={styles.tableHeaderText} numberOfLines={2}>
                       {metric.name}
                     </Text>
-                    {metric.unit && (
-                      <Text style={styles.headerSubtext}>{metric.unit}</Text>
+                    {(metric.unit || metric.type) && (
+                      <Text style={styles.headerSubtext}>
+                        {metric.type === 'rating' ? '/10' : metric.type === 'timed' ? 'sec' : metric.type === 'counted' ? 'reps' : metric.unit || ''}
+                      </Text>
                     )}
                   </View>
                 ))}
               </View>
 
-              {/* Table Rows */}
-              {(filteredData.kids || []).map((kid, index) => {
+              {/* Table Rows with Lazy Loading */}
+              <FlatList
+              data={displayedKids}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item: kid, index }) => {
                 const isSelected = selectedRecords.includes(kid.id);
 
                 return (
@@ -1055,7 +1176,24 @@ export default function ExportDetailScreen() {
                     ))}
                   </TouchableOpacity>
                 );
-              })}
+              }}
+              onEndReached={loadMoreKids}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={() => 
+                loadingMore ? (
+                  <View style={styles.loadingFooter}>
+                    <LoadingSpinner size="small" color="#2196F3" />
+                    <Text style={styles.loadingText}>Loading more...</Text>
+                  </View>
+                ) : displayedKids.length < (filteredData.kids?.length || 0) ? (
+                  <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreKids}>
+                    <Text style={styles.loadMoreText}>Load More ({filteredData.kids.length - displayedKids.length} remaining)</Text>
+                  </TouchableOpacity>
+                ) : null
+              }
+              scrollEnabled={false}
+              nestedScrollEnabled={false}
+            />
             </View>
           </ScrollView>
 
@@ -1070,40 +1208,8 @@ export default function ExportDetailScreen() {
           )}
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.copyButton}
-            onPress={handleCopyToClipboard}
-            disabled={exporting}
-          >
-            <Ionicons name="copy" size={22} color="#4CAF50" />
-            <Text style={styles.copyButtonText}>Copy</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.shareButton}
-            onPress={handleShare}
-            disabled={exporting}
-          >
-            <Ionicons name="share-social" size={22} color="#2196F3" />
-            <Text style={styles.shareButtonText}>Share</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Download FAB */}
-        <TouchableOpacity
-          style={[styles.fab, exporting && styles.fabDisabled]}
-          onPress={handleExport}
-          disabled={exporting}
-          activeOpacity={0.8}
-        >
-          {exporting ? (
-            <LoadingSpinner size="small" color={COLORS.white} />
-          ) : (
-            <Ionicons name="cloud-download" size={32} color={COLORS.white} />
-          )}
-        </TouchableOpacity>
+        {/* Bottom Padding for Fixed Buttons */}
+        <View style={styles.bottomPadding} />
 
         {/* Success Modal */}
         {showSuccessModal && (
@@ -1147,6 +1253,41 @@ export default function ExportDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Fixed Bottom Action Buttons */}
+      <View style={styles.fixedBottomActions}>
+        <TouchableOpacity
+          style={styles.copyButton}
+          onPress={handleCopyToClipboard}
+          disabled={exporting}
+        >
+          <Ionicons name="copy" size={22} color="#4CAF50" />
+          <Text style={styles.copyButtonText}>Copy</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={handleShare}
+          disabled={exporting}
+        >
+          <Ionicons name="share-social" size={22} color="#2196F3" />
+          <Text style={styles.shareButtonText}>Share</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Download FAB - Floating Right */}
+      <TouchableOpacity
+        style={[styles.fab, exporting && styles.fabDisabled]}
+        onPress={handleExport}
+        disabled={exporting}
+        activeOpacity={0.8}
+      >
+        {exporting ? (
+          <LoadingSpinner size="small" color={COLORS.white} />
+        ) : (
+          <Ionicons name="cloud-download" size={32} color={COLORS.white} />
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -1409,11 +1550,27 @@ const styles = StyleSheet.create({
     color: '#F57C00',
     flex: 1,
   },
-  actionsContainer: {
+  bottomPadding: {
+    height: 100,
+  },
+  fixedBottomActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     gap: 12,
-    marginHorizontal: 20,
-    marginVertical: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    zIndex: 100,
   },
   shareButton: {
     flex: 1,
@@ -1431,24 +1588,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2196F3',
-  },
-  exportButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2196F3',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  exportButtonDisabled: {
-    backgroundColor: COLORS.border,
-  },
-  exportButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.white,
   },
   copyButton: {
     flex: 1,
@@ -1471,18 +1610,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 12,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#2196F3',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    zIndex: 1000,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    zIndex: 200,
   },
   fabDisabled: {
     backgroundColor: COLORS.border,
@@ -1540,5 +1679,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.white,
+  },
+  tableContainer: {
+    flex: 1,
+  },
+  loadingFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  loadMoreButton: {
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2196F3',
   },
 });
