@@ -13,6 +13,7 @@ import {
   Linking,
   Share,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import { useNavigation } from '@react-navigation/native';
@@ -21,6 +22,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../../components/common/Header';
 import { COLORS, APP_NAME, APP_VERSION } from '../../utils/constants';
 import { getCurrentUser, logoutUser, isAdminOrOwner } from '../../utils/auth';
+import ReadOnlyTermsModal from '../../components/modals/ReadOnlyTermsModal';
+import ReadOnlyPrivacyModal from '../../components/modals/ReadOnlyPrivacyModal';
 
 export default function SettingsScreen({ onLogout }) {
   const navigation = useNavigation();
@@ -73,10 +76,11 @@ export default function SettingsScreen({ onLogout }) {
   const [storageInfo, setStorageInfo] = useState({
     totalAssessments: 0,
     totalKids: 0,
-    databaseSize: '0 MB',
+    databaseSize: 'Calculating...',
     photosSize: '0 MB',
     videosSize: '0 MB',
   });
+  const [isLoadingStorage, setIsLoadingStorage] = useState(true);
   const [syncStatus, setSyncStatus] = useState({
     isSyncing: false,
     lastSync: null,
@@ -89,6 +93,8 @@ export default function SettingsScreen({ onLogout }) {
     type: 'info',
     onConfirm: () => {},
   });
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -123,13 +129,35 @@ export default function SettingsScreen({ onLogout }) {
   };
 
   const loadStorageInfo = async () => {
+    setIsLoadingStorage(true);
     try {
-      // TODO: Replace with actual database queries
       const { getStorageInfo } = await import('../../database/db');
       const info = await getStorageInfo();
-      setStorageInfo(info || storageInfo);
+      
+      if (info) {
+        setStorageInfo(info);
+        console.log('✅ Storage info loaded:', info);
+      } else {
+        console.warn('⚠️ Storage info returned null');
+        setStorageInfo({
+          totalAssessments: 0,
+          totalKids: 0,
+          databaseSize: 'Unknown',
+          photosSize: '0 MB',
+          videosSize: '0 MB',
+        });
+      }
     } catch (error) {
-      console.log('⚠️ Storage info not yet available');
+      console.error('❌ Error loading storage info:', error);
+      setStorageInfo({
+        totalAssessments: 0,
+        totalKids: 0,
+        databaseSize: 'Error',
+        photosSize: '0 MB',
+        videosSize: '0 MB',
+      });
+    } finally {
+      setIsLoadingStorage(false);
     }
   };
 
@@ -526,7 +554,7 @@ export default function SettingsScreen({ onLogout }) {
       onConfirm: async () => {
         setModalConfig({ ...modalConfig, visible: false });
         try {
-          await Linking.openURL('mailto:support@accellax361.com?subject=Assessment App Support');
+          await Linking.openURL('mailto:zablonbennett.nextgen@gmail.com?subject=AccellaX Assessment App Support');
         } catch (error) {
           console.error('Error opening email:', error);
         }
@@ -534,7 +562,7 @@ export default function SettingsScreen({ onLogout }) {
       onCancel: async () => {
         setModalConfig({ ...modalConfig, visible: false });
         try {
-          await Linking.openURL('https://wa.me/254700000000');
+          await Linking.openURL('https://wa.me/254715061213');
         } catch (error) {
           console.error('Error opening WhatsApp:', error);
         }
@@ -543,29 +571,52 @@ export default function SettingsScreen({ onLogout }) {
   };
 
   const handleRateApp = () => {
-    const storeUrl = Platform.select({
-      ios: 'https://apps.apple.com/app/id123456789',
-      android: 'https://play.google.com/store/apps/details?id=com.accellax361.assessment',
+    setModalConfig({
+      visible: true,
+      title: '⭐ Rate AccellaX 361°',
+      message: 'Love the app? Your rating helps us improve and reach more coaches!',
+      type: 'info',
+      showCancel: true,
+      confirmText: 'Rate Now',
+      cancelText: 'Maybe Later',
+      onConfirm: async () => {
+        setModalConfig({ ...modalConfig, visible: false });
+        try {
+          const storeUrl = Platform.select({
+            ios: 'https://apps.apple.com/app/id123456789',
+            android: 'https://play.google.com/store/apps/details?id=com.nextgen.accellax361',
+            default: 'https://accellax361.com',
+          });
+          await Linking.openURL(storeUrl);
+        } catch (error) {
+          console.error('Error opening store:', error);
+        }
+      },
+      onCancel: () => setModalConfig({ ...modalConfig, visible: false }),
     });
-    Linking.openURL(storeUrl);
   };
 
   const handleShareApp = async () => {
     try {
-      await Share.share({
-        message: `Check out ${APP_NAME}! Track fitness assessments for young athletes. Download: https://accellax361.com/app`,
+      const result = await Share.share({
+        title: 'AccellaX 361° - Youth Sports Assessment',
+        message: `🏆 Check out ${APP_NAME}!\n\nProfessional fitness assessment app for youth sports academies. Track athlete performance, generate reports, and monitor progress.\n\nDownload: https://accellax361.com/app\n\nPackage: com.nextgen.accellax361`,
       });
+      
+      if (result.action === Share.sharedAction) {
+        console.log('App shared successfully');
+      }
     } catch (error) {
       console.error('Error sharing app:', error);
     }
   };
 
   const handlePrivacyPolicy = () => {
-    Linking.openURL('https://accellax361.com/privacy');
+    setShowPrivacyModal(true);
   };
 
   const handleTermsOfService = () => {
-    Linking.openURL('https://accellax361.com/terms');
+    setShowTermsModal(true);
   };
 
   const handleCheckForUpdates = () => {
@@ -716,18 +767,29 @@ export default function SettingsScreen({ onLogout }) {
 
           {/* Storage Info */}
           <View style={styles.storageCard}>
-            <Text style={styles.storageTitle}>Storage Usage</Text>
+            <View style={styles.storageHeaderRow}>
+              <Text style={styles.storageTitle}>Storage Usage</Text>
+              {isLoadingStorage && (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              )}
+            </View>
             <View style={styles.storageRow}>
               <Text style={styles.storageLabel}>Assessments:</Text>
-              <Text style={styles.storageValue}>{storageInfo.totalAssessments}</Text>
+              <Text style={styles.storageValue}>
+                {isLoadingStorage ? '...' : storageInfo.totalAssessments}
+              </Text>
             </View>
             <View style={styles.storageRow}>
               <Text style={styles.storageLabel}>Athletes:</Text>
-              <Text style={styles.storageValue}>{storageInfo.totalKids}</Text>
+              <Text style={styles.storageValue}>
+                {isLoadingStorage ? '...' : storageInfo.totalKids}
+              </Text>
             </View>
             <View style={styles.storageRow}>
               <Text style={styles.storageLabel}>Database:</Text>
-              <Text style={styles.storageValue}>{storageInfo.databaseSize}</Text>
+              <Text style={styles.storageValue}>
+                {isLoadingStorage ? 'Calculating...' : storageInfo.databaseSize}
+              </Text>
             </View>
             <View style={styles.storageRow}>
               <Text style={styles.storageLabel}>Photos:</Text>
@@ -1050,26 +1112,44 @@ export default function SettingsScreen({ onLogout }) {
 
             <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => navigation.navigate('SportManagement')}
+          onPress={() => {
+            setModalConfig({
+              visible: true,
+              title: '🏅 Manage Sports',
+              message: 'Sport management interface is coming soon! You will be able to add custom sports, define metrics, and configure sport-specific assessments.',
+              type: 'info',
+              confirmText: 'Got It',
+              onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+            });
+          }}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons name="medal" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
           <View style={styles.actionButtonTextContainer}>
             <Text style={styles.actionButtonTitle}>Manage Sports</Text>
-            <Text style={styles.actionButtonSubtitle}>Add/edit sports & metrics</Text>
+            <Text style={styles.actionButtonSubtitle}>Add/edit sports & metrics (Coming Soon)</Text>
           </View>
           <Text style={styles.actionButtonArrow}>→</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => navigation.navigate('BenchmarkSettings')}
+          onPress={() => {
+            setModalConfig({
+              visible: true,
+              title: '📊 Benchmark Settings',
+              message: 'Benchmark configuration is coming soon! You will be able to customize performance standards, percentile thresholds, and age-group benchmarks.',
+              type: 'info',
+              confirmText: 'Got It',
+              onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+            });
+          }}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons name="ruler" size={24} color={COLORS.primary} style={styles.actionButtonIcon} />
           <View style={styles.actionButtonTextContainer}>
             <Text style={styles.actionButtonTitle}>Benchmark Settings</Text>
-            <Text style={styles.actionButtonSubtitle}>Configure standards & percentiles</Text>
+            <Text style={styles.actionButtonSubtitle}>Configure standards & percentiles (Coming Soon)</Text>
           </View>
           <Text style={styles.actionButtonArrow}>→</Text>
         </TouchableOpacity>
@@ -1216,7 +1296,7 @@ export default function SettingsScreen({ onLogout }) {
       
       <View style={styles.aboutCard}>
         <Text style={styles.aboutAppName}>{APP_NAME}</Text>
-        <Text style={styles.aboutVersion}>Version {APP_VERSION || '1.0.0'}</Text>
+        <Text style={styles.aboutVersion}>Version {APP_VERSION || '1.0.1'}</Text>
         <Text style={styles.aboutCopyright}>© 2025 AccellaX 361°</Text>
         <Text style={styles.aboutDescription}>
           Professional fitness assessment platform for youth sports academies.
@@ -1259,6 +1339,17 @@ export default function SettingsScreen({ onLogout }) {
         showCancel={modalConfig.showCancel}
         onConfirm={modalConfig.onConfirm}
         onCancel={modalConfig.onCancel}
+      />
+
+      {/* Read-Only Legal Document Modals */}
+      <ReadOnlyTermsModal
+        visible={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
+
+      <ReadOnlyPrivacyModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
       />
     </View>
     );
@@ -1441,6 +1532,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
+    marginBottom: 12,
+  },
+  storageHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   storageRow: {

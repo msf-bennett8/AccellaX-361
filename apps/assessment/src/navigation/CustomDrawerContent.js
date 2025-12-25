@@ -161,7 +161,7 @@ export default function CustomDrawerContent(props) {
             <MaterialCommunityIcons name="shield-star" size={14} color={COLORS.textSecondary} />
             <Text style={styles.appName}>{APP_NAME}</Text>
           </View>
-          <Text style={styles.version}>Version 1.0.0</Text>
+          <Text style={styles.version}>Version 1.0.1</Text>
         </View>
       </View>
 

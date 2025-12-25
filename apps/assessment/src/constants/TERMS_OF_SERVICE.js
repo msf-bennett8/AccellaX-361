@@ -4,11 +4,11 @@
 export const TERMS_OF_SERVICE = `
 **TERMS OF SERVICE**
 
-**Effective Date:** January 24, 2025
+**Effective Date:** January 01, 2025
 
-Welcome to AccellaX 361° Sports Academy Assessment ("AccellaX 361° SAS," "we," "our," or "us"). These Terms of Service ("Terms") govern your use of our mobile and web-based sports assessment application and related services (collectively, the "Service").
+Welcome to AccellaX 361° Sports Assessment ("AccellaX 361° SAS," "we," "our," or "us"). These Terms of Service ("Terms") govern your use of our mobile and web-based sports assessment application and related services (collectively, the "Service").
 
-By creating an account, accessing, or using the Service, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the Service.
+By creating an account, accessing, or using the Service, you agree to be bound by these Terms. If you do not agree to these Terms, **DO NOT** use the Service.
 
 ---
 
@@ -72,7 +72,7 @@ You agree NOT to:
 - Collect or store personal data of other users without consent
 - Use automated systems (bots, scrapers) to access the Service
 
-Violation of these rules may result in immediate account termination.
+Violation of these rules may result in immediate account termination or even lega actions taked based on magnitude of breach.
 
 ---
 
@@ -161,7 +161,7 @@ To the fullest extent permitted by law:
 
 **10.2 Our Liability Limits**
 - We are not liable for indirect, incidental, or consequential damages
-- Our total liability shall not exceed the amount you paid for the Service in the past 12 months
+- Our total liability shall not exceed the amount you paid for the Service for subscribed packages as by our financial terms of service.  YOU SHOULD NOT purchase or consume paid services in districution if not officially from AccellaX 361° (Accella Silicon by swimming ducks)
 - We are not liable for injuries, health issues, or performance outcomes
 
 **10.3 User Responsibility**
@@ -201,7 +201,7 @@ You agree to indemnify and hold harmless Accella Silicon by Swimming Ducks and i
 We may update these Terms from time to time. If we make material changes:
 - We will notify you via email or in-app notification
 - You will be required to accept the new Terms to continue using the Service
-- Continued use after changes constitutes acceptance
+- Initial and continued use after changes constitutes acceptance
 
 ---
 
@@ -241,11 +241,11 @@ You may not assign these Terms. We may assign them without notice.
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** January 24, 2025
+**Version:** 1.0.1  
+**Last Updated:** December 24, 2025
 `;
 
-export const TERMS_VERSION = '1.0.0';
-export const TERMS_EFFECTIVE_DATE = 'January 24, 2025';
+export const TERMS_VERSION = '1.0.1';
+export const TERMS_EFFECTIVE_DATE = 'January 01, 2025';
 
 export default TERMS_OF_SERVICE;

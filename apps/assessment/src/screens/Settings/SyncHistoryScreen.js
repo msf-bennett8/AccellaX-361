@@ -126,8 +126,8 @@ export default function SyncHistoryScreen() {
       <View style={styles.container}>
         <Header
           title="Sync History"
-          leftIcon="arrow-back"
-          onLeftPress={() => navigation.goBack()}
+          leftIcon="←"
+          onLeftPress={() => navigation.navigate('Settings')}
         />
         <LoadingSpinner text="Loading history..." />
       </View>
@@ -138,8 +138,8 @@ export default function SyncHistoryScreen() {
     <View style={styles.container}>
       <Header
         title="Sync History"
-        leftIcon="arrow-back"
-        onLeftPress={() => navigation.goBack()}
+        leftIcon="←"
+        onLeftPress={() => navigation.navigate('Settings')}
       />
 
       {/* Filter Tabs */}

@@ -4,9 +4,9 @@
 export const PRIVACY_POLICY = `
 **PRIVACY POLICY**
 
-**Effective Date:** January 24, 2025
+**Effective Date:** January 01, 2025
 
-Accella Silicon by Swimming Ducks ("we," "our," or "us") operates AccellaX 361° Sports Academy Assessment ("AccellaX 361° SAS"). This Privacy Policy explains how we collect, use, store, and protect your personal information.
+Accella Silicon by Swimming Ducks ("we," "our," or "us") operates AccellaX 361° Sports Assessment ("AccellaX 361° SAS"). This Privacy Policy explains how we collect, use, store, and protect your personal information.
 
 By using AccellaX 361° SAS, you consent to the practices described in this Privacy Policy.
 
@@ -33,7 +33,7 @@ By using AccellaX 361° SAS, you consent to the practices described in this Priv
 - House team assignment
 
 **1.3 Assessment Data**
-- Fitness metrics (height, weight, endurance, strength, flexibility, agility, speed, power)
+- Fitness metrics (height, weight, endurance, strength, flexibility, agility, speed, power, reaction time, etc. )
 - Sport-specific skills (passing, shooting, dribbling, etc.)
 - Sport IQ ratings
 - Performance test results (Beep Test, Cooper Test, etc.)
@@ -78,13 +78,13 @@ We use your information to:
 
 **3.1 Storage Locations**
 - **Local Storage:** Data is stored on your device using SQLite (mobile) or AsyncStorage (web)
-- **Cloud Storage:** Data is synced to Firebase Cloud Firestore when online
-- **Server Location:** Firebase servers (Google Cloud Platform)
+- **Cloud Storage:** Data is synced to our cloud servers when online
+- **Server Location:** AccellaX 361°servers (Silicon Cloud Platform)
 
 **3.2 Security Measures**
 - Passwords are hashed using SHA-256 encryption
 - Data transmission is encrypted using HTTPS/TLS
-- Firebase security rules restrict access to authorized users only
+- Database security rules restrict access to authorized users only
 - Regular security audits and updates
 
 **3.3 Offline Data**
@@ -167,9 +167,9 @@ You have the right to:
 
 ## 8. INTERNATIONAL DATA TRANSFERS
 
-- Our servers are located in Google Cloud Platform data centers
+- Our servers are located in Silicon Cloud Platform data centers
 - Data may be transferred and processed outside Kenya
-- We ensure adequate data protection through Firebase security measures
+- We ensure adequate data protection through Silicon security measures
 
 ---
 
@@ -217,7 +217,7 @@ In the event of a data breach:
 We may update this Privacy Policy from time to time. If we make material changes:
 - We will notify you via email or in-app notification
 - You will be required to accept the new Privacy Policy to continue using the Service
-- Continued use after changes constitutes acceptance
+- Platform usage and Continued use after changes constitutes acceptance
 
 ---
 
@@ -240,9 +240,9 @@ If you are in the EU or a region with data protection laws, our legal basis for 
 
 ---
 
-## 15. YOUR CALIFORNIA PRIVACY RIGHTS (CCPA)
+## 15. YOUR KENYAN PRIVACY RIGHTS (KPPR)
 
-If you are a California resident, you have the right to:
+If you are a Kenyan resident, you have the right to:
 - Know what personal information is collected
 - Request deletion of your personal information
 - Opt out of the sale of your information (we do NOT sell your data)
@@ -265,11 +265,11 @@ If you are a California resident, you have the right to:
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** January 24, 2025
+**Version:** 1.0.1  
+**Last Updated:** December 01, 2025
 `;
 
-export const PRIVACY_VERSION = '1.0.0';
-export const PRIVACY_EFFECTIVE_DATE = 'January 24, 2025';
+export const PRIVACY_VERSION = '1.0.1';
+export const PRIVACY_EFFECTIVE_DATE = 'January 03, 2025';
 
 export default PRIVACY_POLICY;

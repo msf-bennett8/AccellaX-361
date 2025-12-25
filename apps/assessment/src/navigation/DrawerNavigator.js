@@ -7,6 +7,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../utils/constants';
 import { Platform, View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { isAdminOrOwner } from '../utils/auth';
 
 // Import Screens
 import HomeScreen from '../screens/Home/HomeScreen';
@@ -37,6 +38,16 @@ const Drawer = createDrawerNavigator();
 
 export default function DrawerNavigator({ onLogout }) {
   const [pendingAssessments, setPendingAssessments] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+  
+  const checkAdminStatus = async () => {
+    const adminStatus = await isAdminOrOwner();
+    setIsAdmin(adminStatus);
+  };
 
   // Helper to update browser tab title
   const updatePageTitle = (routeName) => {
@@ -252,29 +263,33 @@ export default function DrawerNavigator({ onLogout }) {
         {(props) => <SettingsScreen {...props} onLogout={onLogout} />}
       </Drawer.Screen>
 
-      {/* 10. APP LOGS - Comprehensive logging */}
-      <Drawer.Screen
-        name="AppLogs"
-        component={AppLogScreen}
-        options={{
-          title: 'App Logs',
-          drawerIcon: ({ color }) => (
-            <MaterialCommunityIcons name="text-box-search" size={22} color={color} />
-          ),
-        }}
-      />
+      {/* 10. APP LOGS - Comprehensive logging (Admin Only) */}
+      {isAdmin && (
+        <Drawer.Screen
+          name="AppLogs"
+          component={AppLogScreen}
+          options={{
+            title: 'App Logs',
+            drawerIcon: ({ color }) => (
+              <MaterialCommunityIcons name="text-box-search" size={22} color={color} />
+            ),
+          }}
+        />
+      )}
 
-      {/* 11. DATABASE DIAGNOSTICS - SQLite inspection */}
-      <Drawer.Screen
-        name="DatabaseDiagnostics"
-        component={SQLiteDiagnosticScreen}
-        options={{
-          title: 'Database Diagnostics',
-          drawerIcon: ({ color }) => (
-            <MaterialCommunityIcons name="database-search" size={22} color={color} />
-          ),
-        }}
-      />
+      {/* 11. DATABASE DIAGNOSTICS - SQLite inspection (Admin Only) */}
+      {isAdmin && (
+        <Drawer.Screen
+          name="DatabaseDiagnostics"
+          component={SQLiteDiagnosticScreen}
+          options={{
+            title: 'Database Diagnostics',
+            drawerIcon: ({ color }) => (
+              <MaterialCommunityIcons name="database-search" size={22} color={color} />
+            ),
+          }}
+        />
+      )}
 
       {/* 12. OFFLINE QUEUE - Pending sync operations */}
       <Drawer.Screen

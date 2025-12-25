@@ -16,6 +16,8 @@ import { AssessmentProvider } from './src/contexts/AssessmentContext';
 import { initDatabase } from './src/database/db';
 import { seedDatabaseIfNeeded } from './src/database/seeds';
 import { COLORS } from './src/utils/constants';
+import LegalUpdateModal from './src/components/modals/LegalUpdateModal';
+import { checkForVersionUpdate, recordLegalAcceptance, saveLegalAcceptanceToDatabase } from './src/utils/legalTracker';
 
 // ✅ Suppress known deprecation warnings (optional)
 import { LogBox } from 'react-native';
@@ -29,6 +31,7 @@ LogBox.ignoreLogs([
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLegalUpdateModal, setShowLegalUpdateModal] = useState(false);
 
   useEffect(() => {
     initializeApp();
@@ -110,10 +113,42 @@ export default function App() {
     });
 
     if (userProfile && currentUserId) {
+  // Sync legal documents from GitHub (background, non-blocking)
+  const { checkGitHubForUpdates } = await import('./src/utils/legalTracker');
+  checkGitHubForUpdates().catch(err => console.log('GitHub sync skipped:', err.message));
+  
+  // Check if legal terms have been updated
+  const versionCheck = await checkForVersionUpdate();
+      
+      if (versionCheck.needsReAcceptance) {
+        console.log('⚠️ Legal terms updated - showing acceptance modal');
+        setShowLegalUpdateModal(true);
+      }
+      
       setIsAuthenticated(true);
       console.log('✅ User authenticated - navigating to main app');
     } else {
       console.warn('⚠️ Auth check failed - staying on auth screens');
+    }
+  };
+
+  const handleAcceptLegalUpdate = async () => {
+    try {
+      const userProfileJson = await AsyncStorage.getItem('userProfile');
+      const userProfile = JSON.parse(userProfileJson);
+      
+      // Record acceptance
+      const result = await recordLegalAcceptance(userProfile.userId, userProfile.email);
+      
+      if (result.success) {
+        // Save to database
+        await saveLegalAcceptanceToDatabase(userProfile.userId, result.data);
+        
+        console.log('✅ Legal update accepted');
+        setShowLegalUpdateModal(false);
+      }
+    } catch (error) {
+      console.error('❌ Error accepting legal update:', error);
     }
   };
 
@@ -146,6 +181,12 @@ export default function App() {
             onLogout={handleLogout}
           />
         </NavigationContainer>
+        
+        {/* Global Legal Update Modal - blocks all interaction */}
+        <LegalUpdateModal
+          visible={showLegalUpdateModal && isAuthenticated}
+          onAccept={handleAcceptLegalUpdate}
+        />
         </SyncProvider>
       </AssessmentProvider>
       </UndoProvider>

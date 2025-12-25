@@ -19,6 +19,7 @@ import Header from '../../components/common/Header';
 import SyncIndicator from '../../components/common/SyncIndicator';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import LegalDocumentBottomSheet from '../../components/modals/LegalDocumentBottomSheet';
 import { COLORS, APP_NAME, AGE_GROUPS, SPORTS } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
 import { getAssessmentStats, getAllAssessments, getDraftAssessments, deleteDraftAssessment } from '../../services/assessmentService';
@@ -26,6 +27,7 @@ import { getKidsWithSports } from '../../services/kidService';
 import { getAllSports } from '../../database/db';
 import { getAllSportsWithFitness } from '../../services/sportService';
 import { getStartOfWeek, getEndOfWeek, isThisWeek, getCurrentTerm as getTermHelper } from '../../utils/dateUtils';
+import { hasAcceptedCurrentVersion, recordLegalAcceptance, saveLegalAcceptanceToDatabase } from '../../utils/legalTracker';
 
 const { width } = Dimensions.get('window');
 
@@ -48,6 +50,9 @@ export default function HomeScreen() {
   const [topPerformers, setTopPerformers] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [draftAssessments, setDraftAssessments] = useState([]);
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [termsRead, setTermsRead] = useState(false);
+  const [privacyRead, setPrivacyRead] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     visible: false,
     title: '',
@@ -55,6 +60,45 @@ export default function HomeScreen() {
     type: 'info',
     onConfirm: () => {},
   });
+
+  // Check if OAuth user needs to accept legal terms (first time only)
+  useEffect(() => {
+    checkOAuthLegalAcceptance();
+  }, []);
+
+  const checkOAuthLegalAcceptance = async () => {
+    try {
+      const user = await getCurrentUser();
+      
+      // Only show for OAuth users (Google/Strava)
+      if (user && (user.authMethod === 'google' || user.authMethod === 'strava')) {
+        const hasAccepted = await hasAcceptedCurrentVersion();
+        
+        if (!hasAccepted) {
+          console.log('📋 OAuth user needs to accept legal terms');
+          setShowLegalModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking OAuth legal acceptance:', error);
+    }
+  };
+
+  const handleAcceptLegal = async () => {
+    try {
+      const user = await getCurrentUser();
+      
+      const result = await recordLegalAcceptance(user.id, user.email);
+      
+      if (result.success) {
+        await saveLegalAcceptanceToDatabase(user.id, result.data);
+        console.log('✅ Legal terms accepted for OAuth user');
+        setShowLegalModal(false);
+      }
+    } catch (error) {
+      console.error('Error accepting legal terms:', error);
+    }
+  };
 
   // Load data on mount and when screen focused
   useEffect(() => {
@@ -81,10 +125,16 @@ export default function HomeScreen() {
     initialize();
   }, []);
 
-  useFocusEffect(
+    useFocusEffect(
     React.useCallback(() => {
+      // Force reload dashboard data every time screen comes into focus
+      console.log('🔄 Home screen focused - forcing refresh');
       loadDashboardData();
-    }, [])
+      return () => {
+        // Cleanup if needed
+        console.log('👋 Home screen unfocused');
+      };
+    }, []) // Empty dependency array ensures this runs on every focus
   );
 
   // Loading spinner is now handled by LoadingSpinner component
@@ -954,6 +1004,17 @@ setSports(mappedSports);
           color="#1565C0"
         />
       )}
+
+      {/* Legal Acceptance Modal for OAuth Users */}
+      <LegalDocumentBottomSheet
+        visible={showLegalModal}
+        onClose={() => {}} // Prevent closing without acceptance
+        onAcceptBoth={handleAcceptLegal}
+        termsRead={termsRead}
+        privacyRead={privacyRead}
+        setTermsRead={setTermsRead}
+        setPrivacyRead={setPrivacyRead}
+      />
     </View>
   );
 }

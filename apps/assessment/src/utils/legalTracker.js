@@ -1,13 +1,33 @@
 // Location: /apps/assessment/src/utils/legalTracker.js
-// Legal Document Acceptance Tracker with Version Control
+// Legal Document Acceptance Tracker with Version Control + GitHub Sync
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Timestamp } from 'firebase/firestore';
 
-// Current versions of legal documents
+// GitHub configuration for legal documents
+const GITHUB_CONFIG = {
+  owner: 'msf-bennett8',
+  repo: 'AccellaX-361',
+  branch: 'main',
+  path: 'apps/assessment/legal-docs',
+  baseUrl: 'https://raw.githubusercontent.com',
+};
+
+// Build GitHub URLs
+const getGitHubUrl = (filename) => 
+  `${GITHUB_CONFIG.baseUrl}/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${GITHUB_CONFIG.path}/${filename}`;
+
+// GitHub file URLs
+const GITHUB_URLS = {
+  TERMS: getGitHubUrl('TERMS_OF_SERVICE.md'),
+  PRIVACY: getGitHubUrl('PRIVACY_POLICY.md'),
+  VERSION: getGitHubUrl('VERSION.txt'),
+};
+
+// Current versions of legal documents (fallback - will be synced from GitHub)
 export const LEGAL_VERSIONS = {
-  TERMS_OF_SERVICE: '1.0.0',
-  PRIVACY_POLICY: '1.0.0',
+  TERMS_OF_SERVICE: '1.0.1',
+  PRIVACY_POLICY: '1.0.1',
 };
 
 // Legal acceptance events
@@ -238,9 +258,132 @@ export const exportLegalHistory = async () => {
   }
 };
 
+/**
+ * Fetch legal documents from GitHub
+ */
+export const fetchLegalDocumentsFromGitHub = async () => {
+  try {
+    console.log('📡 Fetching legal documents from GitHub...');
+    
+    // Fetch version file
+    const versionResponse = await fetch(GITHUB_URLS.VERSION);
+    if (!versionResponse.ok) {
+      throw new Error('Failed to fetch version from GitHub');
+    }
+    const versionText = await versionResponse.text();
+    const [termsVersion, privacyVersion] = versionText.trim().split('\n');
+    
+    // Fetch terms
+    const termsResponse = await fetch(GITHUB_URLS.TERMS);
+    if (!termsResponse.ok) {
+      throw new Error('Failed to fetch terms from GitHub');
+    }
+    const termsText = await termsResponse.text();
+    
+    // Fetch privacy
+    const privacyResponse = await fetch(GITHUB_URLS.PRIVACY);
+    if (!privacyResponse.ok) {
+      throw new Error('Failed to fetch privacy from GitHub');
+    }
+    const privacyText = await privacyResponse.text();
+    
+    // Cache in AsyncStorage
+    await AsyncStorage.setItem('legal_terms_content', termsText);
+    await AsyncStorage.setItem('legal_privacy_content', privacyText);
+    await AsyncStorage.setItem('legal_terms_version_github', termsVersion);
+    await AsyncStorage.setItem('legal_privacy_version_github', privacyVersion);
+    await AsyncStorage.setItem('legal_last_sync', new Date().toISOString());
+    
+    console.log('✅ Legal documents synced from GitHub');
+    console.log(`   Terms: v${termsVersion}`);
+    console.log(`   Privacy: v${privacyVersion}`);
+    
+    return {
+      success: true,
+      versions: {
+        terms: termsVersion,
+        privacy: privacyVersion,
+      },
+      content: {
+        terms: termsText,
+        privacy: privacyText,
+      },
+    };
+  } catch (error) {
+    console.error('❌ Failed to fetch from GitHub:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get legal document content (GitHub cache or fallback to local)
+ */
+export const getLegalDocumentContent = async (type) => {
+  try {
+    // Try cached GitHub version first
+    const key = type === 'terms' ? 'legal_terms_content' : 'legal_privacy_content';
+    const cachedContent = await AsyncStorage.getItem(key);
+    
+    if (cachedContent) {
+      console.log(`✅ Using cached ${type} from GitHub`);
+      return cachedContent;
+    }
+    
+    // Fallback to embedded local files
+    console.log(`⚠️  No cached ${type}, using local fallback`);
+    const localContent = type === 'terms'
+      ? (await import('../constants/TERMS_OF_SERVICE')).TERMS_OF_SERVICE
+      : (await import('../constants/PRIVACY_POLICY')).PRIVACY_POLICY;
+    
+    return localContent;
+  } catch (error) {
+    console.error(`Error getting ${type} content:`, error);
+    return null;
+  }
+};
+
+/**
+ * Check if GitHub has newer versions
+ */
+export const checkGitHubForUpdates = async () => {
+  try {
+    const syncResult = await fetchLegalDocumentsFromGitHub();
+    
+    if (!syncResult.success) {
+      return { hasUpdates: false, offline: true };
+    }
+    
+    // Compare with current accepted versions
+    const acceptance = await getLegalAcceptance();
+    
+    if (!acceptance) {
+      return { hasUpdates: true, reason: 'No prior acceptance' };
+    }
+    
+    const termsUpdated = acceptance.termsVersion !== syncResult.versions.terms;
+    const privacyUpdated = acceptance.privacyVersion !== syncResult.versions.privacy;
+    
+    return {
+      hasUpdates: termsUpdated || privacyUpdated,
+      versions: syncResult.versions,
+      updatedDocuments: {
+        terms: termsUpdated,
+        privacy: privacyUpdated,
+      },
+    };
+  } catch (error) {
+    console.error('Error checking GitHub for updates:', error);
+    return { hasUpdates: false, error: error.message };
+  }
+};
+
 export default {
   LEGAL_VERSIONS,
   LEGAL_EVENTS,
+  GITHUB_URLS,
+  fetchLegalDocumentsFromGitHub,
+  getLegalDocumentContent,
+  checkGitHubForUpdates,
   trackDocumentOpened,
   trackDocumentScrolledToBottom,
   recordLegalAcceptance,

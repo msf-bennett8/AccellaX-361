@@ -117,7 +117,11 @@ export default function HistoryScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      loadHistory();
+      // Reset to page 1 when screen comes into focus
+      setCurrentPage(1);
+      setAssessments([]);
+      setFilteredAssessments([]);
+      loadHistory(1);
     }, [])
   );
 

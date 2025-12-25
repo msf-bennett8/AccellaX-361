@@ -22,6 +22,8 @@ import { loginUser } from '../../utils/auth';
 import { initDatabase } from '../../database/db';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
+import { signInWithGoogle, configureGoogleSignIn } from '../../services/googleOAuthService';
+import { signInWithStrava } from '../../services/stravaOAuthService';
 
 const LoginScreen = ({ navigation, onAuthComplete }) => {
   const [email, setEmail] = useState('');
@@ -43,6 +45,8 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
   // Load remembered email on mount
   useEffect(() => {
     loadRememberedCredentials();
+    // Configure Google Sign-In
+    configureGoogleSignIn();
   }, []);
 
   const loadRememberedCredentials = async () => {
@@ -202,63 +206,227 @@ const LoginScreen = ({ navigation, onAuthComplete }) => {
   };
 
   const handleGoogleLogin = async () => {
-    // TODO: Implement Google OAuth authentication
     try {
+      setIsLoading(true);
+      
       const state = await NetInfo.fetch();
       
       if (!state.isConnected) {
         setShowOfflineModal(true);
+        setIsLoading(false);
         return;
       }
 
-      // TODO: Implement Google Sign-In
-      // 1. Initialize Google Sign-In
-      // 2. Get Google credentials
-      // 3. Sign in with Firebase Auth using Google credentials
-      // 4. Create/update user profile in local database
-      // 5. Trigger sync
+      console.log('🔐 Starting Google authentication...');
+
+      // Initialize database
+      await initDatabase();
       
-      console.log('Google login will be implemented here');
-      setModalConfig({
-        visible: true,
-        title: 'Coming Soon',
-        message: 'Google authentication will be available in the next update.',
-        type: 'info',
-        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
-      });
+      // Sign in with Google (login only - checks for existing account)
+      const result = await signInWithGoogle();
+
+      if (result.success) {
+        console.log('✅ Google login successful:', result.userProfile.fullName);
+        
+        // Save user profile locally
+        const { saveUserProfile } = await import('../../utils/auth');
+        await saveUserProfile(result.userProfile);
+        
+        // Create/update user in local database
+        try {
+          const { createUser } = await import('../../database/db');
+          await createUser({
+            id: result.userId,
+            fullName: result.userProfile.fullName,
+            email: result.userProfile.email,
+            username: result.userProfile.username || '',
+            phone: result.userProfile.phone || '',
+            passwordHash: null,
+            authMethod: 'google',
+            role: result.userProfile.role || 'coach',
+            avatarBase64: result.userProfile.avatarBase64 || null,
+            isOfflineAccount: false,
+          });
+          console.log('✅ User synced to local database');
+        } catch (dbError) {
+          if (dbError.message && dbError.message.includes('UNIQUE constraint')) {
+            console.log('ℹ️ User already exists in database');
+          } else {
+            console.warn('⚠️ Failed to sync user to local DB:', dbError);
+          }
+        }
+        
+        // Trigger sync in background
+        (async () => {
+          try {
+            console.log('🔄 Triggering initial sync...');
+            const { performFullSync } = await import('../../database/sync');
+            await performFullSync(result.userId);
+          } catch (syncError) {
+            console.error('❌ Sync error:', syncError);
+          }
+        })();
+        
+        // Invalidate cache
+        const { invalidateCache } = await import('../../services/assessmentService');
+        invalidateCache();
+        
+        // Navigate
+        if (onAuthComplete) {
+          await onAuthComplete();
+        }
+        
+        // Show welcome message
+        setTimeout(() => {
+          setModalConfig({
+            visible: true,
+            title: 'Welcome Back!',
+            message: `Hello ${result.userProfile.fullName}! You've successfully signed in with Google.`,
+            type: 'success',
+            onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+          });
+        }, 500);
+        
+      } else if (result.cancelled) {
+        console.log('ℹ️ Google sign-in cancelled by user');
+      } else if (result.needsRegistration) {
+        // Account doesn't exist - show message
+        setModalConfig({
+          visible: true,
+          title: 'Account Not Found',
+          message: 'No account found with this Google account. Would you like to create a new account?',
+          type: 'info',
+          onConfirm: () => {
+            setModalConfig({ ...modalConfig, visible: false });
+            navigation.navigate('Register');
+          },
+        });
+      } else if (result.requiresBackend) {
+        // Mobile OAuth requires backend
+        setErrors({ 
+          general: 'Please use the web version for Google sign-in, or we\'ll implement a backend server soon.' 
+        });
+      } else {
+        console.error('❌ Google login failed:', result.error);
+        setErrors({ general: result.error || 'Failed to sign in with Google' });
+      }
     } catch (error) {
-      console.error('Google login error:', error);
+      console.error('❌ Google login error:', error);
+      setErrors({ 
+        general: error.message || 'An unexpected error occurred with Google sign-in' 
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleStravaLogin = async () => {
-    // TODO: Implement Strava OAuth authentication
     try {
+      setIsLoading(true);
+      
       const state = await NetInfo.fetch();
       
       if (!state.isConnected) {
         setShowOfflineModal(true);
+        setIsLoading(false);
         return;
       }
 
-      // TODO: Implement Strava OAuth
-      // 1. Open Strava OAuth authorization URL
-      // 2. Handle callback with authorization code
-      // 3. Exchange code for access token
-      // 4. Get athlete data from Strava API
-      // 5. Create/update user profile in local database
-      // 6. Trigger sync
+      console.log('🔐 Starting Strava authentication...');
+
+      // Initialize database
+      await initDatabase();
       
-      console.log('Strava login will be implemented here');
-      setModalConfig({
-        visible: true,
-        title: 'Coming Soon',
-        message: 'Strava authentication will be available in the next update.',
-        type: 'info',
-        onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
-      });
+      // Sign in with Strava (login only - checks for existing account)
+      const result = await signInWithStrava();
+
+      if (result.success) {
+        console.log('✅ Strava login successful:', result.userProfile.fullName);
+        
+        // Save user profile locally
+        const { saveUserProfile } = await import('../../utils/auth');
+        await saveUserProfile(result.userProfile);
+        
+        // Create/update user in local database
+        try {
+          const { createUser } = await import('../../database/db');
+          await createUser({
+            id: result.userId,
+            fullName: result.userProfile.fullName,
+            email: result.userProfile.email,
+            username: result.userProfile.username || '',
+            phone: result.userProfile.phone || '',
+            passwordHash: null,
+            authMethod: 'strava',
+            role: result.userProfile.role || 'coach',
+            avatarBase64: result.userProfile.avatarBase64 || null,
+            isOfflineAccount: false,
+          });
+          console.log('✅ User synced to local database');
+        } catch (dbError) {
+          if (dbError.message && dbError.message.includes('UNIQUE constraint')) {
+            console.log('ℹ️ User already exists in database');
+          } else {
+            console.warn('⚠️ Failed to sync user to local DB:', dbError);
+          }
+        }
+        
+        // Trigger sync in background
+        (async () => {
+          try {
+            console.log('🔄 Triggering initial sync...');
+            const { performFullSync } = await import('../../database/sync');
+            await performFullSync(result.userId);
+          } catch (syncError) {
+            console.error('❌ Sync error:', syncError);
+          }
+        })();
+        
+        // Invalidate cache
+        const { invalidateCache } = await import('../../services/assessmentService');
+        invalidateCache();
+        
+        // Navigate
+        if (onAuthComplete) {
+          await onAuthComplete();
+        }
+        
+        // Show welcome message
+        setTimeout(() => {
+          setModalConfig({
+            visible: true,
+            title: 'Welcome Back!',
+            message: `Hello ${result.userProfile.fullName}! You've successfully signed in with Strava.`,
+            type: 'success',
+            onConfirm: () => setModalConfig({ ...modalConfig, visible: false }),
+          });
+        }, 500);
+        
+      } else if (result.cancelled) {
+        console.log('ℹ️ Strava authorization cancelled by user');
+      } else if (result.needsRegistration) {
+        // Account doesn't exist - show message
+        setModalConfig({
+          visible: true,
+          title: 'Account Not Found',
+          message: 'No account found with this Strava profile. Would you like to create a new account?',
+          type: 'info',
+          onConfirm: () => {
+            setModalConfig({ ...modalConfig, visible: false });
+            navigation.navigate('Register');
+          },
+        });
+      } else {
+        console.error('❌ Strava login failed:', result.error);
+        setErrors({ general: result.error || 'Failed to sign in with Strava' });
+      }
     } catch (error) {
-      console.error('Strava login error:', error);
+      console.error('❌ Strava login error:', error);
+      setErrors({ 
+        general: error.message || 'An unexpected error occurred with Strava sign-in' 
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 

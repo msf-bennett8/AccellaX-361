@@ -167,7 +167,7 @@ export default function AssessmentDetailScreen() {
       <Header
         title="Assessment Details"
         subtitle={assessment.kid?.name || 'Unknown Kid'}
-        showBackButton={true}
+        leftIcon="←"
         onLeftPress={() => {
           // Clear any modals before going back
           setShowOptionsModal(false);

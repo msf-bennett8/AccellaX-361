@@ -166,8 +166,8 @@ export default function OfflineQueueScreen() {
       <View style={styles.container}>
         <Header
           title="Offline Queue"
-          leftIcon="arrow-back"
-          onLeftPress={() => navigation.goBack()}
+          leftIcon="←"
+          onLeftPress={() => navigation.navigate('Settings')}
         />
         <LoadingSpinner text="Loading queue..." />
       </View>
@@ -178,8 +178,8 @@ export default function OfflineQueueScreen() {
     <View style={styles.container}>
       <Header
         title="Offline Queue"
-        leftIcon="arrow-back"
-        onLeftPress={() => navigation.goBack()}
+        leftIcon="←"
+        onLeftPress={() => navigation.navigate('Settings')}
       />
 
       <ScrollView

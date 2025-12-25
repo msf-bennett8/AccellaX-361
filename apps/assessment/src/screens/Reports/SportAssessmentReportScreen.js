@@ -198,9 +198,10 @@ export default function SportAssessmentReportScreen() {
   };
 
   // handleShare function removed - export functionality moved to HistoryReport screen
-
-  const handleViewFullHistory = () => {
-    navigation.navigate('HistoryReport', {
+const handleViewFullHistory = () => {
+  navigation.navigate('History', {
+    screen: 'HistoryReport',
+    params: {
       filteredAssessments,
       filters: {
         sport: sportId,
@@ -209,8 +210,9 @@ export default function SportAssessmentReportScreen() {
         term: selectedTerm,
         ageGroup: selectedAgeGroup,
       },
-    });
-  };
+    },
+  });
+};
 
   const renderAssessmentCard = (assessment) => (
     <TouchableOpacity

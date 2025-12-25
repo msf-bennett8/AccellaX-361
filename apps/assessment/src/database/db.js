@@ -2314,8 +2314,8 @@ export const getStorageInfo = async () => {
         totalAssessments,
         totalKids,
         databaseSize: `${dbSizeMB} MB`,
-        photosSize: '0 MB', // Not tracked in web version
-        videosSize: '0 MB', // Not tracked in web version
+        photosSize: '0 MB',
+        videosSize: '0 MB',
       };
     }
     
@@ -2323,10 +2323,27 @@ export const getStorageInfo = async () => {
     const assessmentCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM assessments');
     const kidCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM kids WHERE status = ?', ['active']);
     
+    // Get actual database size
+    let dbSizeMB = '0.00';
+    try {
+      const sizeResult = await db.getFirstAsync(
+        "SELECT (page_count * page_size) as size FROM pragma_page_count(), pragma_page_size()"
+      );
+      
+      if (sizeResult && sizeResult.size) {
+        dbSizeMB = (sizeResult.size / 1024 / 1024).toFixed(2);
+      }
+    } catch (sizeError) {
+      console.warn('Could not calculate DB size, using estimate:', sizeError.message);
+      // Fallback: estimate based on record counts
+      const estimatedSize = ((assessmentCount?.count || 0) * 2 + (kidCount?.count || 0) * 1) / 1000;
+      dbSizeMB = estimatedSize.toFixed(2);
+    }
+    
     return {
       totalAssessments: assessmentCount?.count || 0,
       totalKids: kidCount?.count || 0,
-      databaseSize: 'Calculating...', // TODO: Get actual SQLite file size
+      databaseSize: `${dbSizeMB} MB`,
       photosSize: '0 MB',
       videosSize: '0 MB',
     };
@@ -2335,7 +2352,7 @@ export const getStorageInfo = async () => {
     return {
       totalAssessments: 0,
       totalKids: 0,
-      databaseSize: '0 MB',
+      databaseSize: 'Error',
       photosSize: '0 MB',
       videosSize: '0 MB',
     };

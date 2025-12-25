@@ -1,7 +1,7 @@
 // Location: /apps/assessment/src/components/modals/LegalDocumentBottomSheet.js
 // Bottom Sheet for displaying Terms of Service and Privacy Policy
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -18,6 +18,7 @@ import { PRIVACY_POLICY } from '../../constants/PRIVACY_POLICY';
 import {
   trackDocumentOpened,
   trackDocumentScrolledToBottom,
+  getLegalDocumentContent,
 } from '../../utils/legalTracker';
 import LegalDocumentViewer from '../common/LegalDocumentViewer';
 
@@ -41,9 +42,32 @@ const LegalDocumentBottomSheet = ({
     terms: false,
     privacy: false,
   });
+  const [content, setContent] = useState({
+    terms: TERMS_OF_SERVICE,
+    privacy: PRIVACY_POLICY,
+  });
   
   const scrollViewRef = useRef(null);
   const currentScrollPosition = useRef(0);
+
+  // Load GitHub content when modal opens
+  useEffect(() => {
+    if (visible) {
+      loadContent();
+    }
+  }, [visible]);
+
+  const loadContent = async () => {
+    const [termsContent, privacyContent] = await Promise.all([
+      getLegalDocumentContent('terms'),
+      getLegalDocumentContent('privacy'),
+    ]);
+    
+    setContent({
+      terms: termsContent || TERMS_OF_SERVICE,
+      privacy: privacyContent || PRIVACY_POLICY,
+    });
+  };
 
   // Track when document is opened
   React.useEffect(() => {
@@ -223,7 +247,7 @@ const LegalDocumentBottomSheet = ({
           <View style={styles.contentWrapper}>
             <LegalDocumentViewer 
               ref={scrollViewRef}
-              content={activeTab === 'terms' ? TERMS_OF_SERVICE : PRIVACY_POLICY}
+              content={content[activeTab]}
               onScroll={handleScroll}
             />
           </View>

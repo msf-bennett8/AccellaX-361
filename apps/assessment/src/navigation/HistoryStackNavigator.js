@@ -11,6 +11,8 @@ import KidProgressScreen from '../screens/KidProgress/KidProgressScreen';
 import ComparisonScreen from '../screens/Comparison/ComparisonScreen';
 import HistoryReportScreen from '../screens/History/HistoryReportScreen';
 import SportAssessmentReportScreen from '../screens/Reports/SportAssessmentReportScreen';
+import ReportScreen from '../screens/Reports/ReportsScreen';
+import ReportsScreen from '../screens/Reports/ReportsScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,6 +55,12 @@ export default function HistoryStackNavigator() {
         name="HistoryReport"
         component={HistoryReportScreen}
         options={{ title: 'Full Report' }}
+      />
+      
+      <Stack.Screen
+        name="Reports"
+        component={ReportsScreen}
+        options={{ title: 'Full Data' }}
       />
       
       <Stack.Screen

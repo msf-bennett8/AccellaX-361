@@ -1,0 +1,17 @@
+{
+  "name": "accellax-oauth-backend",
+  "version": "1.0.0",
+  "description": "OAuth backend for AccellaX 361° mobile app",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "node-fetch": "^2.6.1"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
