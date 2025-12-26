@@ -9,6 +9,7 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
+        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "$GOOGLE_WEB_CLIENT_ID",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "$GOOGLE_ANDROID_CLIENT_ID",
         "EXPO_PUBLIC_STRAVA_CLIENT_ID": "$STRAVA_CLIENT_ID",
@@ -19,6 +20,7 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
+        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "$GOOGLE_WEB_CLIENT_ID",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "$GOOGLE_ANDROID_CLIENT_ID",
         "EXPO_PUBLIC_STRAVA_CLIENT_ID": "$STRAVA_CLIENT_ID",
@@ -29,6 +31,7 @@
       "autoIncrement": true,
       "channel": "production",
       "env": {
+        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "$GOOGLE_WEB_CLIENT_ID",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "$GOOGLE_ANDROID_CLIENT_ID",
         "EXPO_PUBLIC_STRAVA_CLIENT_ID": "$STRAVA_CLIENT_ID",
