@@ -123,10 +123,20 @@ export default function App() {
         if (code) {
           console.log('✅ OAuth code received:', code.substring(0, 10) + '...');
           // Complete pending auth with code
-          const { completePendingAuth: completeGoogleAuth } = await import('./src/services/googleOAuthService');
-          const { completePendingAuth: completeStravaAuth } = await import('./src/services/stravaOAuthService');
-          completeGoogleAuth && completeGoogleAuth(code);
-          completeStravaAuth && completeStravaAuth(code);
+          // Try both - only the one that's waiting will respond
+          try {
+            const { completePendingAuth: completeGoogleAuth } = await import('./src/services/googleOAuthService');
+            completeGoogleAuth(code);
+          } catch (e) {
+            // Google auth not pending
+          }
+          
+          try {
+            const { completePendingAuth: completeStravaAuth } = await import('./src/services/stravaOAuthService');
+            completeStravaAuth(code);
+          } catch (e) {
+            // Strava auth not pending
+          }
         }
       }
     } catch (error) {
