@@ -1,7 +1,3 @@
-// Location: /apps/assessment/legal-docs/PRIVACY_POLICY.md
-// Privacy Policy Document for AccellaX 361° Sports Academy Assessment
-
-export const PRIVACY_POLICY = `
 **PRIVACY POLICY**
 
 **Effective Date:** January 01, 2025
@@ -267,9 +263,3 @@ If you are a Kenyan resident, you have the right to:
 
 **Version:** 1.0.1  
 **Last Updated:** December 01, 2025
-`;
-
-export const PRIVACY_VERSION = '1.0.1';
-export const PRIVACY_EFFECTIVE_DATE = 'January 03, 2025';
-
-export default PRIVACY_POLICY;

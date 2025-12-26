@@ -1,7 +1,3 @@
-// Location: /apps/assessment/legal-docs/TERMS_OF_SERVICE.md
-// Terms of Service Document for AccellaX 361° Sports Academy Assessment
-
-export const TERMS_OF_SERVICE = `
 **TERMS OF SERVICE**
 
 **Effective Date:** January 01, 2025
@@ -243,9 +239,3 @@ You may not assign these Terms. We may assign them without notice.
 
 **Version:** 1.0.1  
 **Last Updated:** December 24, 2025
-`;
-
-export const TERMS_VERSION = '1.0.1';
-export const TERMS_EFFECTIVE_DATE = 'January 01, 2025';
-
-export default TERMS_OF_SERVICE;
