@@ -8,22 +8,19 @@ if (process.env.GOOGLE_SERVICES_JSON && process.env.EAS_BUILD) {
   
   let content = process.env.GOOGLE_SERVICES_JSON;
   
-  // Check if it's a file path
-  if (content.startsWith('/')) {
-    console.log('Environment variable is a file path:', content);
-    try {
-      content = fs.readFileSync(content, 'utf-8');
-      console.log('✓ Read file successfully');
-      console.log('File size:', content.length, 'bytes');
-      
-      // Verify it's valid JSON
-      const parsed = JSON.parse(content);
-      console.log('✓ Valid JSON');
-      console.log('Project ID:', parsed.project_info?.project_id);
-    } catch (e) {
-      console.error('ERROR reading file:', e.message);
-      throw e;
-    }
+  try {
+    // Try to parse as JSON to validate
+    const parsed = JSON.parse(content);
+    console.log('✓ Valid JSON');
+    console.log('Project ID:', parsed.project_info?.project_id);
+    
+    // Re-stringify to ensure clean formatting
+    content = JSON.stringify(parsed, null, 2);
+    console.log('✓ Cleaned and formatted JSON');
+    
+  } catch (e) {
+    console.error('ERROR: Invalid JSON in GOOGLE_SERVICES_JSON:', e.message);
+    throw e;
   }
   
   // Write to project root
