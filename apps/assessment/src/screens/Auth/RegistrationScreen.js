@@ -21,6 +21,7 @@ import { COLORS, APP_NAME, USER_ROLES } from '../../utils/constants';
 import { registerUser } from '../../utils/auth';
 import { initDatabase } from '../../database/db';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 import LegalDocumentBottomSheet from '../../components/modals/LegalDocumentBottomSheet';
 import {
@@ -53,6 +54,13 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [userName, setUserName] = useState('');
   const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+  });
   const emailInputRef = useRef(null);
 
   // Configure Google Sign-In on mount
@@ -332,13 +340,17 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
       } else if (result.cancelled) {
         console.log('ℹ️ Google sign-up cancelled by user');
       } else if (result.accountExists) {
-        // Account already exists - show message
-        setErrors({
-          general: 'An account with this Google email already exists. Please sign in instead.'
+        // Account already exists - show modal
+        setModalConfig({
+          visible: true,
+          title: 'Account Already Exists',
+          message: 'An account with this Google email already exists. Would you like to sign in instead?',
+          type: 'info',
+          onConfirm: () => {
+            setModalConfig({ ...modalConfig, visible: false });
+            navigation.navigate('Login');
+          },
         });
-        setTimeout(() => {
-          navigation.navigate('Login');
-        }, 2000);
       } else if (result.requiresBackend) {
         // Mobile OAuth requires backend
         setErrors({ 
@@ -447,13 +459,17 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
       } else if (result.cancelled) {
         console.log('ℹ️ Strava authorization cancelled by user');
       } else if (result.accountExists) {
-        // Account already exists - show message
-        setErrors({
-          general: 'An account with this Strava profile already exists. Please sign in instead.'
+        // Account already exists - show modal
+        setModalConfig({
+          visible: true,
+          title: 'Account Already Exists',
+          message: 'An account with this Strava profile already exists. Would you like to sign in instead?',
+          type: 'info',
+          onConfirm: () => {
+            setModalConfig({ ...modalConfig, visible: false });
+            navigation.navigate('Login');
+          },
         });
-        setTimeout(() => {
-          navigation.navigate('Login');
-        }, 2000);
       } else {
         console.error('❌ Strava sign-up failed:', result.error);
         setErrors({ general: result.error || 'Failed to sign up with Strava' });
@@ -861,6 +877,15 @@ const RegistrationScreen = ({ navigation, onAuthComplete }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Account Exists Modal */}
+      <ConfirmationModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+      />
 
       {/* Welcome Modal */}
       <Modal visible={showWelcomeModal} transparent animationType="fade">
