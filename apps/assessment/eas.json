@@ -7,29 +7,32 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "env": {
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "$GOOGLE_WEB_CLIENT_ID",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "$GOOGLE_ANDROID_CLIENT_ID",
         "EXPO_PUBLIC_STRAVA_CLIENT_ID": "$STRAVA_CLIENT_ID",
-        "EXPO_PUBLIC_STRAVA_CLIENT_SECRET": "$STRAVA_CLIENT_SECRET"
+        "EXPO_PUBLIC_OAUTH_BACKEND_URL": "$OAUTH_BACKEND_URL"
       }
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "$GOOGLE_WEB_CLIENT_ID",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "$GOOGLE_ANDROID_CLIENT_ID",
         "EXPO_PUBLIC_STRAVA_CLIENT_ID": "$STRAVA_CLIENT_ID",
-        "EXPO_PUBLIC_STRAVA_CLIENT_SECRET": "$STRAVA_CLIENT_SECRET"
+        "EXPO_PUBLIC_OAUTH_BACKEND_URL": "$OAUTH_BACKEND_URL"
       }
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "$GOOGLE_WEB_CLIENT_ID",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "$GOOGLE_ANDROID_CLIENT_ID",
         "EXPO_PUBLIC_STRAVA_CLIENT_ID": "$STRAVA_CLIENT_ID",
-        "EXPO_PUBLIC_STRAVA_CLIENT_SECRET": "$STRAVA_CLIENT_SECRET"
+        "EXPO_PUBLIC_OAUTH_BACKEND_URL": "$OAUTH_BACKEND_URL"
       }
     }
   },
