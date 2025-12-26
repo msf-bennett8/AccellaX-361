@@ -242,6 +242,9 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
 
     const tokenData = await tokenResponse.json();
     console.log('✅ Google tokens received from backend');
+    console.log('🔍 Token data keys:', Object.keys(tokenData));
+    console.log('🔍 Has firebase_token?', !!tokenData.firebase_token);
+    console.log('🔍 Full response:', JSON.stringify(tokenData, null, 2));
 
     // ✅ FIX: Sign in to Firebase FIRST (like Strava does)
     if (tokenData.firebase_token) {

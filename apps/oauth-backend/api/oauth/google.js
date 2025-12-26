@@ -1,3 +1,16 @@
+import admin from 'firebase-admin';
+
+// Initialize Firebase Admin (only once)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
 // Google OAuth token exchange endpoint
 export default async function handler(req, res) {
   // CORS headers
@@ -76,6 +89,10 @@ export default async function handler(req, res) {
 
     const userData = await userResponse.json();
 
+    // ✅ CREATE FIREBASE CUSTOM TOKEN (SAME AS STRAVA)
+    const userId = userData.id; // Use Google's user ID
+    const customToken = await admin.auth().createCustomToken(userId);
+
     // Return tokens and user data
     return res.status(200).json({
       access_token: tokenData.access_token,
@@ -87,6 +104,7 @@ export default async function handler(req, res) {
         name: userData.name,
         picture: userData.picture,
       },
+      firebase_token: customToken,
     });
 
   } catch (error) {
