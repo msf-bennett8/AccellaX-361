@@ -1,13 +1,11 @@
 // Location: /apps/assessment/App.js
 // Root application component with authentication check
 
-//import './src/utils/logManager';
-
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SyncProvider } from './src/contexts/SyncContext';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform, Linking } from 'react-native'; // ← ADDED Linking
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
@@ -98,6 +96,57 @@ export default function App() {
     }
   };
 
+  // ========== : DEEP LINK HANDLER ==========
+  const handleDeepLink = async ({ url }) => {
+    console.log('🔗 Deep link received:', url);
+    
+    try {
+      // Parse the URL
+      const urlObj = new URL(url);
+      const params = new URLSearchParams(urlObj.search);
+      
+      // Check if this is an OAuth callback
+      if (urlObj.pathname === '/oauth/callback' || url.includes('oauth/callback')) {
+        const code = params.get('code');
+        const error = params.get('error');
+        
+        if (error) {
+          console.error('❌ OAuth error:', error);
+          // TODO: Show error to user
+          return;
+        }
+        
+        if (code) {
+          console.log('✅ OAuth code received:', code.substring(0, 10) + '...');
+          // The OAuth service will handle this automatically
+          // Just log it for now - the browser flow already exchanged the token
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error parsing deep link:', error);
+    }
+  };
+
+  // ========== NEW: DEEP LINK LISTENER ==========
+  useEffect(() => {
+    // Handle deep links when app is already open
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    
+    // Check if app was opened with a deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('🔗 App opened with URL:', url);
+        handleDeepLink({ url });
+      }
+    });
+
+    // Cleanup
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+  // ========== END OF NEW CODE ==========
+
   const handleAuthComplete = async () => {
     console.log('🔄 Auth completed, checking status...');
     
@@ -113,12 +162,12 @@ export default function App() {
     });
 
     if (userProfile && currentUserId) {
-  // Sync legal documents from GitHub (background, non-blocking)
-  const { checkGitHubForUpdates } = await import('./src/utils/legalTracker');
-  checkGitHubForUpdates().catch(err => console.log('GitHub sync skipped:', err.message));
-  
-  // Check if legal terms have been updated
-  const versionCheck = await checkForVersionUpdate();
+      // Sync legal documents from GitHub (background, non-blocking)
+      const { checkGitHubForUpdates } = await import('./src/utils/legalTracker');
+      checkGitHubForUpdates().catch(err => console.log('GitHub sync skipped:', err.message));
+      
+      // Check if legal terms have been updated
+      const versionCheck = await checkForVersionUpdate();
       
       if (versionCheck.needsReAcceptance) {
         console.log('⚠️ Legal terms updated - showing acceptance modal');
