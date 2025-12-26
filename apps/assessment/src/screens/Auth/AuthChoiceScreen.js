@@ -46,7 +46,7 @@ const AuthChoiceScreen = ({ navigation }) => {
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
             <Image 
-              source={require('../../../assets/icon.png')} 
+              source={require('../../../assets/splash-icon.png')} 
               style={styles.logoImage}
               resizeMode="contain"
             />

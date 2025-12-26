@@ -183,7 +183,7 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
 
     const redirectUri = Platform.OS === 'web'
       ? AuthSession.makeRedirectUri({ scheme: 'accellax361', path: 'redirect' })
-      : `${backendUrl}/api/oauth/google/callback`;
+      : `${backendUrl}/api/callback`;
 
     console.log('📍 Redirect URI:', redirectUri);
 
