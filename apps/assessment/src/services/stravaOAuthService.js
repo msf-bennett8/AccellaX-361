@@ -12,6 +12,25 @@ import { signInWithCustomToken } from 'firebase/auth';
 // Enable web browser for authentication
 WebBrowser.maybeCompleteAuthSession();
 
+// Pending auth state management
+let pendingAuthResolve = null;
+let pendingAuthReject = null;
+
+/**
+ * Complete pending OAuth from deep link
+ */
+export const completePendingAuth = (code, error) => {
+  if (pendingAuthResolve) {
+    if (error) {
+      pendingAuthReject(new Error(error));
+    } else {
+      pendingAuthResolve(code);
+    }
+    pendingAuthResolve = null;
+    pendingAuthReject = null;
+  }
+};
+
 /**
  * Sign in with Strava (Login - must have existing account)
  */
@@ -51,11 +70,7 @@ const stravaOAuth = async (allowRegistration = false) => {
     }
 
     // Use backend callback for all platforms
-    const redirectUri = Platform.OS === 'web'
-      ? AuthSession.makeRedirectUri({ scheme: 'accellax361', path: 'redirect' })
-      : `${backendUrl}/api/callback`;
-
-    console.log('🔍 Strava Redirect URI:', redirectUri);
+    const redirectUri = `${backendUrl}/api/callback`;
 
     console.log('📍 Redirect URI:', redirectUri);
 
@@ -69,32 +84,28 @@ const stravaOAuth = async (allowRegistration = false) => {
 
     console.log('🔗 Opening Strava authorization in browser...');
 
-    // Open browser for authorization
-    const result = await WebBrowser.openAuthSessionAsync(
-      authUrl,
-      redirectUri
-    );
+    // Create promise that will be resolved by deep link handler
+    const codePromise = new Promise((resolve, reject) => {
+      pendingAuthResolve = resolve;
+      pendingAuthReject = reject;
+      
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        if (pendingAuthResolve) {
+          reject(new Error('Authentication timeout'));
+          pendingAuthResolve = null;
+          pendingAuthReject = null;
+        }
+      }, 300000);
+    });
 
-    console.log('📱 Browser result:', result.type);
+    // Open browser (don't await it - it will return 'dismiss')
+    WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
-    if (result.type === 'cancel') {
-      return { success: false, error: 'Authorization cancelled', cancelled: true };
-    }
-
-    if (result.type !== 'success') {
-      return { success: false, error: 'Authorization failed' };
-    }
-
-    // Extract authorization code from URL
-    const url = result.url;
-    const codeMatch = url.match(/code=([^&]+)/);
-    
-    if (!codeMatch) {
-      return { success: false, error: 'No authorization code received' };
-    }
-
-    const code = codeMatch[1];
-    console.log('✅ Authorization code received');
+    // Wait for deep link to resolve the promise
+    console.log('⏳ Waiting for authentication...');
+    const code = await codePromise;
+    console.log('✅ Authorization code received from deep link');
 
     // Exchange code for access token via backend
     console.log('🔄 Exchanging code for token via backend...');
@@ -168,6 +179,9 @@ const stravaOAuth = async (allowRegistration = false) => {
 
   } catch (error) {
     console.error('❌ Strava OAuth error:', error);
+    // Clean up pending state
+    pendingAuthResolve = null;
+    pendingAuthReject = null;
     return { 
       success: false, 
       error: error.message || 'Failed to authenticate with Strava' 

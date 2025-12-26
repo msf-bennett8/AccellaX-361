@@ -23,6 +23,26 @@ export const configureGoogleSignIn = () => {
 /**
  * Sign in with Google (Login - must have existing account)
  */
+
+// Pending auth state management
+let pendingAuthResolve = null;
+let pendingAuthReject = null;
+
+/**
+ * Complete pending OAuth from deep link
+ */
+export const completePendingAuth = (code, error) => {
+  if (pendingAuthResolve) {
+    if (error) {
+      pendingAuthReject(new Error(error));
+    } else {
+      pendingAuthResolve(code);
+    }
+    pendingAuthResolve = null;
+    pendingAuthReject = null;
+  }
+};
+
 export const signInWithGoogle = async () => {
   try {
     console.log('🔐 Starting Google Sign-In (Login)...');
@@ -147,24 +167,8 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
   try {
     console.log('🌐 Opening browser for Google authentication...');
 
-   /* Platform based auth
-    // Get appropriate client ID based on platform
-    let clientId;
-    if (Platform.OS === 'android') {
-      clientId = Constants.expoConfig?.extra?.googleAndroidClientId;
-      if (!clientId) {
-        console.warn('⚠️ Android Client ID not found, using Web Client ID');
-        clientId = Constants.expoConfig?.extra?.googleWebClientId;
-      }
-    } else {
-      clientId = Constants.expoConfig?.extra?.googleWebClientId;
-    }
-
-    */
-
     // Use Web Client ID for browser-based OAuth on all platforms
     const clientId = Constants.expoConfig?.extra?.googleWebClientId;
-
     const backendUrl = Constants.expoConfig?.extra?.oauthBackendUrl;
     
     if (!clientId) {
@@ -194,31 +198,28 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
 
     console.log('🔗 Opening OAuth URL in browser...');
     
-    const result = await WebBrowser.openAuthSessionAsync(
-      authUrl,
-      redirectUri
-    );
+    // Create promise that will be resolved by deep link handler
+    const codePromise = new Promise((resolve, reject) => {
+      pendingAuthResolve = resolve;
+      pendingAuthReject = reject;
+      
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        if (pendingAuthResolve) {
+          reject(new Error('Authentication timeout'));
+          pendingAuthResolve = null;
+          pendingAuthReject = null;
+        }
+      }, 300000);
+    });
 
-    console.log('📱 Browser result:', result.type);
+    // Open browser (don't await it - it will return 'dismiss')
+    WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
-    if (result.type === 'cancel') {
-      return { success: false, error: 'Authorization cancelled', cancelled: true };
-    }
-
-    if (result.type !== 'success') {
-      return { success: false, error: 'Authorization failed' };
-    }
-
-    // Extract authorization code from URL
-    const url = result.url;
-    const codeMatch = url.match(/code=([^&]+)/);
-    
-    if (!codeMatch) {
-      return { success: false, error: 'No authorization code received' };
-    }
-
-    const code = codeMatch[1];
-    console.log('✅ Authorization code received');
+    // Wait for deep link to resolve the promise
+    console.log('⏳ Waiting for authentication...');
+    const code = await codePromise;
+    console.log('✅ Authorization code received from deep link');
 
     // Exchange code for token via backend
     console.log('🔄 Exchanging code for token via backend...');
@@ -276,6 +277,9 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
 
   } catch (error) {
     console.error('❌ Browser authentication error:', error);
+    // Clean up pending state
+    pendingAuthResolve = null;
+    pendingAuthReject = null;
     throw error;
   }
 };

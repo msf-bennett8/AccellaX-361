@@ -112,14 +112,21 @@ export default function App() {
         
         if (error) {
           console.error('❌ OAuth error:', error);
-          // TODO: Show error to user
+          // Complete pending auth with error
+          const { completePendingAuth: completeGoogleAuth } = await import('./src/services/googleOAuthService');
+          const { completePendingAuth: completeStravaAuth } = await import('./src/services/stravaOAuthService');
+          completeGoogleAuth && completeGoogleAuth(null, error);
+          completeStravaAuth && completeStravaAuth(null, error);
           return;
         }
         
         if (code) {
           console.log('✅ OAuth code received:', code.substring(0, 10) + '...');
-          // The OAuth service will handle this automatically
-          // Just log it for now - the browser flow already exchanged the token
+          // Complete pending auth with code
+          const { completePendingAuth: completeGoogleAuth } = await import('./src/services/googleOAuthService');
+          const { completePendingAuth: completeStravaAuth } = await import('./src/services/stravaOAuthService');
+          completeGoogleAuth && completeGoogleAuth(code);
+          completeStravaAuth && completeStravaAuth(code);
         }
       }
     } catch (error) {
