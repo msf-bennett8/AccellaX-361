@@ -147,6 +147,7 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
   try {
     console.log('🌐 Opening browser for Google authentication...');
 
+   /* Platform based auth
     // Get appropriate client ID based on platform
     let clientId;
     if (Platform.OS === 'android') {
@@ -158,6 +159,11 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
     } else {
       clientId = Constants.expoConfig?.extra?.googleWebClientId;
     }
+
+    */
+
+    // Use Web Client ID for browser-based OAuth on all platforms
+    const clientId = Constants.expoConfig?.extra?.googleWebClientId;
 
     const backendUrl = Constants.expoConfig?.extra?.oauthBackendUrl;
     
