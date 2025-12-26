@@ -51,10 +51,9 @@ const stravaOAuth = async (allowRegistration = false) => {
     }
 
     // For mobile apps, always use the app scheme
-    const redirectUri = AuthSession.makeRedirectUri({
-      scheme: 'accellax361',
-      path: 'redirect',
-    });
+    const redirectUri = Platform.OS === 'web'
+      ? AuthSession.makeRedirectUri({ scheme: 'accellax361', path: 'redirect' })
+      : `${backendUrl}/api/oauth/strava/callback`;
 
     console.log('🔍 Strava Redirect URI:', redirectUri);
 
