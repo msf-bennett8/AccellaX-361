@@ -4,7 +4,7 @@
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
-import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithCredential, signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import Constants from 'expo-constants';
@@ -243,6 +243,14 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
     const tokenData = await tokenResponse.json();
     console.log('✅ Google tokens received from backend');
 
+    // ✅ FIX: Sign in to Firebase FIRST (like Strava does)
+    if (tokenData.firebase_token) {
+      await signInWithCustomToken(auth, tokenData.firebase_token);
+      console.log('✅ Signed in to Firebase');
+    } else {
+      throw new Error('No Firebase token received from backend');
+    }
+
     // Use the user data from backend response
     const userInfo = {
       id: tokenData.user.id,
@@ -251,7 +259,7 @@ const signInWithGoogleBrowser = async (allowRegistration = false) => {
       photo: tokenData.user.picture,
     };
 
-    // Check if user exists in Firebase
+    // Check if user exists in Firebase (now authenticated)
     const userRef = doc(db, 'users', userInfo.id);
     const userSnap = await getDoc(userRef);
 
