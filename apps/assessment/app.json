@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AccellaX 361° SAS",
-    "slug": "assessment",
+    "slug": "accellax-361",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -42,7 +42,7 @@
     "runtimeVersion": "1.0.1",
     "extra": {
       "eas": {
-        "projectId": "db0ab8da-ed3b-4d18-b387-6e2091f51ce2"
+        "projectId": "386ee937-53b4-4c79-b99b-9e25e29676aa"
       },
       "stravaClientId": "191762",
       "googleWebClientId": "432822095292-e6mjrbqgdgk089tpfn8to90nrcvrtage.apps.googleusercontent.com",
