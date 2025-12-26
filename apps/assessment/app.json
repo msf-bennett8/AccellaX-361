@@ -40,7 +40,7 @@
       "url": "https://u.expo.dev/db0ab8da-ed3b-4d18-b387-6e2091f51ce2"
     },
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "1.0.1"
     },
     "extra": {
       "eas": {
