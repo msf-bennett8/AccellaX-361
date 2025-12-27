@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-audio';
+import { Audio } from 'expo-av';
 
 const ReactionColorChoiceInput = ({ value, onChange, metric }) => {
   const [testState, setTestState] = useState('ready'); // ready, waiting, searching, complete
@@ -112,6 +112,16 @@ const ReactionColorChoiceInput = ({ value, onChange, metric }) => {
 
   const playErrorFeedback = async () => {
     try {
+      // ✅ Set audio mode for native platforms FIRST
+      if (Platform.OS !== 'web') {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      }
+      
       // Play ding sound
       try {
         const { sound } = await Audio.Sound.createAsync(
@@ -151,6 +161,16 @@ const ReactionColorChoiceInput = ({ value, onChange, metric }) => {
 
   const playCompletionFeedback = async () => {
     try {
+      // ✅ Set audio mode for native platforms FIRST
+      if (Platform.OS !== 'web') {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      }
+      
       // Play ding sound
       try {
         const { sound } = await Audio.Sound.createAsync(

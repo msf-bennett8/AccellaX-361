@@ -329,45 +329,14 @@ export default function SelectTestsScreen() {
         </View>
       </View>
 
-      {/* Template Actions */}
-      {templates.length > 0 && (
-        <View style={styles.templateSection}>
-          <TouchableOpacity
-            style={styles.templateButton}
-            onPress={() => setShowTemplateModal(true)}
-          >
-            <Ionicons name="folder-open-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.templateButtonText}>Load Template</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.templateButton}
-            onPress={handleSaveAsTemplate}
-          >
-            <Ionicons name="save-outline" size={16} color={COLORS.success} />
-            <Text style={[styles.templateButtonText, { color: COLORS.success }]}>Save as Template</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {templates.length === 0 && selectedTests.length > 0 && (
-        <View style={styles.templateSection}>
-          <TouchableOpacity
-            style={[styles.templateButton, { backgroundColor: COLORS.success + '10' }]}
-            onPress={handleSaveAsTemplate}
-          >
-            <Ionicons name="save-outline" size={16} color={COLORS.success} />
-            <Text style={[styles.templateButtonText, { color: COLORS.success }]}>Save as Template</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Category Filter */}
+      {/* Combined Filter + Template Section - Single Horizontal Row */}
       <View style={styles.filterSection}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterContent}
         >
+          {/* All Filter */}
           <TouchableOpacity
             style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
             onPress={() => setFilter('all')}
@@ -383,7 +352,29 @@ export default function SelectTestsScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Show Fitness filter ONLY for Fitness sport */}
+          {/* Load Template Button */}
+          {templates.length > 0 && (
+            <TouchableOpacity
+              style={styles.templateChip}
+              onPress={() => setShowTemplateModal(true)}
+            >
+              <Ionicons name="folder-open-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.templateChipText}>Load Template</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Save Template Button */}
+          {selectedTests.length > 0 && (
+            <TouchableOpacity
+              style={styles.templateChipSave}
+              onPress={handleSaveAsTemplate}
+            >
+              <Ionicons name="save-outline" size={16} color={COLORS.success} />
+              <Text style={styles.templateChipTextSave}>Save as Template</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Fitness filter - ONLY for Fitness sport */}
           {(sport.id === 'fitness' || sport.id === 'general') && (
             <TouchableOpacity
               style={[styles.filterChip, filter === 'general_fitness' && styles.filterChipActive]}
@@ -401,7 +392,7 @@ export default function SelectTestsScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Show Skills + Cognitive filters ONLY for non-Fitness sports */}
+          {/* Skills + Cognitive filters - ONLY for non-Fitness sports */}
           {sport.id !== 'fitness' && sport.id !== 'general' && (
             <>
               <TouchableOpacity
@@ -584,8 +575,8 @@ export default function SelectTestsScreen() {
       {/* Load Template Modal */}
       <Modal visible={showTemplateModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
+          <View style={styles.templateModalContent}>
+            <View style={styles.templateModalHeader}>
               <Text style={styles.modalTitle}>Load Template</Text>
               <TouchableOpacity onPress={() => setShowTemplateModal(false)}>
                 <Ionicons name="close" size={24} color={COLORS.text} />
@@ -625,7 +616,7 @@ export default function SelectTestsScreen() {
       {/* Save Template Modal */}
       <Modal visible={showSaveTemplateModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={styles.templateModalContent}>
             <Text style={styles.modalTitle}>Save as Template</Text>
             <TextInput
               style={styles.templateInput}
@@ -783,10 +774,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
   },
-  modalHeader: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   modalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -833,28 +820,40 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
-  templateSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: COLORS.white,
-    gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  templateButton: {
+    // Template chips (integrated into filter row)
+  templateChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primaryLight + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 8,
+    backgroundColor: COLORS.primaryLight + '20',
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: COLORS.primary + '30',
     gap: 6,
   },
-  templateButtonText: {
+  templateChipText: {
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  templateChipSave: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.success + '10',
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: COLORS.success + '30',
+    gap: 6,
+  },
+  templateChipTextSave: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.success,
   },
   templateList: {
     maxHeight: 400,
@@ -900,6 +899,23 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   modalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  templateModalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  templateModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

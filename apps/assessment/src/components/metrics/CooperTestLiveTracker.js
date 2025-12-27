@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-audio';
+import { Audio } from 'expo-av';
 import { COLORS } from '../../utils/constants';
 
 const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
@@ -77,7 +77,7 @@ const CooperTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     try {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
+        staysActiveInBackground: true,
       });
       
       const { sound: beepSound } = await Audio.Sound.createAsync(

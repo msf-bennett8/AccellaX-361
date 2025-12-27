@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-audio';
+import { Audio } from 'expo-av';
 
 const ReactionVisualSimpleInput = ({ value, onChange, metric }) => {
   const [testState, setTestState] = useState('ready'); // ready, waiting, reacting, complete
@@ -57,6 +57,16 @@ const ReactionVisualSimpleInput = ({ value, onChange, metric }) => {
 
   const playBeepAndVibrate = async () => {
     try {
+      // ✅ Set audio mode for native platforms FIRST
+      if (Platform.OS !== 'web') {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      }
+      
       try {
         const { sound } = await Audio.Sound.createAsync(
           require('../../assets/sounds/beep.mp3')
@@ -91,6 +101,16 @@ const ReactionVisualSimpleInput = ({ value, onChange, metric }) => {
 
   const playCompletionFeedback = async () => {
     try {
+      // ✅ Set audio mode for native platforms FIRST
+      if (Platform.OS !== 'web') {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      }
+      
       // Play ding sound
       try {
         const { sound } = await Audio.Sound.createAsync(

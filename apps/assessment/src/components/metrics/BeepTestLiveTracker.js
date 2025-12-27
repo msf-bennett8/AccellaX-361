@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-audio';
+import { Audio } from 'expo-av';
 import { COLORS } from '../../utils/constants';
 
 // Beep Test Protocol - Official Multi-Stage Fitness Test
@@ -62,8 +62,15 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   useEffect(() => {
     return () => {
       if (sound) {
-        sound.stopAsync().catch(() => {});
-        sound.unloadAsync().catch(() => {});
+        if (Platform.OS === 'web') {
+          // Web: HTML5 Audio cleanup
+          sound.pause();
+          sound.currentTime = 0;
+        } else {
+          // Native: expo-av cleanup
+          sound.stopAsync().catch(() => {});
+          sound.unloadAsync().catch(() => {});
+        }
       }
     };
   }, [sound]);
@@ -134,45 +141,67 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
     return () => {
       // Clean up audio on unmount
       if (sound) {
-        sound.stopAsync().then(() => {
-          sound.unloadAsync();
-          console.log('🧹 Audio cleaned up');
-        }).catch(err => {
-          console.error('Error cleaning up audio:', err);
-        });
+        if (Platform.OS === 'web') {
+          // Web: HTML5 Audio cleanup
+          sound.pause();
+          sound.currentTime = 0;
+          console.log('🧹 Web audio cleaned up');
+        } else {
+          // Native: expo-av cleanup
+          sound.stopAsync().then(() => {
+            sound.unloadAsync();
+            console.log('🧹 Native audio cleaned up');
+          }).catch(err => {
+            console.error('Error cleaning up audio:', err);
+          });
+        }
       }
     };
   }, []);
 
   const loadBeepTestAudio = async () => {
     try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
-      
-      // Load official beep test audio (complete track with announcements)
-      const { sound: beepTestSound } = await Audio.Sound.createAsync(
-        require('../../../assets/sounds/beep.mp3'), // Official beep test audio
-        { shouldPlay: false }
-      );
-      setSound(beepTestSound);
-      
-      // Audio loaded successfully
+      // Check if we're on web or native
+      if (Platform.OS === 'web') {
+        // Web: Use HTML5 Audio
+        console.log('🌐 Loading audio for web (HTML5)');
+        const audio = new window.Audio();
+        audio.src = require('../../../assets/sounds/beep.mp3');
+        audio.preload = 'auto';
+        setSound(audio);
+        console.log('✅ Web audio loaded');
+      } else {
+        // Native: Use expo-audio
+        console.log('📱 Loading audio for native (expo-audio)');
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+        
+        const { sound: beepTestSound } = await Audio.Sound.createAsync(
+          require('../../../assets/sounds/beep.mp3'),
+          { shouldPlay: false }
+        );
+        setSound(beepTestSound);
+        console.log('✅ Native audio loaded');
+      }
     } catch (error) {
-      console.error('Error loading beep test audio:', error);
-      // Audio error will be shown when trying to play
+      console.error('❌ Error loading beep test audio:', error);
     }
   };
 
   const playBeepTestAudio = async (startPosition = 0) => {
     if (sound) {
       try {
-        await sound.setPositionAsync(startPosition + audioStartDelay);
-        await sound.playAsync();
-        // Playing audio
+        if (Platform.OS === 'web') {
+          sound.currentTime = (startPosition + audioStartDelay) / 1000;
+          sound.play();
+        } else {
+          await sound.setPositionAsync(startPosition + audioStartDelay);
+          await sound.playAsync();
+        }
       } catch (error) {
         console.error('Error playing beep test audio:', error);
       }
@@ -182,8 +211,11 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   const pauseBeepTestAudio = async () => {
     if (sound) {
       try {
-        await sound.pauseAsync();
-        // Audio paused
+        if (Platform.OS === 'web') {
+          sound.pause();
+        } else {
+          await sound.pauseAsync();
+        }
       } catch (error) {
         console.error('Error pausing beep test audio:', error);
       }
@@ -193,9 +225,13 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   const stopBeepTestAudio = async () => {
     if (sound) {
       try {
-        await sound.pauseAsync();
-        await sound.setPositionAsync(0);
-        // Audio stopped
+        if (Platform.OS === 'web') {
+          sound.pause();
+          sound.currentTime = 0;
+        } else {
+          await sound.pauseAsync();
+          await sound.setPositionAsync(0);
+        }
       } catch (error) {
         console.error('Error stopping beep test audio:', error);
       }
@@ -205,8 +241,11 @@ const BeepTestLiveTracker = ({ kids = [], onSave, onCancel }) => {
   const resumeBeepTestAudio = async () => {
     if (sound) {
       try {
-        await sound.playAsync();
-        // Audio resumed
+        if (Platform.OS === 'web') {
+          sound.play();
+        } else {
+          await sound.playAsync();
+        }
       } catch (error) {
         console.error('Error resuming beep test audio:', error);
       }
